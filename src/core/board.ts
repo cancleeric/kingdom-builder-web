@@ -1,4 +1,4 @@
-import { AxialCoord, hexToKey, keyToHex } from './hex';
+import { AxialCoord, hexToKey } from './hex';
 import { Terrain, Location } from './terrain';
 import { HexCell } from '../types';
 
