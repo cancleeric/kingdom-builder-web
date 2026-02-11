@@ -24,6 +24,7 @@ function App() {
   // Initialize game on mount
   useEffect(() => {
     initGame(2); // Start with 2 players for testing
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   const currentPlayer = players[currentPlayerIndex];
@@ -165,7 +166,7 @@ function App() {
                     <span className="font-medium">{player.name}</span>
                   </div>
                   <p className="text-xs text-gray-600">
-                    Settlements: {player.settlements.length} / {40 - player.remainingSettlements}
+                    Placed: {player.settlements.length} | Remaining: {player.remainingSettlements}
                   </p>
                 </div>
               ))}
