@@ -1,6 +1,6 @@
 import { describe, it, expect } from 'vitest';
 import { Board, createDefaultBoard } from './board';
-import { Terrain, Location } from './terrain';
+import { Terrain } from './terrain';
 
 describe('Board', () => {
   describe('Board class', () => {
