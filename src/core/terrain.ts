@@ -1,42 +1,121 @@
-export type TerrainType = 
-  | 'grass'
-  | 'forest'
-  | 'desert'
-  | 'flower'
-  | 'canyon'
-  | 'mountain'
-  | 'water'
-  | 'castle'
-  | 'location'
-
-export const TERRAIN_COLORS: Record<TerrainType, string> = {
-  grass: '#4ade80',
-  forest: '#166534',
-  desert: '#fbbf24',
-  flower: '#f9a8d4',
-  canyon: '#ea580c',
-  mountain: '#6b7280',
-  water: '#3b82f6',
-  castle: '#7c3aed',
-  location: '#f59e0b',
+/**
+ * Terrain types in Kingdom Builder
+ */
+export enum Terrain {
+  Grass = 'Grass',
+  Forest = 'Forest',
+  Desert = 'Desert',
+  Flower = 'Flower',
+  Canyon = 'Canyon',
+  Water = 'Water',
+  Mountain = 'Mountain',
 }
 
-export const TERRAIN_LABELS: Record<TerrainType, string> = {
-  grass: '草地',
-  forest: '森林',
-  desert: '沙漠',
-  flower: '花田',
-  canyon: '峽谷',
-  mountain: '山脈',
-  water: '水域',
-  castle: '城堡',
-  location: '地點',
+/**
+ * Special locations on the board
+ */
+export enum Location {
+  Castle = 'Castle',
+  Farm = 'Farm',
+  Oasis = 'Oasis',
+  Tower = 'Tower',
+  Harbor = 'Harbor',
+  Paddock = 'Paddock',
+  Barn = 'Barn',
+  Oracle = 'Oracle',
+  Tavern = 'Tavern',
 }
 
-export const BUILDABLE_TERRAINS: TerrainType[] = [
-  'grass', 'forest', 'desert', 'flower', 'canyon'
-]
+/**
+ * Check if a terrain type can have settlements placed on it
+ */
+export function isBuildable(terrain: Terrain): boolean {
+  return terrain !== Terrain.Mountain && terrain !== Terrain.Water;
+}
 
-export const CARD_TERRAINS: TerrainType[] = [
-  'grass', 'forest', 'desert', 'flower', 'canyon'
-]
+/**
+ * Get color for terrain type
+ */
+export function getTerrainColor(terrain: Terrain): string {
+  switch (terrain) {
+    case Terrain.Grass:
+      return '#90EE90'; // Light green
+    case Terrain.Forest:
+      return '#228B22'; // Forest green
+    case Terrain.Desert:
+      return '#F4A460'; // Sandy brown
+    case Terrain.Flower:
+      return '#FFB6C1'; // Light pink
+    case Terrain.Canyon:
+      return '#D2691E'; // Chocolate brown
+    case Terrain.Water:
+      return '#4682B4'; // Steel blue
+    case Terrain.Mountain:
+      return '#808080'; // Gray
+    default:
+      return '#FFFFFF'; // White fallback
+  }
+}
+
+/**
+ * Get display name for terrain
+ */
+export function getTerrainName(terrain: Terrain): string {
+  return terrain;
+}
+
+/**
+ * Terrain card for drawing each turn
+ */
+export interface TerrainCard {
+  terrain: Terrain;
+}
+
+/**
+ * Create a standard deck of terrain cards (excluding non-buildable terrains)
+ */
+export function createTerrainDeck(): TerrainCard[] {
+  const buildableTerrains = [
+    Terrain.Grass,
+    Terrain.Forest,
+    Terrain.Desert,
+    Terrain.Flower,
+    Terrain.Canyon,
+  ];
+
+  // Create 5 cards of each buildable terrain type
+  const deck: TerrainCard[] = [];
+  buildableTerrains.forEach(terrain => {
+    for (let i = 0; i < 5; i++) {
+      deck.push({ terrain });
+    }
+  });
+
+  return deck;
+}
+
+/**
+ * Shuffle an array in place using Fisher-Yates algorithm
+ * @param deck - array to shuffle
+ * @param rng - optional seeded random number generator (defaults to Math.random)
+ */
+export function shuffleDeck<T>(deck: T[], rng: () => number = Math.random): T[] {
+  const shuffled = [...deck];
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(rng() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
+  }
+  return shuffled;
+}
+
+/**
+ * Draw a card from the deck
+ */
+export function drawCard(deck: TerrainCard[]): { card: TerrainCard | null; remainingDeck: TerrainCard[] } {
+  if (deck.length === 0) {
+    return { card: null, remainingDeck: [] };
+  }
+  
+  const [card, ...remainingDeck] = deck;
+  return { card, remainingDeck };
+}

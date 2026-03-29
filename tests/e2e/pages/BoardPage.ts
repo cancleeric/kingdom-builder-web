@@ -1,5 +1,8 @@
 import type { Page } from '@playwright/test'
 
+/**
+ * Page Object for the hex game board (HexGrid / HexCell SVG elements).
+ */
 export class BoardPage {
   constructor(private page: Page) {}
 
@@ -18,35 +21,29 @@ export class BoardPage {
   }
 
   async getHexTerrain(q: number, r: number): Promise<string | null> {
-    const el = this.page.locator(`[data-testid="hex-${q}-${r}"]`)
-    return el.getAttribute('data-terrain')
+    return this.page.locator(`[data-testid="hex-${q}-${r}"]`).getAttribute('data-terrain')
   }
 
-  async clickFirstValidHex() {
-    const validHexes = await this.getValidHexes()
-    if (validHexes.length === 0) return null
-    const first = validHexes[0]
-    const testId = await first.getAttribute('data-testid')
-    await first.click()
+  /** Click the first available valid hex. Returns its data-testid, or null if none. */
+  async clickFirstValidHex(): Promise<string | null> {
+    const hexes = await this.getValidHexes()
+    if (hexes.length === 0) return null
+    const testId = await hexes[0].getAttribute('data-testid')
+    await hexes[0].click()
     return testId
   }
 
+  /** Place up to n settlements on valid hexes, waiting briefly between clicks. */
   async placeNSettlements(n: number) {
     for (let i = 0; i < n; i++) {
-      const validHexes = await this.getValidHexes()
-      if (validHexes.length === 0) break
-      const hex = validHexes[0]
-      const testId = await hex.getAttribute('data-testid')
-      await hex.click()
-      if (testId) {
-        await this.page.waitForFunction(
-          (id: string) => {
-            const el = document.querySelector(`[data-testid="${id}"]`)
-            return el?.getAttribute('data-owner') !== ''
-          },
-          testId,
-        )
-      }
+      const hexes = await this.getValidHexes()
+      if (hexes.length === 0) break
+      await hexes[0].click()
+      await this.page.waitForTimeout(150)
     }
+  }
+
+  async getValidHexCount() {
+    return this.page.locator('[data-testid^="hex-"][data-valid="true"]').count()
   }
 }

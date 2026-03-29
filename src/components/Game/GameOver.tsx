@@ -1,52 +1,89 @@
-import { useGameStore } from '../../store/gameStore'
+import { PlayerScore } from '../../types';
+import { ObjectiveCard } from '../../core/scoring';
+import { Player } from '../../types';
 
-export default function GameOver() {
-  const scores = useGameStore(state => state.scores)
-  const resetGame = useGameStore(state => state.resetGame)
+interface GameOverProps {
+  finalScores: PlayerScore[];
+  players: Player[];
+  objectiveCards: ObjectiveCard[];
+  onNewGame: () => void;
+}
 
-  const sorted = [...scores].sort((a, b) => b.total - a.total)
-  const winner = sorted[0]
+export function GameOver({
+  finalScores,
+  players,
+  objectiveCards,
+  onNewGame,
+}: GameOverProps) {
+  const sorted = [...finalScores].sort((a, b) => b.totalScore - a.totalScore);
+  const getPlayer = (id: number) => players.find(p => p.id === id);
 
   return (
-    <div className="flex flex-col items-center justify-center min-h-screen p-8" data-testid="gameover-modal">
-      <div className="bg-gray-800 rounded-xl p-8 w-full max-w-md text-center">
-        <h1 className="text-4xl font-bold text-yellow-400 mb-2">遊戲結束！</h1>
-        {winner && (
-          <p className="text-xl mb-6 text-gray-300">
-            🏆 勝者：<span className="text-white font-bold">{winner.name}</span>
-          </p>
-        )}
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50" data-testid="gameover-modal">
+      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
+        <h2 className="text-3xl font-bold text-center mb-2">🏆 Game Over!</h2>
+        <p className="text-gray-600 text-center mb-6">Final Rankings</p>
 
-        <div className="space-y-3 mb-8" data-testid="scores-list">
-          {sorted.map((score, i) => (
-            <div
-              key={score.player}
-              className="flex justify-between items-center p-3 bg-gray-700 rounded-lg"
-              data-testid={`score-row-${score.player}`}
-            >
-              <span className="font-medium">
-                {i + 1}. {score.name}
-              </span>
-              <div className="text-right">
-                <div className="font-bold text-yellow-400">
-                  <span data-testid={`score-total-${score.player}`}>{score.total}</span> 分
+        {/* Ranking list */}
+        <div className="space-y-3 mb-6">
+          {sorted.map((score, index) => {
+            const player = getPlayer(score.playerId);
+            const medal = ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`;
+            return (
+              <div
+                key={score.playerId}
+                className="flex items-center gap-3 p-3 rounded-lg border-2"
+                style={{ borderColor: player?.color ?? '#ccc' }}
+                data-testid={`score-row-${score.playerId}`}
+              >
+                <span className="text-2xl">{medal}</span>
+                <div
+                  className="w-5 h-5 rounded-full border border-gray-800 shrink-0"
+                  style={{ backgroundColor: player?.color ?? '#ccc' }}
+                />
+                <div className="flex-1">
+                  <p className="font-semibold">{player?.name ?? `Player ${score.playerId}`}</p>
+                  <div className="text-xs text-gray-500 space-y-0.5 mt-0.5">
+                    <p>🏰 Castle: {score.castleScore} pts</p>
+                    {score.objectiveScores.map(({ card, score: s }) => (
+                      <p key={card}>
+                        🎯 {card}: {s} pts
+                      </p>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-xs text-gray-400">
-                  城堡: {score.castleBonus} | 房屋: {score.settlementCount}
+                <div className="text-right">
+                  <p className="text-2xl font-bold" data-testid={`score-total-${score.playerId}`}>{score.totalScore}</p>
+                  <p className="text-xs text-gray-500">pts</p>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
+        </div>
+
+        {/* Objective cards used */}
+        <div className="mb-6 p-3 bg-gray-50 rounded-lg">
+          <p className="text-sm font-semibold text-gray-700 mb-1">Objective Cards</p>
+          <div className="flex flex-wrap gap-2">
+            {objectiveCards.map(card => (
+              <span
+                key={card}
+                className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+              >
+                {card}
+              </span>
+            ))}
+          </div>
         </div>
 
         <button
-          onClick={resetGame}
-          className="w-full py-3 bg-yellow-500 hover:bg-yellow-400 text-gray-900 font-bold rounded-lg"
-          data-testid="play-again-btn"
+          onClick={onNewGame}
+          className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
+          data-testid="new-game-btn"
         >
-          再玩一次
+          New Game
         </button>
       </div>
     </div>
-  )
+  );
 }
