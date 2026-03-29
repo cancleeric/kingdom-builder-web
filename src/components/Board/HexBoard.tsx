@@ -1,4 +1,3 @@
-import React from 'react';
 import type { HexCell, HexCoord } from '../../types';
 import type { PlayerColor } from '../../types/setup';
 import { hexToPixel, hexCorners } from '../../core/hex';

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import type { PlayerConfig, PlayerColor, PlayerCount } from '../../types/setup';
 
 const OFFICIAL_COLORS: { color: PlayerColor; label: string; bg: string; border: string }[] = [

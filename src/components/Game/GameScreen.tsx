@@ -1,4 +1,3 @@
-import React from 'react';
 import type { GameState } from '../../types';
 import type { PlayerColor } from '../../types/setup';
 import { HexBoard } from '../Board/HexBoard';

@@ -1,4 +1,3 @@
-import React from 'react';
 import { useGameStore } from './store/gameStore';
 import { GameSetup } from './components/Setup/GameSetup';
 import { GameScreen } from './components/Game/GameScreen';
