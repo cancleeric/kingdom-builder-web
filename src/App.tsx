@@ -1,8 +1,12 @@
-import { useEffect } from 'react'
+import { lazy, Suspense, useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
-import { HexGrid } from './components/Board/HexGrid'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
+import { BoardSkeleton } from './components/UI/BoardSkeleton'
+
+const HexGrid = lazy(() =>
+  import('./components/Board/HexGrid').then(m => ({ default: m.HexGrid }))
+)
 
 function App() {
   const {
@@ -21,11 +25,10 @@ function App() {
     selectCell,
   } = useGameStore();
 
-  // Initialize game on mount
+  // Initialize game on mount. initGame is a stable Zustand action reference.
   useEffect(() => {
     initGame(2); // Start with 2 players for testing
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [initGame]);
 
   const currentPlayer = players[currentPlayerIndex];
 
@@ -53,14 +56,16 @@ function App() {
         {/* Game Board */}
         <div className="flex-1 relative">
           {players.length > 0 && (
-            <HexGrid
-              board={board}
-              validPlacements={validPlacements}
-              selectedCell={selectedCell}
-              players={players}
-              onCellClick={handlePlaceSettlement}
-              onCellSelect={selectCell}
-            />
+            <Suspense fallback={<BoardSkeleton />}>
+              <HexGrid
+                board={board}
+                validPlacements={validPlacements}
+                selectedCell={selectedCell}
+                players={players}
+                onCellClick={handlePlaceSettlement}
+                onCellSelect={selectCell}
+              />
+            </Suspense>
           )}
         </div>
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { hexCorners, HEX_SIZE } from '../../core/hex';
 import { HexCell as HexCellType } from '../../types';
 import { getTerrainColor } from '../../core/terrain';
@@ -14,7 +14,7 @@ interface HexCellProps {
   onMouseLeave: () => void;
 }
 
-export const HexCell: React.FC<HexCellProps> = ({
+export const HexCell: React.FC<HexCellProps> = React.memo(({
   cell,
   isValid,
   isSelected,
@@ -24,8 +24,8 @@ export const HexCell: React.FC<HexCellProps> = ({
   onMouseEnter,
   onMouseLeave,
 }) => {
-  const corners = hexCorners(cell.coord, HEX_SIZE);
-  const points = corners.map(c => `${c.x},${c.y}`).join(' ');
+  const corners = useMemo(() => hexCorners(cell.coord, HEX_SIZE), [cell.coord]);
+  const points = useMemo(() => corners.map(c => `${c.x},${c.y}`).join(' '), [corners]);
   
   const terrainColor = getTerrainColor(cell.terrain);
   
@@ -91,4 +91,6 @@ export const HexCell: React.FC<HexCellProps> = ({
       )}
     </g>
   );
-};
+});
+
+HexCell.displayName = 'HexCell';

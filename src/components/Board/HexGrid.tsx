@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Board } from '../../core/board';
 import { AxialCoord, hexEquals, HEX_SIZE } from '../../core/hex';
 import { HexCell } from './HexCell';
@@ -13,7 +13,7 @@ interface HexGridProps {
   onCellSelect: (coord: AxialCoord | null) => void;
 }
 
-export const HexGrid: React.FC<HexGridProps> = ({
+export const HexGrid: React.FC<HexGridProps> = React.memo(({
   board,
   validPlacements,
   selectedCell,
@@ -22,43 +22,72 @@ export const HexGrid: React.FC<HexGridProps> = ({
   onCellSelect,
 }) => {
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
-  
-  const cells = board.getAllCells();
-  
+
+  const cells = useMemo(() => board.getAllCells(), [board]);
+
   // Calculate SVG dimensions
   const padding = HEX_SIZE * 2;
-  const width = board.width * HEX_SIZE * Math.sqrt(3) + padding * 2;
-  const height = board.height * HEX_SIZE * 1.5 + padding * 2;
-  
-  const viewBoxWidth = width;
-  const viewBoxHeight = height;
+  const boardWidth = board.width;
+  const boardHeight = board.height;
+
+  const width = useMemo(
+    () => boardWidth * HEX_SIZE * Math.sqrt(3) + padding * 2,
+    [boardWidth, padding],
+  );
+  const height = useMemo(
+    () => boardHeight * HEX_SIZE * 1.5 + padding * 2,
+    [boardHeight, padding],
+  );
+
+  const viewBox = useMemo(() => `0 0 ${width} ${height}`, [width, height]);
+
+  const transform = useMemo(
+    () =>
+      `translate(${padding + width / 2 - boardWidth * HEX_SIZE}, ${
+        padding + height / 2 - boardHeight * HEX_SIZE
+      })`,
+    [padding, width, height, boardWidth, boardHeight],
+  );
+
+  // Build a Set of valid placement keys for O(1) lookup
+  const validSet = useMemo(
+    () => new Set(validPlacements.map(v => `${v.q},${v.r}`)),
+    [validPlacements],
+  );
+
+  // Build a map from playerId -> color for O(1) lookup
+  const playerColorMap = useMemo(
+    () => new Map(players.map(p => [p.id, p.color])),
+    [players],
+  );
+
+  const handleMouseLeave = useCallback(() => {
+    setHoveredCell(null);
+    onCellSelect(null);
+  }, [onCellSelect]);
 
   return (
     <div className="w-full h-full flex items-center justify-center bg-gray-100 overflow-auto">
       <svg
         width="100%"
         height="100%"
-        viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+        viewBox={viewBox}
         className="max-w-full max-h-full"
       >
-        <g transform={`translate(${padding + width / 2 - board.width * HEX_SIZE}, ${padding + height / 2 - board.height * HEX_SIZE})`}>
+        <g transform={transform}>
           {cells.map(cell => {
-            const isValid = validPlacements.some(
-              valid => hexEquals(valid, cell.coord)
-            );
+            const key = `${cell.coord.q},${cell.coord.r}`;
+            const isValid = validSet.has(key);
             const isSelected = selectedCell !== null && hexEquals(selectedCell, cell.coord);
             const isHovered = hoveredCell !== null && hexEquals(hoveredCell, cell.coord);
-            
-            // Find player color if settlement exists
-            let playerColor: string | undefined;
-            if (cell.settlement !== undefined) {
-              const player = players.find(p => p.id === cell.settlement);
-              playerColor = player?.color;
-            }
-            
+            const playerColor =
+              cell.settlement !== undefined
+                ? playerColorMap.get(cell.settlement)
+                : undefined;
+
             return (
               <HexCell
-                key={`${cell.coord.q},${cell.coord.r}`}
+                key={key}
                 cell={cell}
                 isValid={isValid}
                 isSelected={isSelected}
@@ -75,10 +104,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
                     onCellSelect(cell.coord);
                   }
                 }}
-                onMouseLeave={() => {
-                  setHoveredCell(null);
-                  onCellSelect(null);
-                }}
+                onMouseLeave={handleMouseLeave}
               />
             );
           })}
@@ -86,4 +112,6 @@ export const HexGrid: React.FC<HexGridProps> = ({
       </svg>
     </div>
   );
-};
+});
+
+HexGrid.displayName = 'HexGrid';
