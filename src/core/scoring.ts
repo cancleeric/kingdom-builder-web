@@ -80,10 +80,12 @@ export function getConnectedGroups(board: Board, playerId: number): AxialCoord[]
 // Helper: quadrant classification
 // ────────────────────────────────────────────────────
 
-/** Returns 0=NW, 1=NE, 2=SW, 3=SE for a given coordinate on a 20x20 board */
-export function getQuadrant(coord: AxialCoord): number {
-  const q = coord.q < 10 ? 0 : 1; // 0=west, 1=east
-  const r = coord.r < 10 ? 0 : 1; // 0=north, 1=south
+/** Returns 0=NW, 1=NE, 2=SW, 3=SE for a given coordinate based on board dimensions */
+export function getQuadrant(coord: AxialCoord, boardWidth: number = 20, boardHeight: number = 20): number {
+  const midQ = boardWidth / 2;
+  const midR = boardHeight / 2;
+  const q = coord.q < midQ ? 0 : 1; // 0=west, 1=east
+  const r = coord.r < midR ? 0 : 1; // 0=north, 1=south
   return r * 2 + q; // 0=NW,1=NE,2=SW,3=SE
 }
 
@@ -198,7 +200,7 @@ export function scoreFarmers(board: Board, playerId: number): number {
   const counts = [0, 0, 0, 0];
 
   for (const cell of settlements) {
-    counts[getQuadrant(cell.coord)]++;
+    counts[getQuadrant(cell.coord, board.width, board.height)]++;
   }
 
   return Math.max(...counts);
@@ -291,7 +293,7 @@ export function scoreLords(board: Board, playerId: number): number {
   const occupiedQuadrants = new Set<number>();
 
   for (const cell of settlements) {
-    occupiedQuadrants.add(getQuadrant(cell.coord));
+    occupiedQuadrants.add(getQuadrant(cell.coord, board.width, board.height));
   }
 
   return occupiedQuadrants.size * 3;

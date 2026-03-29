@@ -291,7 +291,8 @@ export const useGameStore = create<GameState>((set, get) => ({
     const nextPlayerIndex =
       (state.currentPlayerIndex + 1) % state.players.length;
 
-    // Game ends when ANY player runs out of settlements
+    // Per spec: game ends when ANY player runs out of settlements
+    // (Kingdom Builder rule: "任一玩家用完所有 40 間房屋")
     if (state.players.some(p => p.remainingSettlements === 0)) {
       const finalScores = buildPlayerScores(
         state.board,
