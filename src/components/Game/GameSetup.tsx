@@ -1,54 +1,56 @@
 import React, { useState } from 'react';
-import type { PlayerType } from '../../types';
+import type { PlayerConfig } from '../../store/gameStore';
+import type { BotDifficulty } from '../../ai/botPlayer';
 
 interface GameSetupProps {
-  onStart: (playerTypes: PlayerType[], seed?: number) => void;
+  onStart: (configs: PlayerConfig[]) => void;
 }
 
-const PLAYER_TYPE_LABELS: Record<PlayerType, string> = {
-  human: '👤 Human',
-  'bot-easy': '🤖 Bot (Easy)',
-  'bot-normal': '🤖 Bot (Normal)',
-  'bot-hard': '🤖 Bot (Hard)',
-};
+type PlayerType = 'human' | BotDifficulty;
 
-const PLAYER_COLORS = ['Red', 'Blue', 'Green', 'Orange'];
+const PLAYER_TYPE_OPTIONS: { value: PlayerType; label: string }[] = [
+  { value: 'human',  label: '👤 Human' },
+  { value: 'easy',   label: '🤖 Bot (Easy)' },
+  { value: 'normal', label: '🤖 Bot (Normal)' },
+  { value: 'hard',   label: '🤖 Bot (Hard)' },
+];
+
+const PLAYER_COLORS = ['Red', 'Cyan', 'Yellow', 'Mint'];
+const PLAYER_HEX_COLORS = ['#FF6B6B', '#4ECDC4', '#FFE66D', '#95E1D3'];
+const DEFAULT_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
 export const GameSetup: React.FC<GameSetupProps> = ({ onStart }) => {
   const [playerCount, setPlayerCount] = useState(2);
-  const [playerTypes, setPlayerTypes] = useState<PlayerType[]>(['human', 'bot-normal', 'human', 'human']);
-  const [useRandomSeed, setUseRandomSeed] = useState(false);
-  const [seed, setSeed] = useState('42');
-
-  const handlePlayerTypeChange = (index: number, type: PlayerType) => {
-    const updated = [...playerTypes];
-    updated[index] = type;
-    setPlayerTypes(updated);
-  };
+  const [playerTypes, setPlayerTypes] = useState<PlayerType[]>([
+    'human', 'normal', 'human', 'human',
+  ]);
+  const [playerNames, setPlayerNames] = useState<string[]>(DEFAULT_NAMES.slice());
 
   const handleStart = () => {
-    const types = playerTypes.slice(0, playerCount);
-    const gameSeed = useRandomSeed ? undefined : parseInt(seed, 10) || 42;
-    onStart(types, gameSeed);
+    const configs: PlayerConfig[] = Array.from({ length: playerCount }, (_, i) => ({
+      name: playerNames[i] || DEFAULT_NAMES[i],
+      type: playerTypes[i],
+    }));
+    onStart(configs);
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-amber-50 to-emerald-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-2xl shadow-xl p-8 max-w-lg w-full">
-        <h1 className="text-3xl font-bold text-center text-amber-800 mb-2">
-          👑 Kingdom Builder
-        </h1>
-        <p className="text-center text-gray-500 mb-8 text-sm">
-          Strategic hex-grid kingdom building game
-        </p>
+  const hasBot = playerTypes.slice(0, playerCount).some(t => t !== 'human');
 
-        {/* Player Count */}
+  return (
+    <div className="min-h-screen bg-amber-50 flex items-center justify-center p-4">
+      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-md">
+        {/* Title */}
+        <div className="text-center mb-6">
+          <div className="text-5xl mb-2">👑</div>
+          <h1 className="text-3xl font-bold text-amber-800">Kingdom Builder</h1>
+          <p className="text-gray-500 mt-1">Strategic hex-grid kingdom building game</p>
+        </div>
+
+        {/* Player count */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Number of Players
-          </label>
+          <div className="font-semibold text-gray-700 mb-2">Number of Players</div>
           <div className="flex gap-2">
-            {[2, 3, 4].map((n) => (
+            {[2, 3, 4].map(n => (
               <button
                 key={n}
                 onClick={() => setPlayerCount(n)}
@@ -64,32 +66,41 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStart }) => {
           </div>
         </div>
 
-        {/* Player Types */}
+        {/* Per-player settings */}
         <div className="mb-6">
-          <label className="block text-sm font-semibold text-gray-700 mb-2">
-            Player Settings
-          </label>
-          <div className="space-y-3">
+          <div className="font-semibold text-gray-700 mb-2">Player Settings</div>
+          <div className="space-y-2">
             {Array.from({ length: playerCount }, (_, i) => (
-              <div key={i} className="flex items-center gap-3">
-                <span
+              <div key={i} className="flex items-center gap-2">
+                <div
                   className="w-4 h-4 rounded-full flex-shrink-0"
-                  style={{
-                    backgroundColor: ['#e74c3c', '#3498db', '#2ecc71', '#f39c12'][i],
-                  }}
+                  style={{ backgroundColor: PLAYER_HEX_COLORS[i] }}
                 />
-                <span className="text-sm font-medium text-gray-600 w-16 flex-shrink-0">
+                <span className="text-sm text-gray-500 w-10 flex-shrink-0">
                   {PLAYER_COLORS[i]}
                 </span>
+                <input
+                  type="text"
+                  value={playerNames[i]}
+                  onChange={e => {
+                    const next = [...playerNames];
+                    next[i] = e.target.value;
+                    setPlayerNames(next);
+                  }}
+                  className="flex-1 border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  placeholder={DEFAULT_NAMES[i]}
+                />
                 <select
                   value={playerTypes[i]}
-                  onChange={(e) => handlePlayerTypeChange(i, e.target.value as PlayerType)}
-                  className="flex-1 text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400"
+                  onChange={e => {
+                    const next = [...playerTypes];
+                    next[i] = e.target.value as PlayerType;
+                    setPlayerTypes(next);
+                  }}
+                  className="border border-gray-200 rounded-lg px-2 py-1 text-sm focus:outline-none focus:ring-2 focus:ring-amber-400"
                 >
-                  {Object.entries(PLAYER_TYPE_LABELS).map(([value, label]) => (
-                    <option key={value} value={value}>
-                      {label}
-                    </option>
+                  {PLAYER_TYPE_OPTIONS.map(opt => (
+                    <option key={opt.value} value={opt.value}>{opt.label}</option>
                   ))}
                 </select>
               </div>
@@ -97,46 +108,21 @@ export const GameSetup: React.FC<GameSetupProps> = ({ onStart }) => {
           </div>
         </div>
 
-        {/* AI Difficulty Info */}
-        <div className="mb-6 p-3 bg-blue-50 rounded-lg text-xs text-blue-700">
-          <p className="font-semibold mb-1">🤖 AI Difficulty Levels</p>
-          <ul className="space-y-0.5">
-            <li><strong>Easy:</strong> Randomly picks valid placement positions</li>
-            <li><strong>Normal:</strong> Greedy algorithm — picks highest-scoring position</li>
-            <li><strong>Hard:</strong> Greedy + 1-step lookahead for smarter play</li>
-          </ul>
-        </div>
-
-        {/* Board Seed */}
-        <div className="mb-8">
-          <div className="flex items-center gap-2 mb-2">
-            <label className="block text-sm font-semibold text-gray-700">
-              Board Seed
-            </label>
-            <label className="flex items-center gap-1.5 text-sm text-gray-500 cursor-pointer">
-              <input
-                type="checkbox"
-                checked={useRandomSeed}
-                onChange={(e) => setUseRandomSeed(e.target.checked)}
-                className="rounded"
-              />
-              Random
-            </label>
+        {/* AI difficulty legend */}
+        {hasBot && (
+          <div className="bg-blue-50 rounded-lg p-3 mb-6 text-sm text-blue-800">
+            <div className="font-medium mb-1">🤖 AI Difficulty Levels</div>
+            <ul className="space-y-0.5 text-blue-700">
+              <li><strong>Easy:</strong> Randomly picks valid placement positions</li>
+              <li><strong>Normal:</strong> Greedy algorithm — picks highest-scoring position</li>
+              <li><strong>Hard:</strong> Greedy + 1-step lookahead for smarter play</li>
+            </ul>
           </div>
-          <input
-            type="number"
-            value={seed}
-            onChange={(e) => setSeed(e.target.value)}
-            disabled={useRandomSeed}
-            placeholder="Enter seed..."
-            className="w-full text-sm border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-amber-400 disabled:bg-gray-100 disabled:text-gray-400"
-          />
-        </div>
+        )}
 
-        {/* Start Button */}
         <button
           onClick={handleStart}
-          className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-lg transition-colors shadow-md hover:shadow-lg"
+          className="w-full py-3 bg-amber-500 hover:bg-amber-600 text-white font-bold rounded-xl text-lg transition-colors"
         >
           Start Game
         </button>

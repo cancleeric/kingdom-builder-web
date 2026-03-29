@@ -1,73 +1,133 @@
-# React + TypeScript + Vite
+# Kingdom Builder Web
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+Kingdom Builder 桌遊 Web 版 — 六角格策略棋盤遊戲
 
-Currently, two official plugins are available:
+## 專案簡介
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+本專案旨在開發 Kingdom Builder 桌遊的網頁版本，讓玩家可以在瀏覽器中體驗這款經典的策略棋盤遊戲。遊戲使用六角格棋盤，玩家透過放置房屋來擴展自己的王國，並根據不同的目標卡獲取分數。
 
-## React Compiler
+## 遊戲規則摘要
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+- **棋盤**: 由 4 個象限組成的六角格地圖，包含多種地形（草地、森林、沙漠、花田、峽谷等）
+- **每回合**: 翻開一張地形卡，在該地形上放置 3 間房屋
+- **相鄰規則**: 若已有房屋與該地形相鄰，新房屋必須放在相鄰位置
+- **地點板塊**: 房屋碰到地點可獲得特殊能力板塊（如農場、港口等）
+- **不可建造**: 山脈與水域不可放置房屋
+- **城堡**: 相鄰城堡的房屋可得 3 分
+- **目標卡**: 每場 3 張隨機目標卡決定得分方式
 
-## Expanding the ESLint configuration
+## 技術架構
 
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
+| 層級 | 技術選型 | 說明 |
+|------|----------|------|
+| 前端框架 | React + TypeScript | 組件化開發，型別安全 |
+| 渲染引擎 | HTML5 Canvas / SVG | 六角格棋盤繪製 |
+| 狀態管理 | Zustand | 輕量級遊戲狀態管理 |
+| 樣式 | Tailwind CSS | 快速 UI 開發 |
+| 建置工具 | Vite | 快速開發與打包 |
+| 測試 | Vitest + React Testing Library | 單元與組件測試 |
+| 部署 | GitHub Pages / Vercel | 靜態網站部署 |
 
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
+## 開發計劃 — 分階段進行
 
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
+### Phase 1：核心基礎 (MVP)
+> 目標：能在瀏覽器上看到棋盤並放置房屋
 
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+- [ ] 專案初始化 (Vite + React + TypeScript)
+- [ ] 六角格座標系統設計 (Axial / Cube Coordinates)
+- [ ] 棋盤渲染 — 繪製六角格地圖
+- [ ] 地形系統 — 不同地形的視覺呈現
+- [ ] 基本放置邏輯 — 點擊格子放置房屋
+- [ ] 地形卡抽取機制
+- [ ] 相鄰規則實作
+
+### Phase 2：完整規則
+> 目標：實作所有遊戲規則
+
+- [ ] 地點板塊系統（農場、港口、神殿等 8 種）
+- [ ] 地點板塊能力觸發邏輯
+- [ ] 城堡得分機制
+- [ ] 目標卡系統（漁夫、礦工、騎士等 10 種）
+- [ ] 回合流程控制（抽卡 → 使用板塊 → 放置房屋 → 確認）
+- [ ] 遊戲結束判定與計分
+
+### Phase 3：遊戲體驗
+> 目標：讓遊戲好玩且好用
+
+- [ ] 棋盤隨機生成（4 象限隨機組合）
+- [ ] 動畫效果（放置、移動、得分）
+- [ ] 音效系統
+- [ ] 遊戲 UI（玩家面板、計分板、行動記錄）
+- [ ] 回合提示與操作引導
+- [ ] 悔棋 / 重新開始功能
+
+### Phase 4：AI 對手
+> 目標：可以單人對戰電腦
+
+- [ ] 基礎 AI — 隨機合法放置
+- [ ] 進階 AI — 策略評估（目標卡導向）
+- [ ] AI 難度選擇
+
+### Phase 5：多人連線 (Optional)
+> 目標：可以與朋友線上對戰
+
+- [ ] WebSocket 伺服器
+- [ ] 房間系統（建立/加入）
+- [ ] 即時同步遊戲狀態
+- [ ] 聊天功能
+
+## 專案結構
+
+```
+kingdom-builder-web/
+├── public/
+│   └── assets/          # 遊戲素材（圖片、音效）
+├── src/
+│   ├── components/      # React 組件
+│   │   ├── Board/       # 棋盤相關組件
+│   │   ├── UI/          # 介面組件
+│   │   └── Game/        # 遊戲流程組件
+│   ├── core/            # 遊戲核心邏輯
+│   │   ├── hex.ts       # 六角格座標系統
+│   │   ├── board.ts     # 棋盤邏輯
+│   │   ├── terrain.ts   # 地形定義
+│   │   ├── rules.ts     # 規則引擎
+│   │   ├── scoring.ts   # 計分系統
+│   │   └── location.ts  # 地點板塊邏輯
+│   ├── store/           # 狀態管理
+│   │   └── gameStore.ts
+│   ├── ai/              # AI 對手
+│   ├── types/           # TypeScript 型別定義
+│   ├── utils/           # 工具函式
+│   ├── App.tsx
+│   └── main.tsx
+├── tests/               # 測試檔案
+├── package.json
+├── tsconfig.json
+├── vite.config.ts
+└── README.md
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+## 快速開始
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+```bash
+# 安裝依賴
+npm install
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+# 啟動開發伺服器
+npm run dev
+
+# 執行測試
+npm test
+
+# 打包部署
+npm run build
 ```
+
+## 開發狀態
+
+🚧 **Phase 1 開發中** — 核心基礎建設
+
+## 授權
+
+MIT License

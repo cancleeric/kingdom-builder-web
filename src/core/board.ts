@@ -1,277 +1,200 @@
-import type { Cell, Hex, TerrainType, GameState, LocationTileType } from '../types';
-import { hexNeighbors, hexEqual } from './hex';
+import { AxialCoord, hexToKey } from './hex';
+import { Terrain, Location } from './terrain';
+import { HexCell } from '../types';
 
-// Non-buildable terrain types
-export const NON_BUILDABLE: TerrainType[] = ['mountain', 'water'];
+/**
+ * Board class managing the hex grid
+ */
+export class Board {
+  private cells: Map<string, HexCell>;
+  public readonly width: number;
+  public readonly height: number;
 
-// Find cell by hex position
-export function findCell(cells: Cell[], hex: Hex): Cell | undefined {
-  return cells.find((c) => hexEqual(c.hex, hex));
-}
-
-// Get all valid placement hexes for the current player given a terrain type
-export function getValidPlacements(state: GameState): Hex[] {
-  const { cells, currentPlayer, currentTerrain } = state;
-  if (!currentTerrain) return [];
-
-  const terrain = currentTerrain;
-  const playerCells = cells.filter((c) => c.owner === currentPlayer);
-
-  // Buildable cells of the current terrain that are empty
-  const terrainCells = cells.filter(
-    (c) => c.terrain === terrain && c.owner === null && !NON_BUILDABLE.includes(c.terrain)
-  );
-
-  if (playerCells.length === 0) {
-    // No restrictions, can place on any matching terrain
-    return terrainCells.map((c) => c.hex);
+  constructor(width: number = 20, height: number = 20) {
+    this.width = width;
+    this.height = height;
+    this.cells = new Map();
   }
 
-  // Must be adjacent to an existing settlement if possible
-  const adjacentToPlayer = terrainCells.filter((c) =>
-    hexNeighbors(c.hex).some((n) =>
-      playerCells.some((p) => hexEqual(p.hex, n))
-    )
-  );
-
-  if (adjacentToPlayer.length > 0) {
-    return adjacentToPlayer.map((c) => c.hex);
+  /**
+   * Set a cell on the board
+   */
+  setCell(cell: HexCell): void {
+    const key = hexToKey(cell.coord);
+    this.cells.set(key, cell);
   }
 
-  // If no adjacent cells of the terrain, can place anywhere on that terrain
-  return terrainCells.map((c) => c.hex);
-}
+  /**
+   * Get a cell from the board
+   */
+  getCell(coord: AxialCoord): HexCell | undefined {
+    const key = hexToKey(coord);
+    return this.cells.get(key);
+  }
 
-// Check if a placement is valid
-export function isValidPlacement(state: GameState, hex: Hex): boolean {
-  const valid = getValidPlacements(state);
-  return valid.some((h) => hexEqual(h, hex));
-}
+  /**
+   * Check if a coordinate is on the board
+   */
+  hasCell(coord: AxialCoord): boolean {
+    const key = hexToKey(coord);
+    return this.cells.has(key);
+  }
 
-// Apply a placement to a copy of the state (immutable)
-export function applyPlacement(state: GameState, hex: Hex): GameState {
-  const cells = state.cells.map((c) => {
-    if (!hexEqual(c.hex, hex)) return c;
-    return { ...c, owner: state.currentPlayer };
-  });
+  /**
+   * Get all cells on the board
+   */
+  getAllCells(): HexCell[] {
+    return Array.from(this.cells.values());
+  }
 
-  // Check if placing on a location tile grants it
-  const cell = findCell(cells, hex);
-  let players = state.players;
-  if (cell?.hasLocationTile && !cell.locationTileClaimed) {
-    const tile = cell.hasLocationTile as LocationTileType;
-    // Check adjacency: does any neighbor of the new placement belong to this player?
-    // Actually in Kingdom Builder: placing next to a location tile grants it
-    // We check if any neighbor of the location tile cell belongs to the player
-    const tileCell = cells.find((c) => hexEqual(c.hex, hex));
-    if (tileCell && tileCell.hasLocationTile) {
-      players = players.map((p) =>
-        p.id === state.currentPlayer
-          ? { ...p, locationTiles: [...p.locationTiles, tile] }
-          : p
-      );
-      cells[cells.indexOf(tileCell)] = { ...tileCell, locationTileClaimed: true };
+  /**
+   * Place a settlement on a cell
+   */
+  placeSettlement(coord: AxialCoord, playerId: number): boolean {
+    const cell = this.getCell(coord);
+    if (!cell || cell.settlement !== undefined) {
+      return false;
     }
+    
+    cell.settlement = playerId;
+    return true;
   }
 
-  // Check if adjacent to unclaimed location tile
-  const updatedCells = cells.map((c) => {
-    if (!hexEqual(c.hex, hex)) {
-      // Check if this is an unclaimed location tile adjacent to the new placement
-      if (
-        c.hasLocationTile &&
-        !c.locationTileClaimed &&
-        hexNeighbors(hex).some((n) => hexEqual(n, c.hex))
-      ) {
-        const tile = c.hasLocationTile;
-        players = players.map((p) =>
-          p.id === state.currentPlayer && !p.locationTiles.includes(tile)
-            ? { ...p, locationTiles: [...p.locationTiles, tile] }
-            : p
-        );
-        return { ...c, locationTileClaimed: true };
+  /**
+   * Check if a cell has a settlement
+   */
+  hasSettlement(coord: AxialCoord): boolean {
+    const cell = this.getCell(coord);
+    return cell?.settlement !== undefined;
+  }
+
+  /**
+   * Get settlement owner at a coordinate
+   */
+  getSettlement(coord: AxialCoord): number | undefined {
+    return this.getCell(coord)?.settlement;
+  }
+
+  /**
+   * Get all cells with a specific terrain type
+   */
+  getCellsByTerrain(terrain: Terrain): HexCell[] {
+    return this.getAllCells().filter(cell => cell.terrain === terrain);
+  }
+
+  /**
+   * Get all cells with settlements from a specific player
+   */
+  getPlayerSettlements(playerId: number): HexCell[] {
+    return this.getAllCells().filter(cell => cell.settlement === playerId);
+  }
+}
+
+/**
+ * Create a default board with a simple configuration
+ * This creates a basic quadrant-based layout
+ */
+export function createDefaultBoard(): Board {
+  const board = new Board(20, 20);
+  
+  // Create a simple pattern for testing
+  // Using offset coordinates that work well for display
+  for (let q = 0; q < 20; q++) {
+    for (let r = 0; r < 20; r++) {
+      const coord: AxialCoord = { q, r };
+      
+      // Determine terrain based on position
+      let terrain: Terrain;
+      
+      // Border mountains
+      if (q === 0 || r === 0 || q === 19 || r === 19) {
+        terrain = Terrain.Mountain;
       }
-      return c;
-    }
-    return { ...c, owner: state.currentPlayer };
-  });
-
-  const placementsThisTurn = state.placementsThisTurn + 1;
-  return {
-    ...state,
-    cells: updatedCells,
-    players,
-    placementsThisTurn,
-  };
-}
-
-// Draw next terrain card
-export function drawTerrain(state: GameState): GameState {
-  if (state.terrainDeck.length === 0) {
-    // Reshuffle (use all buildable types)
-    const deck = shuffleDeck(buildTerrainDeck());
-    return { ...state, terrainDeck: deck.slice(1), currentTerrain: deck[0] };
-  }
-  const [next, ...rest] = state.terrainDeck;
-  return { ...state, currentTerrain: next, terrainDeck: rest };
-}
-
-// Build a terrain deck (5 copies of each buildable terrain)
-export function buildTerrainDeck(): TerrainType[] {
-  const buildable: TerrainType[] = ['grassland', 'forest', 'desert', 'flower', 'canyon'];
-  const deck: TerrainType[] = [];
-  for (const t of buildable) {
-    for (let i = 0; i < 5; i++) deck.push(t);
-  }
-  return deck;
-}
-
-// Fisher-Yates shuffle
-export function shuffleDeck<T>(deck: T[]): T[] {
-  const d = [...deck];
-  for (let i = d.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [d[i], d[j]] = [d[j], d[i]];
-  }
-  return d;
-}
-
-// Advance to next player's turn
-export function advanceTurn(state: GameState): GameState {
-  const nextPlayer = (state.currentPlayer + 1) % state.players.length;
-  return {
-    ...state,
-    currentPlayer: nextPlayer,
-    placementsThisTurn: 0,
-    currentTerrain: null,
-  };
-}
-
-// Build board cells for a standard game (20x20 area, 4 quadrants)
-export function buildStandardBoard(seed?: number): Cell[] {
-  // Use a seeded approach for quadrant arrangement
-  const quadrantLayouts = getQuadrantLayouts(seed);
-  const cells: Cell[] = [];
-
-  // Place 4 quadrants in a 2x2 arrangement
-  const quadrantOffsets: Hex[] = [
-    { q: 0, r: 0 },    // top-left
-    { q: 10, r: 0 },   // top-right
-    { q: 0, r: 10 },   // bottom-left
-    { q: 10, r: 10 },  // bottom-right
-  ];
-
-  for (let qi = 0; qi < 4; qi++) {
-    const layout = quadrantLayouts[qi];
-    const offset = quadrantOffsets[qi];
-    for (const cell of layout) {
-      cells.push({
-        ...cell,
-        hex: { q: cell.hex.q + offset.q, r: cell.hex.r + offset.r },
-      });
-    }
-  }
-
-  return cells;
-}
-
-// Generate quadrant layouts (10x10 hex grids)
-function getQuadrantLayouts(seed?: number): Cell[][] {
-  // We'll create 4 different quadrant types and shuffle them
-  const templates = [
-    buildQuadrant('grassland', 'forest', seed),
-    buildQuadrant('desert', 'flower', seed ? seed + 1 : undefined),
-    buildQuadrant('forest', 'canyon', seed ? seed + 2 : undefined),
-    buildQuadrant('canyon', 'grassland', seed ? seed + 3 : undefined),
-  ];
-
-  if (seed !== undefined) {
-    // Deterministic shuffle using seed
-    return deterministicShuffle(templates, seed);
-  }
-
-  const indices = shuffleDeck([0, 1, 2, 3]);
-  return indices.map((i) => templates[i]);
-}
-
-function deterministicShuffle<T>(arr: T[], seed: number): T[] {
-  const result = [...arr];
-  let s = seed;
-  for (let i = result.length - 1; i > 0; i--) {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    const j = Math.abs(s) % (i + 1);
-    [result[i], result[j]] = [result[j], result[i]];
-  }
-  return result;
-}
-
-// Build a 10x10 quadrant with given primary and secondary terrain
-function buildQuadrant(
-  primary: TerrainType,
-  secondary: TerrainType,
-  seed?: number
-): Cell[] {
-  const cells: Cell[] = [];
-  const rng = makeRng(seed ?? Math.random() * 1000);
-
-  for (let q = 0; q < 10; q++) {
-    for (let r = 0; r < 10; r++) {
-      // Skip some hexes based on hex grid shape (rectangular region)
-      // Place mountain/water in some areas, locations in corners
-      let terrain: TerrainType;
-      const roll = rng();
-
-      if (q === 0 && r === 0) {
-        terrain = 'water'; // corner water
-      } else if (q >= 8 && r >= 8) {
-        terrain = 'mountain'; // corner mountain
-      } else if (roll < 0.1) {
-        terrain = 'water';
-      } else if (roll < 0.2) {
-        terrain = 'mountain';
-      } else if (roll < 0.5) {
-        terrain = primary;
-      } else if (roll < 0.8) {
-        terrain = secondary;
-      } else {
-        // Mix in other terrains
-        const others: TerrainType[] = ['grassland', 'forest', 'desert', 'flower', 'canyon'];
-        terrain = others[Math.floor(rng() * others.length)];
+      // Water bodies
+      else if ((q === 5 && r >= 5 && r <= 10) || (q === 14 && r >= 9 && r <= 14)) {
+        terrain = Terrain.Water;
       }
-
-      const hasCastle = q === 5 && r === 5; // Center castle
-      const hasLocationTile = getLocationTile(q, r, rng);
-
-      cells.push({
-        hex: { q, r },
+      // Quadrant-based terrains
+      else if (q < 10 && r < 10) {
+        // Northwest quadrant - mostly grass and forest
+        terrain = (q + r) % 3 === 0 ? Terrain.Forest : Terrain.Grass;
+      }
+      else if (q >= 10 && r < 10) {
+        // Northeast quadrant - desert and canyon
+        terrain = (q + r) % 3 === 0 ? Terrain.Canyon : Terrain.Desert;
+      }
+      else if (q < 10 && r >= 10) {
+        // Southwest quadrant - flower and grass
+        terrain = (q + r) % 3 === 0 ? Terrain.Flower : Terrain.Grass;
+      }
+      else {
+        // Southeast quadrant - mixed
+        terrain = [Terrain.Grass, Terrain.Forest, Terrain.Desert, Terrain.Flower, Terrain.Canyon][(q + r) % 5];
+      }
+      
+      const cell: HexCell = {
+        coord,
         terrain,
-        owner: null,
-        hasCastle,
-        hasLocationTile,
-        locationTileClaimed: false,
-      });
+        settlement: undefined,
+      };
+      
+      // Add location tiles at strategic positions
+      // Castles at the four quadrant corners
+      if ((q === 3 && r === 3) || (q === 16 && r === 3) || (q === 3 && r === 16) || (q === 16 && r === 16)) {
+        cell.location = Location.Castle;
+      }
+      // Location tiles spread across the board
+      else if (q === 7 && r === 7)  cell.location = Location.Farm;
+      else if (q === 6 && r === 6)  cell.location = Location.Harbor;
+      else if (q === 14 && r === 5) cell.location = Location.Oasis;
+      else if (q === 9 && r === 4)  cell.location = Location.Tower;
+      else if (q === 8 && r === 12) cell.location = Location.Paddock;
+      else if (q === 13 && r === 13) cell.location = Location.Barn;
+      else if (q === 4 && r === 13) cell.location = Location.Oracle;
+      else if (q === 15 && r === 8) cell.location = Location.Tavern;
+      
+      board.setCell(cell);
     }
   }
-
-  return cells;
+  
+  return board;
 }
 
-function getLocationTile(_q: number, _r: number, rng: () => number): LocationTileType | null {
-  // Place location tiles at some positions (5% chance)
-  const tiles: LocationTileType[] = [
-    'farm', 'harbor', 'temple', 'tower', 'oracle', 'oasis', 'tavern', 'barn',
+/**
+ * Create a board from quadrant configurations
+ * Each quadrant is 10x10
+ */
+export function createBoardFromQuadrants(
+  nw: Terrain[][],
+  ne: Terrain[][],
+  sw: Terrain[][],
+  se: Terrain[][]
+): Board {
+  const board = new Board(20, 20);
+  
+  const quadrants = [
+    { data: nw, offsetQ: 0, offsetR: 0 },
+    { data: ne, offsetQ: 10, offsetR: 0 },
+    { data: sw, offsetQ: 0, offsetR: 10 },
+    { data: se, offsetQ: 10, offsetR: 10 },
   ];
-  if (rng() < 0.05) {
-    return tiles[Math.floor(rng() * tiles.length)];
-  }
-  return null;
-}
-
-// Simple LCG random number generator
-function makeRng(seed: number): () => number {
-  let s = Math.floor(seed) || 42;
-  return () => {
-    s = (s * 1664525 + 1013904223) & 0xffffffff;
-    return (s >>> 0) / 0xffffffff;
-  };
+  
+  quadrants.forEach(({ data, offsetQ, offsetR }) => {
+    for (let q = 0; q < 10; q++) {
+      for (let r = 0; r < 10; r++) {
+        const coord: AxialCoord = { q: q + offsetQ, r: r + offsetR };
+        const terrain = data[r]?.[q] || Terrain.Grass;
+        
+        const cell: HexCell = {
+          coord,
+          terrain,
+          settlement: undefined,
+        };
+        
+        board.setCell(cell);
+      }
+    }
+  });
+  
+  return board;
 }

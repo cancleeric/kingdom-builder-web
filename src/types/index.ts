@@ -1,89 +1,54 @@
-// Hex coordinate (axial coordinates)
-export interface Hex {
-  q: number;
-  r: number;
+import { AxialCoord } from '../core/hex';
+import { Terrain, Location } from '../core/terrain';
+import { ObjectiveCard } from '../core/scoring';
+
+/**
+ * A single hex cell on the board
+ */
+export interface HexCell {
+  coord: AxialCoord;
+  terrain: Terrain;
+  location?: Location;
+  settlement?: number; // Player ID if occupied, undefined otherwise
 }
 
-// Terrain types
-export type TerrainType =
-  | 'grassland'
-  | 'forest'
-  | 'desert'
-  | 'flower'
-  | 'canyon'
-  | 'mountain'
-  | 'water';
-
-// Location tile types
-export type LocationTileType =
-  | 'farm'
-  | 'harbor'
-  | 'temple'
-  | 'tower'
-  | 'oracle'
-  | 'oasis'
-  | 'tavern'
-  | 'barn';
-
-// Objective card types
-export type ObjectiveType =
-  | 'fisherman'
-  | 'miner'
-  | 'knight'
-  | 'lords'
-  | 'farmers'
-  | 'hermits'
-  | 'merchants'
-  | 'discoverers'
-  | 'builders'
-  | 'shepherds';
-
-// A cell on the board
-export interface Cell {
-  hex: Hex;
-  terrain: TerrainType;
-  owner: number | null; // player index (0-based), null if empty
-  hasCastle: boolean;
-  hasLocationTile: LocationTileType | null;
-  locationTileClaimed: boolean;
+/**
+ * A location tile owned by a player
+ */
+export interface LocationTile {
+  location: Location;
+  usedThisTurn: boolean;
 }
 
-// Player type
-export type PlayerType = 'human' | 'bot-easy' | 'bot-normal' | 'bot-hard';
-
-// Player info
+/**
+ * Player information
+ */
 export interface Player {
   id: number;
   name: string;
-  type: PlayerType;
   color: string;
-  score: number;
-  locationTiles: LocationTileType[];
+  settlements: AxialCoord[]; // All settlements placed by this player
+  remainingSettlements: number; // Number of settlements left to place
+  tiles: LocationTile[]; // Location tiles acquired by this player
 }
 
-// Game phase
-export type GamePhase = 'setup' | 'playing' | 'finished';
-
-// Turn phase
-export type TurnPhase = 'draw' | 'place' | 'confirm';
-
-// Game state
-export interface GameState {
-  phase: GamePhase;
-  cells: Cell[];
-  players: Player[];
-  currentPlayer: number;
-  currentTerrain: TerrainType | null;
-  placementsThisTurn: number;
-  placementsRequired: number;
-  objectives: ObjectiveType[];
-  turnHistory: TurnRecord[];
-  terrainDeck: TerrainType[];
+/**
+ * Per-player score breakdown
+ */
+export interface PlayerScore {
+  playerId: number;
+  castleScore: number;
+  objectiveScores: { card: ObjectiveCard; score: number }[];
+  totalScore: number;
 }
 
-// Turn record for history
-export interface TurnRecord {
-  player: number;
-  terrain: TerrainType;
-  placements: Hex[];
+/**
+ * Game phase
+ */
+export enum GamePhase {
+  Setup = 'Setup',
+  DrawCard = 'DrawCard',
+  PlaceSettlements = 'PlaceSettlements',
+  EndTurn = 'EndTurn',
+  GameOver = 'GameOver',
 }

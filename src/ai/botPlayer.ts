@@ -1,30 +1,30 @@
-import type { GameState, Hex, PlayerType } from '../types';
-import { getValidPlacements, applyPlacement } from '../core/board';
-import { calculateScoreGain } from '../core/scoring';
-import { hexNeighbors, hexEqual, hexDistance } from '../core/hex';
+import { Board } from '../core/board';
+import { AxialCoord, hexNeighbors, hexEquals, hexDistance } from '../core/hex';
+import { Terrain, Location } from '../core/terrain';
+import { getValidPlacements } from '../core/rules';
+import {
+  ObjectiveCard,
+  calculatePlayerScore,
+} from '../core/scoring';
 
-// AI difficulty levels
+// ─────────────────────────────────────────────
+// Bot difficulty
+// ─────────────────────────────────────────────
+
+/** Three AI difficulty levels */
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
 
-/**
- * Map player type to bot difficulty
- */
-export function playerTypeToDifficulty(type: PlayerType): BotDifficulty | null {
-  switch (type) {
-    case 'bot-easy': return 'easy';
-    case 'bot-normal': return 'normal';
-    case 'bot-hard': return 'hard';
-    default: return null;
-  }
-}
+// ─────────────────────────────────────────────
+// BotPlayer class
+// ─────────────────────────────────────────────
 
 /**
  * BotPlayer — Greedy AI that selects the best moves each turn.
  *
  * Difficulty levels:
  * - easy:   Random valid placement
- * - normal: Greedy — selects hex with highest immediate score gain
- * - hard:   Greedy + 1-step lookahead (evaluates best next move after each choice)
+ * - normal: Greedy — picks hex with highest immediate score gain
+ * - hard:   Greedy + 1-step lookahead
  */
 export class BotPlayer {
   private difficulty: BotDifficulty;
@@ -34,144 +34,172 @@ export class BotPlayer {
   }
 
   /**
-   * Evaluate the score gain of placing a settlement at a given hex.
+   * Evaluate the score gain of placing a settlement at a given coord.
    * Considers:
-   * - Objective card score gain
-   * - Castle adjacency bonus
-   * - Location tile proximity (bonus for being adjacent to unclaimed tiles)
-   * - Edge placement near location tiles
+   * - Objective card score gain (delta before/after placement)
+   * - Castle adjacency bonus (+3 per adjacent castle)
+   * - Location tile proximity (+2 per adjacent unclaimed tile)
+   * - Near-castle incentive (+0.5 for castles at distance 2)
    */
-  evaluateMove(state: GameState, hex: Hex): number {
-    const playerId = state.currentPlayer;
+  evaluateMove(
+    board: Board,
+    coord: AxialCoord,
+    playerId: number,
+    objectiveCards: ObjectiveCard[],
+    currentTerrain: Terrain
+  ): number {
+    const validMoves = getValidPlacements(board, currentTerrain, playerId);
+    const isValid = validMoves.some(v => hexEquals(v, coord));
+    if (!isValid) return -Infinity;
 
-    // Check that the cell is valid
-    const cell = state.cells.find(
-      (c) => hexEqual(c.hex, hex) && c.owner === null
-    );
-    if (!cell) return -Infinity;
+    const cell = board.getCell(coord);
+    if (!cell || cell.settlement !== undefined) return -Infinity;
 
-    let score = 0;
-
-    // 1. Objective score gain
-    score += calculateScoreGain(state, hex, playerId);
-
-    // 2. Castle adjacency: +3 for each castle this hex would be adjacent to
-    const castleBonus = state.cells
-      .filter((c) => c.hasCastle)
-      .filter((c) => hexNeighbors(hex).some((n) => hexEqual(n, c.hex))).length;
-    score += castleBonus * 3;
-
-    // 3. Location tile proximity: +2 for each unclaimed location tile adjacent
-    const locationBonus = state.cells
-      .filter((c) => c.hasLocationTile && !c.locationTileClaimed)
-      .filter((c) => hexNeighbors(hex).some((n) => hexEqual(n, c.hex))).length;
-    score += locationBonus * 2;
-
-    // 4. Small bonus for placing near castles (within distance 2) to encourage expansion
-    const nearCastleBonus = state.cells
-      .filter((c) => c.hasCastle)
-      .filter((c) => hexDistance(hex, c.hex) === 2).length;
-    score += nearCastleBonus * 0.5;
-
-    // 5. Prefer placing where we already have settlements (cluster bonus for normal/hard)
-    if (this.difficulty !== 'easy') {
-      const playerNeighbors = state.cells
-        .filter((c) => c.owner === playerId)
-        .filter((c) => hexNeighbors(hex).some((n) => hexEqual(n, c.hex))).length;
-      score += playerNeighbors * 0.3;
+    // 1. Objective score gain: simulate placement and compute delta
+    const scoreBefore = calculatePlayerScore(board, playerId, objectiveCards);
+    board.placeSettlement(coord, playerId);
+    const scoreAfter = calculatePlayerScore(board, playerId, objectiveCards);
+    // Restore board: remove the simulated placement
+    const restoredCell = board.getCell(coord);
+    if (restoredCell) {
+      restoredCell.settlement = undefined;
+      board.setCell(restoredCell);
     }
+    const objectiveDelta = scoreAfter - scoreBefore;
 
-    return score;
+    // 2. Castle adjacency: +3 per adjacent castle hex
+    const castleBonus = hexNeighbors(coord).filter(n => {
+      const nc = board.getCell(n);
+      return nc?.location === Location.Castle;
+    }).length * 3;
+
+    // 3. Location tile proximity: +2 per adjacent unclaimed location tile
+    const ownedLocations = new Set(
+      board.getPlayerSettlements(playerId)
+        .map(c => board.getCell(c.coord)?.location)
+        .filter(Boolean)
+    );
+    const locationBonus = hexNeighbors(coord).filter(n => {
+      const nc = board.getCell(n);
+      return (
+        nc?.location !== undefined &&
+        nc.location !== Location.Castle &&
+        !ownedLocations.has(nc.location)
+      );
+    }).length * 2;
+
+    // 4. Near-castle incentive: +0.5 for each castle at distance 2
+    const nearCastleBonus =
+      board.getAllCells()
+        .filter(c => c.location === Location.Castle)
+        .filter(c => hexDistance(coord, c.coord) === 2)
+        .length * 0.5;
+
+    return objectiveDelta + castleBonus + locationBonus + nearCastleBonus;
   }
 
   /**
    * Select up to `count` best moves for the current player.
-   * Returns an array of hexes to place settlements on.
+   * Placements are sequential: each is applied to a cloned board
+   * before selecting the next.
    */
-  selectBestMove(state: GameState, count: number = 3): Hex[] {
-    const placements: Hex[] = [];
-    let currentState = state;
+  selectBestMove(
+    board: Board,
+    playerId: number,
+    currentTerrain: Terrain,
+    objectiveCards: ObjectiveCard[],
+    count: number = 3
+  ): AxialCoord[] {
+    const placements: AxialCoord[] = [];
+    const simBoard = cloneBoard(board);
 
     for (let i = 0; i < count; i++) {
-      const validMoves = getValidPlacements(currentState);
+      const validMoves = getValidPlacements(simBoard, currentTerrain, playerId);
       if (validMoves.length === 0) break;
 
-      const chosen = this.chooseMove(currentState, validMoves);
+      const chosen = this.chooseMove(simBoard, validMoves, playerId, currentTerrain, objectiveCards);
       if (!chosen) break;
 
       placements.push(chosen);
-      currentState = applyPlacement(currentState, chosen);
+      simBoard.placeSettlement(chosen, playerId);
     }
 
     return placements;
   }
 
-  /**
-   * Choose a single move given valid options.
-   */
-  private chooseMove(state: GameState, validMoves: Hex[]): Hex | null {
+  private chooseMove(
+    board: Board,
+    validMoves: AxialCoord[],
+    playerId: number,
+    terrain: Terrain,
+    objectiveCards: ObjectiveCard[]
+  ): AxialCoord | null {
     if (validMoves.length === 0) return null;
 
     switch (this.difficulty) {
       case 'easy':
         return this.randomMove(validMoves);
       case 'normal':
-        return this.greedyMove(state, validMoves);
+        return this.greedyMove(board, validMoves, playerId, terrain, objectiveCards);
       case 'hard':
-        return this.lookaheadMove(state, validMoves);
+        return this.lookaheadMove(board, validMoves, playerId, terrain, objectiveCards);
     }
   }
 
-  /**
-   * Random move: pick a random valid placement.
-   */
-  private randomMove(validMoves: Hex[]): Hex {
+  private randomMove(validMoves: AxialCoord[]): AxialCoord {
     return validMoves[Math.floor(Math.random() * validMoves.length)];
   }
 
-  /**
-   * Greedy move: pick the placement with the highest immediate score gain.
-   */
-  private greedyMove(state: GameState, validMoves: Hex[]): Hex {
+  private greedyMove(
+    board: Board,
+    validMoves: AxialCoord[],
+    playerId: number,
+    terrain: Terrain,
+    objectiveCards: ObjectiveCard[]
+  ): AxialCoord {
     let bestScore = -Infinity;
     let bestMove = validMoves[0];
 
-    for (const hex of validMoves) {
-      const score = this.evaluateMove(state, hex);
+    for (const coord of validMoves) {
+      const score = this.evaluateMove(board, coord, playerId, objectiveCards, terrain);
       if (score > bestScore) {
         bestScore = score;
-        bestMove = hex;
+        bestMove = coord;
       }
     }
 
     return bestMove;
   }
 
-  /**
-   * Lookahead move: for each valid move, evaluate its score plus the best
-   * subsequent move's score (1-step lookahead).
-   */
-  private lookaheadMove(state: GameState, validMoves: Hex[]): Hex {
+  private lookaheadMove(
+    board: Board,
+    validMoves: AxialCoord[],
+    playerId: number,
+    terrain: Terrain,
+    objectiveCards: ObjectiveCard[]
+  ): AxialCoord {
     let bestScore = -Infinity;
     let bestMove = validMoves[0];
 
-    for (const hex of validMoves) {
-      const immediateScore = this.evaluateMove(state, hex);
-      const nextState = applyPlacement(state, hex);
-      const nextMoves = getValidPlacements(nextState);
+    for (const coord of validMoves) {
+      const immediateScore = this.evaluateMove(board, coord, playerId, objectiveCards, terrain);
 
-      // Look 1 step ahead: best score after this move
+      const simBoard = cloneBoard(board);
+      simBoard.placeSettlement(coord, playerId);
+      const nextMoves = getValidPlacements(simBoard, terrain, playerId);
       let lookaheadScore = 0;
       if (nextMoves.length > 0) {
         lookaheadScore = Math.max(
-          ...nextMoves.map((n) => this.evaluateMove(nextState, n))
+          ...nextMoves.map(n =>
+            this.evaluateMove(simBoard, n, playerId, objectiveCards, terrain)
+          )
         );
       }
 
       const totalScore = immediateScore + lookaheadScore * 0.5;
       if (totalScore > bestScore) {
         bestScore = totalScore;
-        bestMove = hex;
+        bestMove = coord;
       }
     }
 
@@ -179,22 +207,17 @@ export class BotPlayer {
   }
 }
 
+// ─────────────────────────────────────────────
+// Board cloning helper
+// ─────────────────────────────────────────────
+
 /**
- * Execute one full bot turn: select moves and return the resulting state.
- * Returns the new state after all bot placements.
+ * Create a shallow-copy snapshot of a Board for simulation.
  */
-export function executeBotTurn(
-  state: GameState,
-  difficulty: BotDifficulty
-): GameState {
-  const bot = new BotPlayer(difficulty);
-  const remaining = state.placementsRequired - state.placementsThisTurn;
-  const moves = bot.selectBestMove(state, remaining);
-
-  let currentState = state;
-  for (const hex of moves) {
-    currentState = applyPlacement(currentState, hex);
+function cloneBoard(board: Board): Board {
+  const clone = new Board(board.width, board.height);
+  for (const cell of board.getAllCells()) {
+    clone.setCell({ ...cell });
   }
-
-  return currentState;
+  return clone;
 }

@@ -1,108 +1,70 @@
 import { describe, it, expect, beforeEach } from 'vitest';
-import { BotPlayer, executeBotTurn } from '../ai/botPlayer';
-import type { GameState } from '../types';
-import { buildStandardBoard, getValidPlacements } from '../core/board';
-import { hexNeighbors, hexEqual } from '../core/hex';
+import { BotPlayer } from '../ai/botPlayer';
+import { Board, createDefaultBoard } from '../core/board';
+import { Terrain } from '../core/terrain';
+import { ObjectiveCard, selectObjectiveCards } from '../core/scoring';
+import { getValidPlacements } from '../core/rules';
+import { hexEquals, hexNeighbors } from '../core/hex';
+import { Location } from '../core/terrain';
 
-// Build a minimal test state
-function buildTestState(overrides: Partial<GameState> = {}): GameState {
-  const cells = buildStandardBoard(42);
-  return {
-    phase: 'playing',
-    cells,
-    players: [
-      {
-        id: 0,
-        name: 'Player 1',
-        type: 'human',
-        color: '#e74c3c',
-        score: 0,
-        locationTiles: [],
-      },
-      {
-        id: 1,
-        name: 'Bot 1',
-        type: 'bot-normal',
-        color: '#3498db',
-        score: 0,
-        locationTiles: [],
-      },
-    ],
-    currentPlayer: 0,
-    currentTerrain: 'grassland',
-    placementsThisTurn: 0,
-    placementsRequired: 3,
-    objectives: ['fisherman', 'knight', 'builders'],
-    turnHistory: [],
-    terrainDeck: [],
-    ...overrides,
-  };
+function buildTestBoard(): { board: Board; objectives: ObjectiveCard[] } {
+  const board = createDefaultBoard();
+  const objectives = selectObjectiveCards(3);
+  return { board, objectives };
 }
 
+const PLAYER_ID = 1;
+const TERRAIN = Terrain.Grass;
+
 describe('BotPlayer', () => {
-  let state: GameState;
+  let board: Board;
+  let objectives: ObjectiveCard[];
 
   beforeEach(() => {
-    state = buildTestState();
+    ({ board, objectives } = buildTestBoard());
   });
 
   describe('evaluateMove', () => {
     it('returns -Infinity for an occupied cell', () => {
       const bot = new BotPlayer('normal');
-      // Occupy the first valid placement
-      const validMoves = getValidPlacements(state);
+      const validMoves = getValidPlacements(board, TERRAIN, PLAYER_ID);
       expect(validMoves.length).toBeGreaterThan(0);
 
       const firstMove = validMoves[0];
-      // Mark cell as occupied
-      const occupiedState: GameState = {
-        ...state,
-        cells: state.cells.map((c) =>
-          hexEqual(c.hex, firstMove) ? { ...c, owner: 1 } : c
-        ),
-      };
+      board.placeSettlement(firstMove, PLAYER_ID);
 
-      const score = bot.evaluateMove(occupiedState, firstMove);
+      const score = bot.evaluateMove(board, firstMove, PLAYER_ID, objectives, TERRAIN);
       expect(score).toBe(-Infinity);
     });
 
     it('returns a finite score for a valid empty cell', () => {
       const bot = new BotPlayer('normal');
-      const validMoves = getValidPlacements(state);
+      const validMoves = getValidPlacements(board, TERRAIN, PLAYER_ID);
       expect(validMoves.length).toBeGreaterThan(0);
 
-      const score = bot.evaluateMove(state, validMoves[0]);
+      const score = bot.evaluateMove(board, validMoves[0], PLAYER_ID, objectives, TERRAIN);
       expect(isFinite(score)).toBe(true);
     });
 
     it('gives higher score for cell adjacent to castle', () => {
       const bot = new BotPlayer('normal');
-      const castleCell = state.cells.find((c) => c.hasCastle);
-      if (!castleCell) return; // skip if no castle in this board
+      const castleCell = board.getAllCells().find(c => c.location === Location.Castle);
+      if (!castleCell) return;
 
-      // Find a cell adjacent to the castle that is a valid grassland placement
-      const neighbors = hexNeighbors(castleCell.hex);
+      const neighbors = hexNeighbors(castleCell.coord);
+      const validMoves = getValidPlacements(board, TERRAIN, PLAYER_ID);
 
-      const validMoves = getValidPlacements(state);
+      const adjacentValid = neighbors.find(n => validMoves.some(v => hexEquals(v, n)));
+      if (!adjacentValid) return;
 
-      // Find neighbor that is valid
-      const adjacentValid = neighbors.find((n) =>
-        validMoves.some((v) => hexEqual(v, n))
-      );
-
-      if (!adjacentValid) return; // no neighbor is valid placement, skip
-
-      // Find a non-adjacent valid move
       const nonAdjacent = validMoves.find(
-        (v) => !neighbors.some((n) => hexEqual(v, n))
+        v => !neighbors.some(n => hexEquals(v, n))
       );
+      if (!nonAdjacent) return;
 
-      if (!nonAdjacent) return; // can't find one to compare
+      const adjacentScore = bot.evaluateMove(board, adjacentValid, PLAYER_ID, objectives, TERRAIN);
+      const nonAdjacentScore = bot.evaluateMove(board, nonAdjacent, PLAYER_ID, objectives, TERRAIN);
 
-      const adjacentScore = bot.evaluateMove(state, adjacentValid);
-      const nonAdjacentScore = bot.evaluateMove(state, nonAdjacent);
-
-      // Adjacent to castle should score higher (castle gives +3 per adjacent settlement)
       expect(adjacentScore).toBeGreaterThan(nonAdjacentScore);
     });
   });
@@ -110,38 +72,33 @@ describe('BotPlayer', () => {
   describe('selectBestMove', () => {
     it('returns at most `count` placements', () => {
       const bot = new BotPlayer('normal');
-      const moves = bot.selectBestMove(state, 3);
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
       expect(moves.length).toBeLessThanOrEqual(3);
     });
 
     it('returns only valid hex positions', () => {
       const bot = new BotPlayer('normal');
-      const moves = bot.selectBestMove(state, 3);
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
       for (const move of moves) {
         expect(typeof move.q).toBe('number');
         expect(typeof move.r).toBe('number');
       }
     });
 
-    it('returns an empty array if no valid placements', () => {
+    it('returns empty array when no valid placements', () => {
       const bot = new BotPlayer('easy');
-      // Fill all grassland cells
-      const noGrassState: GameState = {
-        ...state,
-        cells: state.cells.map((c) => ({
-          ...c,
-          owner: c.terrain === 'grassland' ? 1 : c.owner,
-        })),
-      };
-      const moves = bot.selectBestMove(noGrassState, 3);
+      const grassCells = board.getCellsByTerrain(TERRAIN);
+      for (const c of grassCells) {
+        board.placeSettlement(c.coord, 99);
+      }
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
       expect(moves.length).toBe(0);
     });
 
     it('easy bot selects random valid placements', () => {
       const bot = new BotPlayer('easy');
-      const moves = bot.selectBestMove(state, 3);
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
       expect(moves.length).toBeGreaterThanOrEqual(0);
-      // All returned hexes should have been valid at the time of selection
       for (const move of moves) {
         expect(typeof move.q).toBe('number');
       }
@@ -149,52 +106,31 @@ describe('BotPlayer', () => {
 
     it('hard bot selects valid placements', () => {
       const bot = new BotPlayer('hard');
-      const moves = bot.selectBestMove(state, 3);
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
       expect(moves.length).toBeLessThanOrEqual(3);
       for (const move of moves) {
         expect(typeof move.q).toBe('number');
       }
     });
 
-    it('normal bot returns placements consistent with valid positions', () => {
+    it('normal bot first placement is from initial valid moves', () => {
       const bot = new BotPlayer('normal');
-      const validBefore = getValidPlacements(state);
-      const moves = bot.selectBestMove(state, 3);
+      const validBefore = getValidPlacements(board, TERRAIN, PLAYER_ID);
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
 
       if (moves.length > 0) {
-        // First move must be a valid placement from the original state
-        const firstMove = moves[0];
-        const isValid = validBefore.some((v) => hexEqual(v, firstMove));
+        const isValid = validBefore.some(v => hexEquals(v, moves[0]));
         expect(isValid).toBe(true);
       }
     });
-  });
 
-  describe('executeBotTurn', () => {
-    it('places settlements for bot and returns updated state', () => {
-      const newState = executeBotTurn(state, 'normal');
+    it('sequential placements do not conflict', () => {
+      const bot = new BotPlayer('normal');
+      const moves = bot.selectBestMove(board, PLAYER_ID, TERRAIN, objectives, 3);
 
-      // Bot should have placed some settlements
-      const placed = newState.cells.filter((c) => c.owner === state.currentPlayer);
-      const original = state.cells.filter((c) => c.owner === state.currentPlayer);
-      expect(placed.length).toBeGreaterThanOrEqual(original.length);
-    });
-
-    it('does not exceed placementsRequired', () => {
-      const newState = executeBotTurn(state, 'normal');
-      expect(newState.placementsThisTurn).toBeLessThanOrEqual(state.placementsRequired);
-    });
-
-    it('works for easy difficulty', () => {
-      const newState = executeBotTurn(state, 'easy');
-      expect(newState).toBeDefined();
-      expect(newState.cells).toBeDefined();
-    });
-
-    it('works for hard difficulty', () => {
-      const newState = executeBotTurn(state, 'hard');
-      expect(newState).toBeDefined();
-      expect(newState.cells).toBeDefined();
+      const keys = moves.map(m => `${m.q},${m.r}`);
+      const uniqueKeys = new Set(keys);
+      expect(uniqueKeys.size).toBe(moves.length);
     });
   });
 });
