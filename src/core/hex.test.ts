@@ -5,9 +5,11 @@ import {
   hexDistance,
   hexEquals,
   axialToPixel,
+  pixelToAxial,
   hexToKey,
   keyToHex,
   HEX_SIZE,
+  HEX_DIRECTIONS,
 } from './hex';
 
 describe('Hex Coordinate System', () => {
@@ -42,12 +44,36 @@ describe('Hex Coordinate System', () => {
       expect(neighbors).toContainEqual({ q: 6, r: 5 });
       expect(neighbors).toContainEqual({ q: 4, r: 5 });
     });
+
+    it('should include out-of-bounds neighbors for edge hexes (filtering is the board responsibility)', () => {
+      // hexNeighbors always returns 6 neighbors, including out-of-bounds ones
+      // Boundary filtering is the board's responsibility
+      const edgeHex = { q: 0, r: 0 };
+      const neighbors = hexNeighbors(edgeHex);
+      expect(neighbors).toHaveLength(6);
+      // Some neighbors will have negative coordinates (out of a 0-based board)
+      const outOfBounds = neighbors.filter(n => n.q < 0 || n.r < 0);
+      expect(outOfBounds.length).toBeGreaterThan(0);
+    });
   });
 
   describe('hexDistance', () => {
     it('should return 0 for same hex', () => {
       const hex = { q: 0, r: 0 };
       expect(hexDistance(hex, hex)).toBe(0);
+    });
+
+    it('should return 0 when both arguments are equal coordinates', () => {
+      const a = { q: 5, r: 3 };
+      const b = { q: 5, r: 3 };
+      expect(hexDistance(a, b)).toBe(0);
+    });
+
+    it('should return 1 for each of the six adjacent directions', () => {
+      const origin = { q: 0, r: 0 };
+      HEX_DIRECTIONS.forEach(dir => {
+        expect(hexDistance(origin, dir)).toBe(1);
+      });
     });
 
     it('should return 1 for adjacent hexes', () => {
@@ -66,6 +92,16 @@ describe('Hex Coordinate System', () => {
       const a = { q: 2, r: 3 };
       const b = { q: 5, r: 1 };
       expect(hexDistance(a, b)).toBe(hexDistance(b, a));
+    });
+
+    it('should calculate large distances correctly (distance > 5)', () => {
+      const a = { q: 0, r: 0 };
+      const b = { q: 10, r: 0 };
+      expect(hexDistance(a, b)).toBe(10);
+
+      const c = { q: 0, r: 0 };
+      const d = { q: 6, r: 6 };
+      expect(hexDistance(c, d)).toBe(12);
     });
   });
 
@@ -98,6 +134,32 @@ describe('Hex Coordinate System', () => {
       
       expect(pixel2.x).toBeCloseTo(pixel1.x * 2, 1);
       expect(pixel2.y).toBeCloseTo(pixel1.y * 2, 1);
+    });
+  });
+
+  describe('axialToPixel / pixelToAxial round-trip', () => {
+    it('should round-trip axial→pixel→axial precisely', () => {
+      const original = { q: 3, r: 5 };
+      const pixel = axialToPixel(original);
+      const result = pixelToAxial(pixel);
+      expect(result.q).toBe(original.q);
+      expect(result.r).toBe(original.r);
+    });
+
+    it('should round-trip for negative coordinates', () => {
+      const original = { q: -4, r: 7 };
+      const pixel = axialToPixel(original);
+      const result = pixelToAxial(pixel);
+      expect(result.q).toBe(original.q);
+      expect(result.r).toBe(original.r);
+    });
+
+    it('should round-trip for origin', () => {
+      const original = { q: 0, r: 0 };
+      const pixel = axialToPixel(original);
+      const result = pixelToAxial(pixel);
+      expect(result.q).toBe(original.q);
+      expect(result.r).toBe(original.r);
     });
   });
 
