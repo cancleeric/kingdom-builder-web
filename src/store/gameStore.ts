@@ -1,5 +1,6 @@
 import { create } from 'zustand';
-import { Board, createDefaultBoard } from '../core/board';
+import { Board } from '../core/board';
+import { createRandomBoard } from '../core/boardFactory';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
 import { Player, GamePhase } from '../types';
@@ -45,7 +46,7 @@ const PLAYER_COLORS = [
 
 export const useGameStore = create<GameState>((set, get) => ({
   // Initial state
-  board: createDefaultBoard(),
+  board: createRandomBoard(),
   players: [],
   currentPlayerIndex: 0,
   phase: GamePhase.Setup,
@@ -74,7 +75,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     }
 
     const deck = shuffleDeck(createTerrainDeck());
-    const board = createDefaultBoard();
+    const board = createRandomBoard();
 
     set({
       board,
