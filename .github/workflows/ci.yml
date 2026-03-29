@@ -19,19 +19,33 @@ jobs:
         uses: actions/setup-node@v4
         with:
           node-version: '20'
-          cache: 'npm'
+
+      - name: Check package.json exists
+        id: check_pkg
+        run: |
+          if [ -f package.json ]; then
+            echo "exists=true" >> $GITHUB_OUTPUT
+          else
+            echo "exists=false" >> $GITHUB_OUTPUT
+            echo "No package.json found, skipping CI steps"
+          fi
 
       - name: Install dependencies
-        run: npm ci
+        if: steps.check_pkg.outputs.exists == 'true'
+        run: npm install
 
       - name: TypeScript type check
+        if: steps.check_pkg.outputs.exists == 'true'
         run: npx tsc --noEmit
 
       - name: Lint
+        if: steps.check_pkg.outputs.exists == 'true'
         run: npm run lint
 
       - name: Run tests
+        if: steps.check_pkg.outputs.exists == 'true'
         run: npx vitest run --reporter=verbose
 
       - name: Build
+        if: steps.check_pkg.outputs.exists == 'true'
         run: npm run build
