@@ -46,9 +46,9 @@ interface GameState {
   selectCell: (coord: AxialCoord | null) => void;
   activateTile: (location: Location) => void;
   cancelTile: () => void;
-  useTilePlacement: (coord: AxialCoord) => void;
+  applyTilePlacement: (coord: AxialCoord) => void;
   selectTileMoveSource: (from: AxialCoord) => void;
-  useTileMove: (to: AxialCoord) => void;
+  applyTileMove: (to: AxialCoord) => void;
 }
 
 // ────────────────────────────────────────────────────
@@ -374,7 +374,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // ── Use placement tile ─────────────────────────────
-  useTilePlacement: (coord: AxialCoord) => {
+  applyTilePlacement: (coord: AxialCoord) => {
     const state = get();
     if (!state.activeTile) return;
 
@@ -425,7 +425,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   },
 
   // ── Execute movement tile ──────────────────────────
-  useTileMove: (to: AxialCoord) => {
+  applyTileMove: (to: AxialCoord) => {
     const state = get();
     if (!state.activeTile || !state.tileMoveFrom) return;
 

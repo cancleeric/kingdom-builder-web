@@ -42,9 +42,9 @@ function App() {
     selectCell,
     activateTile,
     cancelTile,
-    useTilePlacement,
+    applyTilePlacement,
     selectTileMoveSource,
-    useTileMove,
+    applyTileMove,
   } = useGameStore()
 
   useEffect(() => {
@@ -65,10 +65,10 @@ function App() {
           selectTileMoveSource(coord)
         } else {
           // Second click: execute move
-          useTileMove(coord)
+          applyTileMove(coord)
         }
       } else {
-        useTilePlacement(coord)
+        applyTilePlacement(coord)
       }
     } else if (phase === GamePhase.PlaceSettlements) {
       placeSettlement(coord)
