@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" rx="64" fill="#1a1a2e"/>
+  <!-- Crown -->
+  <polygon points="100,346 100,210 170,265 256,156 342,265 412,210 412,346" fill="#c9a227" stroke="#f0d060" stroke-width="8" stroke-linejoin="round"/>
+  <rect x="92" y="338" width="328" height="48" rx="10" fill="#c9a227"/>
+  <!-- Crown gems -->
+  <circle cx="256" cy="185" r="22" fill="#e74c3c"/>
+  <circle cx="148" cy="265" r="16" fill="#3498db"/>
+  <circle cx="364" cy="265" r="16" fill="#3498db"/>
+</svg>
