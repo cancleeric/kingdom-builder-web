@@ -75,6 +75,87 @@ describe('Game Rules', () => {
 
       expect(validPlacements.length).toBe(0);
     });
+
+    it('adjacent rule: player with settlement next to grass must place adjacent (not on distant grass)', () => {
+      // Settlement A at (0,0) on grass
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
+      // Adjacent grass at (1,0)
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+      // Distant grass at (5,5) - not adjacent to A
+      board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: undefined });
+
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+
+      // Must only allow the adjacent cell (1,0), not the distant (5,5)
+      expect(validPlacements).toHaveLength(1);
+      expect(validPlacements[0]).toEqual({ q: 1, r: 0 });
+    });
+
+    it('no adjacent exception: player with no settlements can place on any matching terrain', () => {
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: undefined });
+
+      // Player 1 has no settlements
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+
+      expect(validPlacements).toHaveLength(2);
+    });
+
+    it('fallback: all adjacent terrain occupied → can place anywhere on matching terrain', () => {
+      // Player 1 has a settlement; adjacent grass is fully occupied
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
+      // Neighbors of (0,0): (1,0),(1,-1),(0,-1),(-1,0),(-1,1),(0,1)
+      // Occupy the only neighbour grass we put on the board
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: 2 });
+
+      // Distant grass
+      board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: undefined });
+
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+
+      // No adjacent unoccupied grass → fall back to any available grass
+      expect(validPlacements).toHaveLength(1);
+      expect(validPlacements[0]).toEqual({ q: 5, r: 5 });
+    });
+
+    it('multi-player: rules only consider current player settlements (not other players)', () => {
+      // Player 2 has a settlement adjacent to grass
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 2 });
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+      // Distant grass
+      board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: undefined });
+
+      // Player 1 has NO settlements, so adjacency of player 2 should be ignored
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+
+      // Player 1 has no settlements → can place anywhere (but (0,0) is occupied by p2)
+      expect(validPlacements).toHaveLength(2);
+      expect(validPlacements.some(p => p.q === 1 && p.r === 0)).toBe(true);
+      expect(validPlacements.some(p => p.q === 5 && p.r === 5)).toBe(true);
+    });
+
+    it('non-buildable terrains: Mountain and Water never appear in valid positions', () => {
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Mountain, settlement: undefined });
+      board.setCell({ coord: { q: 2, r: 0 }, terrain: Terrain.Water, settlement: undefined });
+
+      const grassPlacements = getValidPlacements(board, Terrain.Grass, 1);
+      grassPlacements.forEach(p => {
+        const cell = board.getCell(p);
+        expect(cell?.terrain).not.toBe(Terrain.Mountain);
+        expect(cell?.terrain).not.toBe(Terrain.Water);
+      });
+    });
+
+    it('board fully occupied with terrain: valid placements are empty', () => {
+      // All grass cells are occupied
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: 2 });
+
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+
+      expect(validPlacements).toHaveLength(0);
+    });
   });
 
   describe('isValidPlacement', () => {
@@ -119,6 +200,19 @@ describe('Game Rules', () => {
       const count = countSettlementsAdjacentToCastles(board, 1);
 
       expect(count).toBe(0);
+    });
+
+    it('castle adjacency does not block building near castles, only affects scoring', () => {
+      // A castle hex neighbour should still be a valid grass placement
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, location: Location.Castle, settlement: undefined });
+      // Adjacent cell to castle - grass, no settlement
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+
+      // Player 1 has no settlements - can place anywhere on grass
+      const valid = getValidPlacements(board, Terrain.Grass, 1);
+
+      // (1,0) should be included since it's grass and unoccupied
+      expect(valid.some(p => p.q === 1 && p.r === 0)).toBe(true);
     });
   });
 });
