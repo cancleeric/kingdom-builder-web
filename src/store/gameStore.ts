@@ -16,6 +16,7 @@ import {
   scoreCastle,
   scoreObjectiveCard,
 } from '../core/scoring';
+import { GameAction, UndoSnapshot } from '../types/history';
 
 // ────────────────────────────────────────────────────
 // State shape
@@ -39,6 +40,17 @@ interface GameState {
   tileMoveFrom: AxialCoord | null;
   tileMoveDestinations: AxialCoord[];
 
+  /** Full list of all recorded actions across the game */
+  history: GameAction[];
+  /** Whether the current player may still undo this turn */
+  canUndo: boolean;
+  /** Snapshot used to reverse the most recent undoable action */
+  undoSnapshot: UndoSnapshot | null;
+  /** Tracks whether the undo has already been consumed this turn */
+  undoUsedThisTurn: boolean;
+  /** Running turn counter (incremented when a new turn begins) */
+  turnNumber: number;
+
   initGame: (playerCount: number) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
@@ -49,6 +61,7 @@ interface GameState {
   applyTilePlacement: (coord: AxialCoord) => void;
   selectTileMoveSource: (from: AxialCoord) => void;
   applyTileMove: (to: AxialCoord) => void;
+  undoLastAction: () => void;
 }
 
 // ────────────────────────────────────────────────────
@@ -102,16 +115,23 @@ function resetTileState() {
 /**
  * After placing a settlement at `coord`, check adjacent cells for unclaimed
  * location tiles and add them to the player's tile list.
- * Mutates `player.tiles` and `acquiredLocations` in place; returns the updated list.
+ * Mutates `player.tiles` and `acquiredLocations` in place; returns the updated list
+ * together with metadata about what was acquired (for undo support).
  */
 function applyTileAcquisition(
   board: Board,
   coord: AxialCoord,
   player: Player,
   acquiredLocations: string[]
-): string[] {
+): {
+  updatedAcquiredLocations: string[];
+  acquiredLocationKeys: string[];
+  acquiredTileLocs: Location[];
+} {
   const updated = [...acquiredLocations];
   const acquiredSet = new Set(updated);
+  const acquiredLocationKeys: string[] = [];
+  const acquiredTileLocs: Location[] = [];
 
   for (const neighbor of neighborsOf(coord)) {
     const cell = board.getCell(neighbor);
@@ -123,11 +143,13 @@ function applyTileAcquisition(
     ) {
       updated.push(key);
       acquiredSet.add(key);
+      acquiredLocationKeys.push(key);
+      acquiredTileLocs.push(cell.location);
       player.tiles.push({ location: cell.location, usedThisTurn: false });
     }
   }
 
-  return updated;
+  return { updatedAcquiredLocations: updated, acquiredLocationKeys, acquiredTileLocs };
 }
 
 // ────────────────────────────────────────────────────
@@ -151,6 +173,11 @@ export const useGameStore = create<GameState>((set, get) => ({
   tileMoveSources: [],
   tileMoveFrom: null,
   tileMoveDestinations: [],
+  history: [],
+  canUndo: false,
+  undoSnapshot: null,
+  undoUsedThisTurn: false,
+  turnNumber: 1,
 
   // ── Init ────────────────────────────────────────────
   initGame: (playerCount: number) => {
@@ -181,6 +208,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       finalScores: [],
       selectedCell: null,
       validPlacements: [],
+      history: [],
+      canUndo: false,
+      undoSnapshot: null,
+      undoUsedThisTurn: false,
+      turnNumber: 1,
       ...resetTileState(),
     });
   },
@@ -241,14 +273,30 @@ export const useGameStore = create<GameState>((set, get) => ({
     currentPlayer.settlements.push(coord);
     currentPlayer.remainingSettlements--;
 
-    const updatedAcquired = applyTileAcquisition(
-      state.board,
-      coord,
-      currentPlayer,
-      state.acquiredLocations
-    );
+    const { updatedAcquiredLocations, acquiredLocationKeys, acquiredTileLocs } =
+      applyTileAcquisition(state.board, coord, currentPlayer, state.acquiredLocations);
 
     const newRemaining = state.remainingPlacements - 1;
+
+    // Record the action in history
+    const action: GameAction = {
+      type: 'PLACE_SETTLEMENT',
+      playerId: currentPlayer.id,
+      turnNumber: state.turnNumber,
+      hex: coord,
+      acquiredTile: acquiredTileLocs.length > 0 ? acquiredTileLocs[0] : undefined,
+      timestamp: Date.now(),
+    };
+
+    // Build undo snapshot (only the first action per turn is undoable)
+    const snapshot: UndoSnapshot = {
+      type: 'PLACE_SETTLEMENT',
+      coord,
+      previousRemainingPlacements: state.remainingPlacements,
+      previousPhase: state.phase,
+      acquiredLocationKeys,
+      acquiredTileLocs,
+    };
 
     if (newRemaining === 0) {
       set({
@@ -256,7 +304,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         phase: GamePhase.EndTurn,
         validPlacements: [],
         selectedCell: null,
-        acquiredLocations: updatedAcquired,
+        acquiredLocations: updatedAcquiredLocations,
+        history: [...state.history, action],
+        undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+        canUndo: !state.undoUsedThisTurn,
         ...resetTileState(),
       });
     } else {
@@ -268,7 +319,10 @@ export const useGameStore = create<GameState>((set, get) => ({
           currentPlayer.id
         ),
         selectedCell: null,
-        acquiredLocations: updatedAcquired,
+        acquiredLocations: updatedAcquiredLocations,
+        history: [...state.history, action],
+        undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+        canUndo: !state.undoUsedThisTurn,
       });
     }
   },
@@ -290,6 +344,7 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const nextPlayerIndex =
       (state.currentPlayerIndex + 1) % state.players.length;
+    const nextTurnNumber = state.turnNumber + 1;
 
     // Per spec: game ends when ANY player runs out of settlements
     // (Kingdom Builder rule: "任一玩家用完所有 40 間房屋")
@@ -305,6 +360,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         currentTerrainCard: null,
         validPlacements: [],
         finalScores,
+        canUndo: false,
+        undoSnapshot: null,
+        undoUsedThisTurn: false,
+        turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
     } else {
@@ -313,6 +372,10 @@ export const useGameStore = create<GameState>((set, get) => ({
         phase: GamePhase.DrawCard,
         currentTerrainCard: null,
         validPlacements: [],
+        canUndo: false,
+        undoSnapshot: null,
+        undoUsedThisTurn: false,
+        turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
     }
@@ -385,15 +448,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     currentPlayer.settlements.push(coord);
     currentPlayer.remainingSettlements--;
 
-    const tile = currentPlayer.tiles.find(t => t.location === state.activeTile);
+    const tileLocation = state.activeTile;
+    const tile = currentPlayer.tiles.find(t => t.location === tileLocation);
     if (tile) tile.usedThisTurn = true;
 
-    const updatedAcquired = applyTileAcquisition(
-      state.board,
-      coord,
-      currentPlayer,
-      state.acquiredLocations
-    );
+    const { updatedAcquiredLocations, acquiredLocationKeys, acquiredTileLocs } =
+      applyTileAcquisition(state.board, coord, currentPlayer, state.acquiredLocations);
 
     const restoredValid =
       state.phase === GamePhase.PlaceSettlements && state.currentTerrainCard
@@ -404,8 +464,31 @@ export const useGameStore = create<GameState>((set, get) => ({
           )
         : [];
 
+    const action: GameAction = {
+      type: 'TILE_PLACEMENT',
+      playerId: currentPlayer.id,
+      turnNumber: state.turnNumber,
+      hex: coord,
+      tile: tileLocation,
+      acquiredTile: acquiredTileLocs.length > 0 ? acquiredTileLocs[0] : undefined,
+      timestamp: Date.now(),
+    };
+
+    const snapshot: UndoSnapshot = {
+      type: 'TILE_PLACEMENT',
+      coord,
+      previousRemainingPlacements: state.remainingPlacements,
+      previousPhase: state.phase,
+      acquiredLocationKeys,
+      acquiredTileLocs,
+      tileUsed: tileLocation,
+    };
+
     set({
-      acquiredLocations: updatedAcquired,
+      acquiredLocations: updatedAcquiredLocations,
+      history: [...state.history, action],
+      undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+      canUndo: !state.undoUsedThisTurn,
       ...resetTileState(),
       validPlacements: restoredValid,
     });
@@ -429,24 +512,26 @@ export const useGameStore = create<GameState>((set, get) => ({
     const state = get();
     if (!state.activeTile || !state.tileMoveFrom) return;
 
+    const fromCoord = state.tileMoveFrom;
+    const tileLocation = state.activeTile;
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (
       !executeMoveTile(
-        state.activeTile,
+        tileLocation,
         state.board,
         currentPlayer.id,
-        state.tileMoveFrom,
+        fromCoord,
         to
       )
     )
       return;
 
     // Update player settlements list
-    const fromKey = hexToKey(state.tileMoveFrom);
+    const fromKey = hexToKey(fromCoord);
     const idx = currentPlayer.settlements.findIndex(s => hexToKey(s) === fromKey);
     if (idx !== -1) currentPlayer.settlements[idx] = to;
 
-    const tile = currentPlayer.tiles.find(t => t.location === state.activeTile);
+    const tile = currentPlayer.tiles.find(t => t.location === tileLocation);
     if (tile) tile.usedThisTurn = true;
 
     const restoredValid =
@@ -458,6 +543,182 @@ export const useGameStore = create<GameState>((set, get) => ({
           )
         : [];
 
-    set({ ...resetTileState(), validPlacements: restoredValid });
+    const action: GameAction = {
+      type: 'TILE_MOVE',
+      playerId: currentPlayer.id,
+      turnNumber: state.turnNumber,
+      fromHex: fromCoord,
+      toHex: to,
+      tile: tileLocation,
+      timestamp: Date.now(),
+    };
+
+    const snapshot: UndoSnapshot = {
+      type: 'TILE_MOVE',
+      fromCoord,
+      toCoord: to,
+      previousRemainingPlacements: state.remainingPlacements,
+      previousPhase: state.phase,
+      acquiredLocationKeys: [],
+      acquiredTileLocs: [],
+      tileUsed: tileLocation,
+      movedSettlementIdx: idx !== -1 ? idx : undefined,
+    };
+
+    set({
+      history: [...state.history, action],
+      undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+      canUndo: !state.undoUsedThisTurn,
+      ...resetTileState(),
+      validPlacements: restoredValid,
+    });
+  },
+
+  // ── Undo last action ───────────────────────────────
+  undoLastAction: () => {
+    const state = get();
+    if (!state.canUndo || !state.undoSnapshot || state.undoUsedThisTurn) return;
+
+    const snap = state.undoSnapshot;
+    const currentPlayer = state.players[state.currentPlayerIndex];
+
+    if (snap.type === 'PLACE_SETTLEMENT' && snap.coord) {
+      // Remove settlement from board
+      const cell = state.board.getCell(snap.coord);
+      if (cell) cell.settlement = undefined;
+
+      // Remove from player.settlements
+      const coordKey = hexToKey(snap.coord);
+      currentPlayer.settlements = currentPlayer.settlements.filter(
+        s => hexToKey(s) !== coordKey
+      );
+      currentPlayer.remainingSettlements++;
+
+      // Remove newly acquired tiles
+      if (snap.acquiredTileLocs.length > 0) {
+        currentPlayer.tiles = currentPlayer.tiles.slice(
+          0,
+          currentPlayer.tiles.length - snap.acquiredTileLocs.length
+        );
+      }
+
+      // Restore acquiredLocations
+      const restoredAcquired = state.acquiredLocations.filter(
+        key => !snap.acquiredLocationKeys.includes(key)
+      );
+
+      // Restore validPlacements
+      const restoredValid =
+        state.currentTerrainCard
+          ? getValidPlacements(
+              state.board,
+              state.currentTerrainCard.terrain,
+              currentPlayer.id
+            )
+          : [];
+
+      set({
+        remainingPlacements: snap.previousRemainingPlacements,
+        phase: snap.previousPhase,
+        acquiredLocations: restoredAcquired,
+        validPlacements: restoredValid,
+        canUndo: false,
+        undoSnapshot: null,
+        undoUsedThisTurn: true,
+        history: state.history.slice(0, -1),
+        selectedCell: null,
+      });
+    } else if (snap.type === 'TILE_PLACEMENT' && snap.coord) {
+      // Remove settlement from board
+      const cell = state.board.getCell(snap.coord);
+      if (cell) cell.settlement = undefined;
+
+      // Remove from player.settlements
+      const coordKey = hexToKey(snap.coord);
+      currentPlayer.settlements = currentPlayer.settlements.filter(
+        s => hexToKey(s) !== coordKey
+      );
+      currentPlayer.remainingSettlements++;
+
+      // Un-mark tile as used
+      if (snap.tileUsed) {
+        const usedTile = currentPlayer.tiles.find(t => t.location === snap.tileUsed);
+        if (usedTile) usedTile.usedThisTurn = false;
+      }
+
+      // Remove newly acquired tiles
+      if (snap.acquiredTileLocs.length > 0) {
+        currentPlayer.tiles = currentPlayer.tiles.slice(
+          0,
+          currentPlayer.tiles.length - snap.acquiredTileLocs.length
+        );
+      }
+
+      const restoredAcquired = state.acquiredLocations.filter(
+        key => !snap.acquiredLocationKeys.includes(key)
+      );
+
+      const restoredValid =
+        state.currentTerrainCard
+          ? getValidPlacements(
+              state.board,
+              state.currentTerrainCard.terrain,
+              currentPlayer.id
+            )
+          : [];
+
+      set({
+        remainingPlacements: snap.previousRemainingPlacements,
+        phase: snap.previousPhase,
+        acquiredLocations: restoredAcquired,
+        validPlacements: restoredValid,
+        canUndo: false,
+        undoSnapshot: null,
+        undoUsedThisTurn: true,
+        history: state.history.slice(0, -1),
+        selectedCell: null,
+      });
+    } else if (
+      snap.type === 'TILE_MOVE' &&
+      snap.fromCoord &&
+      snap.toCoord
+    ) {
+      // Reverse the move: put the settlement back at fromCoord, remove from toCoord
+      const toCell = state.board.getCell(snap.toCoord);
+      if (toCell) toCell.settlement = undefined;
+      const fromCell = state.board.getCell(snap.fromCoord);
+      if (fromCell) fromCell.settlement = currentPlayer.id;
+
+      // Restore settlements array
+      if (snap.movedSettlementIdx !== undefined) {
+        currentPlayer.settlements[snap.movedSettlementIdx] = snap.fromCoord;
+      }
+
+      // Un-mark tile as used
+      if (snap.tileUsed) {
+        const usedTile = currentPlayer.tiles.find(t => t.location === snap.tileUsed);
+        if (usedTile) usedTile.usedThisTurn = false;
+      }
+
+      const restoredValid =
+        state.currentTerrainCard
+          ? getValidPlacements(
+              state.board,
+              state.currentTerrainCard.terrain,
+              currentPlayer.id
+            )
+          : [];
+
+      set({
+        remainingPlacements: snap.previousRemainingPlacements,
+        phase: snap.previousPhase,
+        validPlacements: restoredValid,
+        canUndo: false,
+        undoSnapshot: null,
+        undoUsedThisTurn: true,
+        history: state.history.slice(0, -1),
+        selectedCell: null,
+      });
+    }
   },
 }));

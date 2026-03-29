@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
+import { GameLog } from './components/Game/GameLog'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
@@ -35,6 +36,8 @@ function App() {
     tileMoveSources,
     tileMoveFrom,
     tileMoveDestinations,
+    history,
+    canUndo,
     initGame,
     drawTerrainCard,
     placeSettlement,
@@ -45,6 +48,7 @@ function App() {
     applyTilePlacement,
     selectTileMoveSource,
     applyTileMove,
+    undoLastAction,
   } = useGameStore()
 
   useEffect(() => {
@@ -249,15 +253,32 @@ function App() {
               </div>
             )}
 
+            {(phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
+              <button
+                onClick={undoLastAction}
+                disabled={!canUndo}
+                className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
+                  canUndo
+                    ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
+                    : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                }`}
+              >
+              Undo
+              </button>
+            )}
+
             {phase === GamePhase.EndTurn && (
               <button
                 onClick={endTurn}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition"
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition mt-2"
               >
                 End Turn
               </button>
             )}
           </div>
+
+          {/* Operation Log */}
+          <GameLog history={history} players={players} />
 
           {/* Live Scores */}
           {players.length > 0 && phase !== GamePhase.Setup && (
