@@ -3,6 +3,7 @@ import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
+import { Location } from './core/terrain'
 
 function App() {
   const {
@@ -28,6 +29,17 @@ function App() {
   }, []);
 
   const currentPlayer = players[currentPlayerIndex];
+
+  // Collect unique location types present on the board (for the sidebar list)
+  const boardLocations = board
+    ? (Array.from(
+        new Set(
+          board.getAllCells()
+            .map(cell => cell.location)
+            .filter((loc): loc is Location => loc !== undefined)
+        )
+      ))
+    : [];
 
   const handleDrawCard = () => {
     drawTerrainCard();
@@ -91,9 +103,12 @@ function App() {
             </div>
           </div>
 
-          {/* Terrain Card */}
+          {/* Terrain Card – keyed on terrain so it fades in whenever the card changes */}
           {currentTerrainCard && (
-            <div className="mb-6">
+            <div
+              key={currentTerrainCard.terrain}
+              className="mb-6 hand-fade-in"
+            >
               <h3 className="text-lg font-semibold mb-2">Current Terrain</h3>
               <div className="p-4 bg-gray-100 rounded text-center">
                 <p className="text-2xl font-bold">
@@ -140,7 +155,7 @@ function App() {
             )}
 
             {phase === GamePhase.GameOver && (
-              <div className="p-3 bg-red-100 border border-red-400 rounded">
+              <div className="p-3 bg-red-100 border border-red-400 rounded game-over-slide-down">
                 <p className="font-bold">Game Over!</p>
               </div>
             )}
@@ -172,6 +187,23 @@ function App() {
               ))}
             </div>
           </div>
+          {/* Location Tiles on the board – each item slides in from the right */}
+          {boardLocations.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-lg font-semibold mb-2">Location Tiles</h3>
+              <ul className="space-y-1 overflow-hidden">
+                {boardLocations.map((loc, i) => (
+                  <li
+                    key={loc}
+                    className="tile-slide-in px-3 py-1 bg-amber-100 border border-amber-400 rounded text-sm font-medium"
+                    style={{ animationDelay: `${i * 50}ms` }}
+                  >
+                    {loc}
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </aside>
       </div>
     </div>

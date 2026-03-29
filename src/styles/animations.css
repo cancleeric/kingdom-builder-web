@@ -1,0 +1,89 @@
+/* ============================================================
+   Kingdom Builder – UI Animation Keyframes & Utility Classes
+   ============================================================ */
+
+/* ----------------------------------------------------------
+   Keyframes
+   ---------------------------------------------------------- */
+
+/* Settlement placement: bounce-scale 0 → 1.2 → 1 */
+@keyframes settlementDrop {
+  0%   { transform: scale(0); }
+  60%  { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+/* Location-tile list item: slide in from the right */
+@keyframes tileSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+/* Game-Over panel: slide down from above */
+@keyframes gameOverSlideDown {
+  from { transform: translateY(-40px); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+/* Terrain card / hand area: fade in */
+@keyframes handFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+/* ----------------------------------------------------------
+   Utility classes
+   ---------------------------------------------------------- */
+
+/* Settlement circle – animates whenever the element first mounts */
+.settlement-drop {
+  transform-box:    fill-box;   /* make transform-origin relative to the element's bbox */
+  transform-origin: center;
+  animation: settlementDrop 300ms ease-out both;
+}
+
+/* Valid-hex polygon – smooth colour + glow transition on hover */
+.hex-valid-transition {
+  transition: fill 150ms ease-out, filter 150ms ease-out;
+}
+
+/* Glow applied when a valid hex is hovered */
+.hex-valid-hovered {
+  filter: drop-shadow(0 0 4px rgba(0, 255, 0, 0.8));
+}
+
+/* Invalid (non-empty) hex – signal not-allowed */
+.hex-not-allowed {
+  cursor: not-allowed;
+}
+
+/* Location-tile list item */
+.tile-slide-in {
+  animation: tileSlideIn 300ms ease-out both;
+}
+
+/* Game-Over panel */
+.game-over-slide-down {
+  animation: gameOverSlideDown 400ms ease-out both;
+}
+
+/* Terrain card / hand area */
+.hand-fade-in {
+  animation: handFadeIn 200ms ease-out both;
+}
+
+/* ----------------------------------------------------------
+   Accessibility – honour prefers-reduced-motion
+   ---------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .settlement-drop,
+  .tile-slide-in,
+  .game-over-slide-down,
+  .hand-fade-in {
+    animation: none;
+  }
+
+  .hex-valid-transition {
+    transition: none;
+  }
+}

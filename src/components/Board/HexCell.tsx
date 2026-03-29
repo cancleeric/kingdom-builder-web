@@ -49,12 +49,28 @@ export const HexCell: React.FC<HexCellProps> = ({
     strokeWidth = 3;
   }
 
+  // Build CSS class list for the hex polygon
+  const polygonClasses = [
+    isValid ? 'hex-valid-transition' : '',
+    isValid && isHovered ? 'hex-valid-hovered' : '',
+  ]
+    .filter(Boolean)
+    .join(' ');
+
+  // Cursor: pointer for valid placements, not-allowed for occupied cells, default otherwise
+  let cursor = 'default';
+  if (isValid) {
+    cursor = 'pointer';
+  } else if (cell.settlement !== undefined) {
+    cursor = 'not-allowed';
+  }
+
   return (
     <g
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      style={{ cursor: isValid ? 'pointer' : 'default' }}
+      style={{ cursor }}
     >
       <polygon
         points={points}
@@ -62,6 +78,7 @@ export const HexCell: React.FC<HexCellProps> = ({
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         opacity={0.9}
+        className={polygonClasses}
       />
       
       {/* Show location marker if present */}
@@ -78,9 +95,10 @@ export const HexCell: React.FC<HexCellProps> = ({
         </text>
       )}
       
-      {/* Show settlement marker if present */}
+      {/* Show settlement marker if present – CSS animation plays on mount */}
       {cell.settlement !== undefined && playerColor && (
         <circle
+          className="settlement-drop"
           cx={corners[0].x - HEX_SIZE}
           cy={corners[0].y}
           r={HEX_SIZE * 0.4}
