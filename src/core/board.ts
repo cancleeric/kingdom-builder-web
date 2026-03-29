@@ -138,10 +138,20 @@ export function createDefaultBoard(): Board {
         settlement: undefined,
       };
       
-      // Add some castles at strategic positions
+      // Add location tiles at strategic positions
+      // Castles at the four quadrant corners
       if ((q === 3 && r === 3) || (q === 16 && r === 3) || (q === 3 && r === 16) || (q === 16 && r === 16)) {
         cell.location = Location.Castle;
       }
+      // Location tiles spread across the board
+      else if (q === 7 && r === 7)  cell.location = Location.Farm;
+      else if (q === 6 && r === 6)  cell.location = Location.Harbor;
+      else if (q === 14 && r === 5) cell.location = Location.Oasis;
+      else if (q === 9 && r === 4)  cell.location = Location.Tower;
+      else if (q === 8 && r === 12) cell.location = Location.Paddock;
+      else if (q === 13 && r === 13) cell.location = Location.Barn;
+      else if (q === 4 && r === 13) cell.location = Location.Oracle;
+      else if (q === 15 && r === 8) cell.location = Location.Tavern;
       
       board.setCell(cell);
     }

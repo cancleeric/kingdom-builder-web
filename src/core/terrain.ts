@@ -23,6 +23,7 @@ export enum Location {
   Paddock = 'Paddock',
   Barn = 'Barn',
   Oracle = 'Oracle',
+  Tavern = 'Tavern',
 }
 
 /**
