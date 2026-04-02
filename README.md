@@ -130,12 +130,21 @@ npm run build
 
 - 功能開發：從 issue 建立分支，先 push 分支，再開 Draft PR
 - PR 驗證：每次 push 與 pull request 都會執行 lint、test、build
-- 正式部署：merge 到 main 後自動部署到 GitHub Pages
+- 正式部署：若 repo 方案支援 GitHub Pages，merge 到 main 後可由 GitHub Actions 自動部署
 - Pages 路徑：production build 會自動使用 /kingdom-builder-web/ 作為 base path
+
+若目前 GitHub Pages 因 repository plan 無法啟用，可改用 Vercel 作為正式部署目標。
 
 預計部署網址：
 
 - https://cancleeric.github.io/kingdom-builder-web/
+
+Vercel 備援：
+
+- 匯入此 repository 至 Vercel
+- Build Command: npm run build
+- Output Directory: dist
+- 使用 vercel.json 提供 SPA fallback
 
 ## 開發狀態
 
