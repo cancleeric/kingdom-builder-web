@@ -1,7 +1,10 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
-// https://vite.dev/config/
+const repoName = 'kingdom-builder-web'
+const isGitHubActions = process.env.GITHUB_ACTIONS === 'true'
+
 export default defineConfig({
+  base: isGitHubActions ? `/${repoName}/` : '/',
   plugins: [react()],
 })

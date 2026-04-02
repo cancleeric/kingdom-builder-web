@@ -1,4 +1,3 @@
-import { useEffect, useState } from 'react'
 import './App.css'
 import { BoardView } from './components/BoardView'
 import { TERRAIN_META } from './core/terrain'
@@ -12,29 +11,9 @@ function App() {
   const score = useGameStore((state) => state.score)
   const nextTurn = useGameStore((state) => state.nextTurn)
   const terrainCard = TERRAIN_META[turn.terrainCard]
-  const [showTransition, setShowTransition] = useState(false)
-
-  useEffect(() => {
-    if (turn.number === 1 && turn.phase !== 'turn-transition') {
-      return
-    }
-
-    if (turn.phase !== 'turn-transition') {
-      return
-    }
-
-    setShowTransition(true)
-
-    const timer = window.setTimeout(() => {
-      setShowTransition(false)
-    }, 1600)
-
-    return () => {
-      window.clearTimeout(timer)
-    }
-  }, [turn.number, turn.phase])
 
   const completedSteps = 3 - turn.housesRemaining
+  const showTransition = turn.phase === 'turn-transition'
 
   return (
     <main className="app-shell">

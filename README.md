@@ -1,5 +1,7 @@
 # Kingdom Builder Web
 
+[![Deploy](https://github.com/cancleeric/kingdom-builder-web/actions/workflows/deploy.yml/badge.svg)](https://github.com/cancleeric/kingdom-builder-web/actions/workflows/deploy.yml)
+
 Kingdom Builder 桌遊 Web 版 — 六角格策略棋盤遊戲
 
 ## 專案簡介
@@ -26,7 +28,7 @@ Kingdom Builder 桌遊 Web 版 — 六角格策略棋盤遊戲
 | 樣式 | CSS variables + handcrafted layout | 先快速做出可玩的原型介面 |
 | 建置工具 | Vite | 快速開發與打包 |
 | 測試 | Vitest + React Testing Library | 單元與組件測試 |
-| 部署 | GitHub Pages / Vercel | 靜態網站部署 |
+| 部署 | GitHub Pages | 透過 GitHub Actions 自動建置與部署 |
 
 ## 開發計劃 — 分階段進行
 
@@ -58,7 +60,7 @@ Kingdom Builder 桌遊 Web 版 — 六角格策略棋盤遊戲
 - [ ] 動畫效果（放置、移動、得分）
 - [ ] 音效系統
 - [ ] 遊戲 UI（玩家面板、計分板、行動記錄）
-- [ ] 回合提示與操作引導
+- [x] 回合提示與操作引導
 - [ ] 悔棋 / 重新開始功能
 
 ### Phase 4：AI 對手
@@ -124,6 +126,17 @@ npm test
 npm run build
 ```
 
+## GitHub 工作流程
+
+- 功能開發：從 issue 建立分支，先 push 分支，再開 Draft PR
+- PR 驗證：每次 push 與 pull request 都會執行 lint、test、build
+- 正式部署：merge 到 main 後自動部署到 GitHub Pages
+- Pages 路徑：production build 會自動使用 /kingdom-builder-web/ 作為 base path
+
+預計部署網址：
+
+- https://cancleeric.github.io/kingdom-builder-web/
+
 ## 開發狀態
 
 🚧 **Phase 1 已可互動遊玩**
@@ -135,12 +148,13 @@ npm run build
 - 單人 3 間房屋放置流程
 - 相鄰規則判定
 - 城堡接觸得分
+- 回合提示 Banner、合法格高亮、步驟指示器與換回合提示
 - Vitest 規則測試
 
 下一步建議：
 
 - 加入 location tiles 與特殊能力
-- 把回合流程拆成更完整的狀態機
+- 補齊 GitHub Pages 自動部署與 PR 檢查
 - 引入多玩家與目標卡計分
 
 ## 授權
