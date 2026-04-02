@@ -1,0 +1,86 @@
+:root {
+  --bg: #f4ead8;
+  --bg-deep: #d7b98d;
+  --panel: rgba(255, 248, 237, 0.86);
+  --panel-strong: rgba(243, 224, 197, 0.72);
+  --border: rgba(86, 56, 31, 0.16);
+  --border-strong: rgba(86, 56, 31, 0.32);
+  --ink: #5c4a38;
+  --ink-strong: #2c2016;
+  --muted: #7d6550;
+  --accent: #8c4b2f;
+  --accent-strong: #6b341d;
+  --shadow-soft: rgba(77, 48, 23, 0.08) 0 20px 40px;
+  --font-body: 'Avenir Next', 'Trebuchet MS', sans-serif;
+  --font-heading: 'Baskerville', 'Palatino Linotype', serif;
+
+  font: 16px/1.5 var(--font-body);
+  color: var(--ink);
+  background:
+    radial-gradient(circle at top, rgba(255, 237, 205, 0.72), transparent 28%),
+    linear-gradient(180deg, var(--bg) 0%, #ecd8b6 62%, var(--bg-deep) 100%);
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(120deg, rgba(255, 255, 255, 0.14), transparent 30%),
+    radial-gradient(circle at 20% 10%, rgba(255, 255, 255, 0.18), transparent 20%);
+}
+
+#root {
+  width: min(1380px, 100%);
+  margin: 0 auto;
+  min-height: 100vh;
+}
+
+h1,
+h2,
+h3 {
+  margin: 0;
+  color: var(--ink-strong);
+  font-family: var(--font-heading);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+h1 {
+  font-size: clamp(2.8rem, 5vw, 4.8rem);
+  line-height: 0.95;
+  margin-bottom: 16px;
+}
+
+h2 {
+  font-size: 1.45rem;
+}
+
+p {
+  margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
