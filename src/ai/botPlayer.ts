@@ -7,6 +7,10 @@ import { ObjectiveCard, calculatePlayerScore } from '../core/scoring';
 
 export type BotDifficulty = 'easy' | 'normal' | 'hard';
 
+// Weight applied to the best lookahead score when computing hard-mode moves.
+// A value of 0.5 means the future potential contributes half as much as the immediate gain.
+const LOOKAHEAD_WEIGHT = 0.5;
+
 export interface BotGameState {
   board: Board;
   currentTerrainCard: Terrain;
@@ -160,7 +164,7 @@ export class BotPlayer {
                 );
                 if (nextScore > bestNextScore) bestNextScore = nextScore;
               }
-              score += bestNextScore * 0.5;
+              score += bestNextScore * LOOKAHEAD_WEIGHT;
             }
             cell.settlement = undefined;
           }

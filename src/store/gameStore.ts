@@ -83,6 +83,9 @@ interface GameState {
 
 const SETTLEMENTS_PER_TURN = 3;
 const TOTAL_SETTLEMENTS_PER_PLAYER = 40;
+const BOT_DRAW_DELAY_MS = 800;
+const BOT_PLACEMENT_DELAY_MS = 300;
+const BOT_END_TURN_DELAY_MS = 300;
 
 const PLAYER_COLORS = [
   '#FF6B6B', // Red
@@ -259,7 +262,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const updatedState = get();
     const cfg = updatedState.playerConfigs[updatedState.currentPlayerIndex];
     if (cfg?.type === 'bot') {
-      setTimeout(() => get().triggerBotTurn(), 800);
+      setTimeout(() => get().triggerBotTurn(), BOT_DRAW_DELAY_MS);
     }
   },
 
@@ -541,7 +544,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       if (index >= moves.length || currentState.phase === GamePhase.EndTurn) {
         set({ isBotThinking: false });
         if (currentState.phase === GamePhase.EndTurn) {
-          setTimeout(() => get().endTurn(), 300);
+          setTimeout(() => get().endTurn(), BOT_END_TURN_DELAY_MS);
         }
         return;
       }
@@ -549,7 +552,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       setTimeout(() => {
         get().placeSettlement(moves[index]);
         placeNext(index + 1);
-      }, 300);
+      }, BOT_PLACEMENT_DELAY_MS);
     };
 
     placeNext(0);
