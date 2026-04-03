@@ -1,8 +1,9 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
+import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
@@ -51,6 +52,9 @@ function App() {
     undoLastAction,
   } = useGameStore()
 
+  // Bottom drawer state (mobile only)
+  const [drawerOpen, setDrawerOpen] = useState(false)
+
   useEffect(() => {
     initGame(2)
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -91,13 +95,23 @@ function App() {
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-blue-600 text-white p-4 shadow-lg">
-        <h1 className="text-3xl font-bold text-center">Kingdom Builder</h1>
+      <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
+        <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
+        {/* Mobile: show current player name in header */}
+        {currentPlayer && (
+          <div className="flex items-center gap-2 sm:hidden">
+            <div
+              className="w-5 h-5 rounded-full border-2 border-white"
+              style={{ backgroundColor: currentPlayer.color }}
+            />
+            <span className="text-sm font-semibold">{currentPlayer.name}</span>
+          </div>
+        )}
       </header>
 
       {/* Main Game Area */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Game Board */}
+        {/* Game Board – always visible, takes all space on mobile */}
         <div className="flex-1 relative">
           {players.length > 0 && (
             <HexGrid
@@ -115,8 +129,8 @@ function App() {
           )}
         </div>
 
-        {/* Sidebar */}
-        <aside className="w-80 bg-white shadow-lg p-6 overflow-y-auto">
+        {/* Sidebar – hidden on mobile (< md), visible on md+ */}
+        <aside className="hidden md:flex w-80 bg-white shadow-lg p-6 overflow-y-auto flex-col gap-0">
           {/* Current Player Info */}
           {currentPlayer && (
             <div
@@ -344,6 +358,27 @@ function App() {
             </div>
           </div>
         </aside>
+      </div>
+
+      {/* Mobile Bottom Drawer – visible on < md only */}
+      <div className="md:hidden">
+        <BottomDrawer
+          isOpen={drawerOpen}
+          onToggle={() => setDrawerOpen(o => !o)}
+          phase={phase}
+          currentPlayer={currentPlayer}
+          currentTerrainCard={currentTerrainCard}
+          remainingPlacements={remainingPlacements}
+          activeTile={activeTile}
+          tileMoveFrom={tileMoveFrom}
+          canUndo={canUndo}
+          history={history}
+          onDrawCard={drawTerrainCard}
+          onEndTurn={endTurn}
+          onUndo={undoLastAction}
+          onActivateTile={activateTile}
+          onCancelTile={cancelTile}
+        />
       </div>
 
       {/* Game Over overlay */}

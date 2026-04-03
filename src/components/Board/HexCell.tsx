@@ -10,6 +10,8 @@ interface HexCellProps {
   isHovered: boolean;
   playerColor?: string;
   onClick: () => void;
+  /** Called on touchend when the touch was a tap (no significant movement). */
+  onTap: () => void;
   onMouseEnter: () => void;
   onMouseLeave: () => void;
 }
@@ -21,6 +23,7 @@ export const HexCell: React.FC<HexCellProps> = ({
   isHovered,
   playerColor,
   onClick,
+  onTap,
   onMouseEnter,
   onMouseLeave,
 }) => {
@@ -49,9 +52,16 @@ export const HexCell: React.FC<HexCellProps> = ({
     strokeWidth = 3;
   }
 
+  // Touch tap: stopPropagation so the container's touchEnd doesn't also fire onClick
+  const handleTouchEnd = (e: React.TouchEvent<SVGGElement>) => {
+    e.stopPropagation();
+    onTap();
+  };
+
   return (
     <g
       onClick={onClick}
+      onTouchEnd={handleTouchEnd}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
       style={{ cursor: isValid ? 'pointer' : 'default' }}
