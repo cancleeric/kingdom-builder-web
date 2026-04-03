@@ -3,6 +3,7 @@ import { Board, createDefaultBoard } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
 import { Player, GamePhase } from '../types';
+import { PlayerConfig } from '../types/setup';
 import { AxialCoord } from '../core/hex';
 
 interface GameState {
@@ -27,6 +28,7 @@ interface GameState {
   
   // Actions
   initGame: (playerCount: number) => void;
+  initGameWithPlayers: (players: PlayerConfig[]) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
@@ -72,6 +74,37 @@ export const useGameStore = create<GameState>((set, get) => ({
         remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
       });
     }
+
+    const deck = shuffleDeck(createTerrainDeck());
+    const board = createDefaultBoard();
+
+    set({
+      board,
+      players,
+      currentPlayerIndex: 0,
+      phase: GamePhase.DrawCard,
+      currentTerrainCard: null,
+      remainingPlacements: 0,
+      deck,
+      selectedCell: null,
+      validPlacements: [],
+    });
+  },
+
+  // Initialize game with custom player configurations
+  initGameWithPlayers: (configs: PlayerConfig[]) => {
+    if (configs.length < 2 || configs.length > 4) {
+      console.error('Player count must be between 2 and 4');
+      return;
+    }
+
+    const players: Player[] = configs.map((cfg) => ({
+      id: cfg.id,
+      name: cfg.name,
+      color: cfg.color,
+      settlements: [],
+      remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
+    }));
 
     const deck = shuffleDeck(createTerrainDeck());
     const board = createDefaultBoard();

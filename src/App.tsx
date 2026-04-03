@@ -1,10 +1,14 @@
-import { useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
+import { GameSetup } from './components/Setup/GameSetup'
 import { GamePhase } from './types'
+import { PlayerConfig } from './types/setup'
 import { getTerrainName } from './core/terrain'
 
 function App() {
+  const [showSetup, setShowSetup] = useState(true);
+
   const {
     board,
     players,
@@ -15,17 +19,34 @@ function App() {
     validPlacements,
     selectedCell,
     initGame,
+    initGameWithPlayers,
     drawTerrainCard,
     placeSettlement,
     endTurn,
     selectCell,
   } = useGameStore();
 
-  // Initialize game on mount
+  const handleSetupStart = (playerConfigs: PlayerConfig[]) => {
+    initGameWithPlayers(playerConfigs);
+    setShowSetup(false);
+  };
+
+  const handleNewGame = () => {
+    setShowSetup(true);
+  };
+
+  // Initialise a default game so the board is ready if the user lands directly
+  // in-game (e.g. via hot-module-reload during development)
   useEffect(() => {
-    initGame(2); // Start with 2 players for testing
+    if (!showSetup && players.length === 0) {
+      initGame(2);
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [showSetup]);
+
+  if (showSetup) {
+    return <GameSetup onStart={handleSetupStart} />;
+  }
 
   const currentPlayer = players[currentPlayerIndex];
 
@@ -44,8 +65,14 @@ function App() {
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-blue-600 text-white p-4 shadow-lg">
-        <h1 className="text-3xl font-bold text-center">Kingdom Builder</h1>
+      <header className="bg-blue-600 text-white p-4 shadow-lg flex items-center justify-between">
+        <h1 className="text-3xl font-bold">Kingdom Builder</h1>
+        <button
+          onClick={handleNewGame}
+          className="bg-white text-blue-600 font-bold px-4 py-2 rounded-lg hover:bg-blue-50 transition text-sm"
+        >
+          新遊戲
+        </button>
       </header>
 
       {/* Main Game Area */}
@@ -142,6 +169,12 @@ function App() {
             {phase === GamePhase.GameOver && (
               <div className="p-3 bg-red-100 border border-red-400 rounded">
                 <p className="font-bold">Game Over!</p>
+                <button
+                  onClick={handleNewGame}
+                  className="mt-2 w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition text-sm"
+                >
+                  新遊戲
+                </button>
               </div>
             )}
           </div>
