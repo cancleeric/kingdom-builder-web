@@ -1,8 +1,10 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
+import { MuteButton } from './components/MuteButton'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
+import { initAudio, play } from './utils/soundEngine'
 
 function App() {
   const {
@@ -29,23 +31,45 @@ function App() {
 
   const currentPlayer = players[currentPlayerIndex];
 
+  // Track previous phase to detect transitions for sound cues.
+  const prevPhaseRef = useRef<GamePhase>(phase);
+  useEffect(() => {
+    const prev = prevPhaseRef.current;
+    prevPhaseRef.current = phase;
+    if (prev === GamePhase.PlaceSettlements && phase === GamePhase.EndTurn) {
+      play('turn-end');
+    } else if (phase === GamePhase.GameOver && prev !== GamePhase.GameOver) {
+      play('game-over');
+    }
+  }, [phase]);
+
   const handleDrawCard = () => {
+    initAudio();
     drawTerrainCard();
   };
 
   const handlePlaceSettlement = (coord: { q: number; r: number }) => {
+    initAudio();
+    const isValid = validPlacements.some(v => v.q === coord.q && v.r === coord.r);
+    if (isValid) {
+      play('settlement-placed');
+    } else {
+      play('invalid-move');
+    }
     placeSettlement(coord);
   };
 
   const handleEndTurn = () => {
+    initAudio();
     endTurn();
   };
 
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       {/* Header */}
-      <header className="bg-blue-600 text-white p-4 shadow-lg">
-        <h1 className="text-3xl font-bold text-center">Kingdom Builder</h1>
+      <header className="bg-blue-600 text-white p-4 shadow-lg flex items-center">
+        <h1 className="text-3xl font-bold flex-1 text-center">Kingdom Builder</h1>
+        <MuteButton />
       </header>
 
       {/* Main Game Area */}
