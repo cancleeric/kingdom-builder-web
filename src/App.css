@@ -54,7 +54,8 @@
   color: #fff6e5;
   box-shadow: 0 24px 48px rgba(15, 10, 7, 0.32);
   backdrop-filter: blur(12px);
-  animation: fade-slide-in 180ms ease-out;
+  pointer-events: none;
+  animation: turn-transition-overlay 1600ms ease-out forwards;
 }
 
 .turn-transition strong {
@@ -215,15 +216,25 @@
   font-weight: 600;
 }
 
-@keyframes fade-slide-in {
-  from {
+@keyframes turn-transition-overlay {
+  0% {
     opacity: 0;
     transform: translateY(-8px);
   }
 
-  to {
+  12% {
     opacity: 1;
     transform: translateY(0);
+  }
+
+  78% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+
+  100% {
+    opacity: 0;
+    transform: translateY(-4px);
   }
 }
 
