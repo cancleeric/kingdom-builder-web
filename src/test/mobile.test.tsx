@@ -131,7 +131,7 @@ describe('useBoardTransform', () => {
       0: { clientX: x, clientY: y } as Touch,
       item: (i: number): Touch => (i === 0 ? { clientX: x, clientY: y } as Touch : null as unknown as Touch),
       [Symbol.iterator]: function* () { yield { clientX: x, clientY: y } as Touch; },
-    });
+    } as unknown as React.TouchList);
 
     act(() => {
       result.current.onTouchStart({
