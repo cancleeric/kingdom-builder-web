@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import {
   PlayerConfig,
   PlayerCount,
@@ -47,36 +47,29 @@ export function GameSetup({ onStart }: GameSetupProps) {
     return saved ?? buildDefaultConfig(2);
   });
 
-  // When player count changes, keep existing player data where possible
-  useEffect(() => {
-    const current = config;
-    const next: PlayerConfig[] = Array.from(
-      { length: current.playerCount },
-      (_, i) => current.players[i] ?? {
-        id: i + 1,
-        name: DEFAULT_PLAYER_NAMES[i],
-        color: OFFICIAL_COLORS[i].value,
-      }
-    );
-    // Ensure no duplicate colors after trimming
-    const used = new Set<string>();
-    const resolved = next.map((p) => {
-      if (!used.has(p.color)) {
-        used.add(p.color);
-        return p;
-      }
-      // Find next unused color
-      const fallback = OFFICIAL_COLORS.find((c) => !used.has(c.value));
-      const color = fallback ? fallback.value : p.color;
-      used.add(color);
-      return { ...p, color };
-    });
-    setConfig((prev) => ({ ...prev, players: resolved }));
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [config.playerCount]);
-
   const setPlayerCount = (count: PlayerCount) => {
-    setConfig((prev) => ({ ...prev, playerCount: count }));
+    setConfig((prev) => {
+      const next: PlayerConfig[] = Array.from({ length: count }, (_, i) =>
+        prev.players[i] ?? {
+          id: i + 1,
+          name: DEFAULT_PLAYER_NAMES[i],
+          color: OFFICIAL_COLORS[i].value,
+        }
+      );
+      // Resolve duplicate colors after trimming to new count
+      const used = new Set<string>();
+      const resolved = next.map((p) => {
+        if (!used.has(p.color)) {
+          used.add(p.color);
+          return p;
+        }
+        const fallback = OFFICIAL_COLORS.find((c) => !used.has(c.value));
+        const color = fallback ? fallback.value : p.color;
+        used.add(color);
+        return { ...p, color };
+      });
+      return { playerCount: count, players: resolved };
+    });
   };
 
   const setPlayerName = (index: number, name: string) => {
