@@ -129,7 +129,7 @@ describe('useBoardTransform', () => {
     const makeTouches = (x: number, y: number): React.TouchList => ({
       length: 1,
       0: { clientX: x, clientY: y } as Touch,
-      item: (i: number) => (i === 0 ? { clientX: x, clientY: y } as Touch : null),
+      item: (i: number): Touch => (i === 0 ? { clientX: x, clientY: y } as Touch : null as unknown as Touch),
       [Symbol.iterator]: function* () { yield { clientX: x, clientY: y } as Touch; },
     });
 
