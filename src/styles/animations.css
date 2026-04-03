@@ -1,0 +1,98 @@
+/* =============================================================
+ * Kingdom Builder — Animation System
+ * All durations ≤ 500 ms; prefers-reduced-motion collapses
+ * every animation to an instant transition.
+ * ============================================================= */
+
+/* ------------------------------------------------------------- */
+/* Settlement drop: scale 0 → 1.2 → 1, 300 ms, ease-out        */
+/* ------------------------------------------------------------- */
+@keyframes settlementDrop {
+  0%   { transform: scale(0);   opacity: 0; }
+  60%  { transform: scale(1.2); opacity: 1; }
+  100% { transform: scale(1);   opacity: 1; }
+}
+
+.settlement-new {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: settlementDrop 300ms ease-out both;
+}
+
+/* ------------------------------------------------------------- */
+/* Hex valid-placement highlight: border glow pulse, 150 ms     */
+/* ------------------------------------------------------------- */
+@keyframes highlightValid {
+  0%   { opacity: 0.4; }
+  50%  { opacity: 0.8; }
+  100% { opacity: 0.6; }
+}
+
+.hex-highlight-valid {
+  animation: highlightValid 150ms ease-out forwards;
+}
+
+/* ------------------------------------------------------------- */
+/* Location tile pulse: scale + opacity flash, 500 ms           */
+/* ------------------------------------------------------------- */
+@keyframes locationTilePulse {
+  0%   { transform: scale(1);    opacity: 1; }
+  30%  { transform: scale(1.15); opacity: 0.8; }
+  60%  { transform: scale(0.95); opacity: 1; }
+  100% { transform: scale(1);    opacity: 1; }
+}
+
+.location-tile-new {
+  animation: locationTilePulse 500ms ease-in-out both;
+}
+
+/* ------------------------------------------------------------- */
+/* Location tile slide-in from right, 300 ms                    */
+/* ------------------------------------------------------------- */
+@keyframes locationTileSlideIn {
+  from { transform: translateX(100%); opacity: 0; }
+  to   { transform: translateX(0);    opacity: 1; }
+}
+
+.location-tile-slide-in {
+  animation: locationTileSlideIn 300ms ease-out both;
+}
+
+/* ------------------------------------------------------------- */
+/* Game-Over modal slide-down from top, 400 ms                  */
+/* ------------------------------------------------------------- */
+@keyframes gameOverSlideDown {
+  from { transform: translateY(-100%); opacity: 0; }
+  to   { transform: translateY(0);     opacity: 1; }
+}
+
+.game-over-slide-down {
+  animation: gameOverSlideDown 400ms ease-out both;
+}
+
+/* ------------------------------------------------------------- */
+/* Hand / terrain-card fade (turn transition), 200 ms           */
+/* ------------------------------------------------------------- */
+@keyframes handFadeIn {
+  from { opacity: 0; }
+  to   { opacity: 1; }
+}
+
+.hand-fade-in {
+  animation: handFadeIn 200ms ease-in both;
+}
+
+/* ------------------------------------------------------------- */
+/* Accessibility: disable all animations when user prefers it   */
+/* ------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  .settlement-new,
+  .hex-highlight-valid,
+  .location-tile-new,
+  .location-tile-slide-in,
+  .game-over-slide-down,
+  .hand-fade-in {
+    animation: none !important;
+    transition: none !important;
+  }
+}

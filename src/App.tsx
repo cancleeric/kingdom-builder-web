@@ -1,6 +1,8 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
+import { GameOverModal } from './components/UI/GameOverModal'
+import { LocationTileList } from './components/UI/LocationTileList'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
 
@@ -14,6 +16,9 @@ function App() {
     remainingPlacements,
     validPlacements,
     selectedCell,
+    lastPlacedCoord,
+    acquiredLocations,
+    newlyAcquiredLocationIndex,
     initGame,
     drawTerrainCard,
     placeSettlement,
@@ -26,6 +31,14 @@ function App() {
     initGame(2); // Start with 2 players for testing
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Track previous terrain card to trigger fade-in animation on change
+  const prevTerrainRef = useRef<string | null>(null);
+  const terrainCardKey = currentTerrainCard?.terrain ?? null;
+  const terrainChanged = terrainCardKey !== prevTerrainRef.current;
+  if (terrainChanged) {
+    prevTerrainRef.current = terrainCardKey;
+  }
 
   const currentPlayer = players[currentPlayerIndex];
 
@@ -57,6 +70,7 @@ function App() {
               board={board}
               validPlacements={validPlacements}
               selectedCell={selectedCell}
+              lastPlacedCoord={lastPlacedCoord}
               players={players}
               onCellClick={handlePlaceSettlement}
               onCellSelect={selectCell}
@@ -91,11 +105,14 @@ function App() {
             </div>
           </div>
 
-          {/* Terrain Card */}
+          {/* Terrain Card — fades in when a new card is drawn */}
           {currentTerrainCard && (
             <div className="mb-6">
               <h3 className="text-lg font-semibold mb-2">Current Terrain</h3>
-              <div className="p-4 bg-gray-100 rounded text-center">
+              <div
+                key={currentTerrainCard.terrain}
+                className="p-4 bg-gray-100 rounded text-center hand-fade-in"
+              >
                 <p className="text-2xl font-bold">
                   {getTerrainName(currentTerrainCard.terrain)}
                 </p>
@@ -105,6 +122,15 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* Location Tiles */}
+          <div className="mb-6">
+            <h3 className="text-lg font-semibold mb-2">Location Tiles</h3>
+            <LocationTileList
+              locations={acquiredLocations}
+              newestIndex={newlyAcquiredLocationIndex}
+            />
+          </div>
 
           {/* Actions */}
           <div className="mb-6">
@@ -138,12 +164,6 @@ function App() {
                 End Turn
               </button>
             )}
-
-            {phase === GamePhase.GameOver && (
-              <div className="p-3 bg-red-100 border border-red-400 rounded">
-                <p className="font-bold">Game Over!</p>
-              </div>
-            )}
           </div>
 
           {/* Players List */}
@@ -174,9 +194,11 @@ function App() {
           </div>
         </aside>
       </div>
+
+      {/* Game Over Modal — rendered outside sidebar for full-screen overlay */}
+      {phase === GamePhase.GameOver && <GameOverModal players={players} />}
     </div>
   )
 }
 
 export default App
-

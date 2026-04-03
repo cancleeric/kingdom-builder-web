@@ -8,6 +8,7 @@ interface HexGridProps {
   board: Board;
   validPlacements: AxialCoord[];
   selectedCell: AxialCoord | null;
+  lastPlacedCoord: AxialCoord | null;
   players: Player[];
   onCellClick: (coord: AxialCoord) => void;
   onCellSelect: (coord: AxialCoord | null) => void;
@@ -17,6 +18,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
   board,
   validPlacements,
   selectedCell,
+  lastPlacedCoord,
   players,
   onCellClick,
   onCellSelect,
@@ -48,6 +50,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
             );
             const isSelected = selectedCell !== null && hexEquals(selectedCell, cell.coord);
             const isHovered = hoveredCell !== null && hexEquals(hoveredCell, cell.coord);
+            const isNewlyPlaced = lastPlacedCoord !== null && hexEquals(lastPlacedCoord, cell.coord);
             
             // Find player color if settlement exists
             let playerColor: string | undefined;
@@ -63,6 +66,7 @@ export const HexGrid: React.FC<HexGridProps> = ({
                 isValid={isValid}
                 isSelected={isSelected}
                 isHovered={isHovered}
+                isNewlyPlaced={isNewlyPlaced}
                 playerColor={playerColor}
                 onClick={() => {
                   if (isValid) {

@@ -8,6 +8,7 @@ interface HexCellProps {
   isValid: boolean;
   isSelected: boolean;
   isHovered: boolean;
+  isNewlyPlaced: boolean;
   playerColor?: string;
   onClick: () => void;
   onMouseEnter: () => void;
@@ -19,6 +20,7 @@ export const HexCell: React.FC<HexCellProps> = ({
   isValid,
   isSelected,
   isHovered,
+  isNewlyPlaced,
   playerColor,
   onClick,
   onMouseEnter,
@@ -49,12 +51,19 @@ export const HexCell: React.FC<HexCellProps> = ({
     strokeWidth = 3;
   }
 
+  // CSS classes for valid-hex highlight animation
+  const polygonClassName = isValid ? 'hex-highlight-valid' : undefined;
+
+  // Center of the hex cell (used for settlement and location markers)
+  const cx = corners[0].x - HEX_SIZE;
+  const cy = corners[0].y;
+
   return (
     <g
       onClick={onClick}
       onMouseEnter={onMouseEnter}
       onMouseLeave={onMouseLeave}
-      style={{ cursor: isValid ? 'pointer' : 'default' }}
+      style={{ cursor: isValid ? 'pointer' : (cell.settlement !== undefined ? 'default' : 'not-allowed') }}
     >
       <polygon
         points={points}
@@ -62,13 +71,15 @@ export const HexCell: React.FC<HexCellProps> = ({
         stroke={strokeColor}
         strokeWidth={strokeWidth}
         opacity={0.9}
+        className={polygonClassName}
+        style={{ transition: 'fill 150ms ease-out' }}
       />
       
       {/* Show location marker if present */}
       {cell.location && (
         <text
-          x={corners[0].x - HEX_SIZE}
-          y={corners[0].y}
+          x={cx}
+          y={cy}
           fontSize="10"
           fill="#000"
           fontWeight="bold"
@@ -81,12 +92,13 @@ export const HexCell: React.FC<HexCellProps> = ({
       {/* Show settlement marker if present */}
       {cell.settlement !== undefined && playerColor && (
         <circle
-          cx={corners[0].x - HEX_SIZE}
-          cy={corners[0].y}
+          cx={cx}
+          cy={cy}
           r={HEX_SIZE * 0.4}
           fill={playerColor}
           stroke="#000"
           strokeWidth={2}
+          className={isNewlyPlaced ? 'settlement-new' : undefined}
         />
       )}
     </g>

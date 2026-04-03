@@ -1,9 +1,9 @@
 import { create } from 'zustand';
 import { Board, createDefaultBoard } from '../core/board';
-import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
+import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard, Location } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
 import { Player, GamePhase } from '../types';
-import { AxialCoord } from '../core/hex';
+import { AxialCoord, hexNeighbors } from '../core/hex';
 
 interface GameState {
   // Board state
@@ -24,6 +24,13 @@ interface GameState {
   // UI state
   selectedCell: AxialCoord | null;
   validPlacements: AxialCoord[];
+
+  // Animation state — tracks last placed settlement for drop animation
+  lastPlacedCoord: AxialCoord | null;
+
+  // Location tile state — acquired by placing adjacent to location hexes
+  acquiredLocations: Location[];
+  newlyAcquiredLocationIndex: number | null;
   
   // Actions
   initGame: (playerCount: number) => void;
@@ -31,6 +38,7 @@ interface GameState {
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
   selectCell: (coord: AxialCoord | null) => void;
+  clearLastPlaced: () => void;
 }
 
 const SETTLEMENTS_PER_TURN = 3;
@@ -54,6 +62,9 @@ export const useGameStore = create<GameState>((set, get) => ({
   deck: [],
   selectedCell: null,
   validPlacements: [],
+  lastPlacedCoord: null,
+  acquiredLocations: [],
+  newlyAcquiredLocationIndex: null,
 
   // Initialize game with specified number of players
   initGame: (playerCount: number) => {
@@ -86,6 +97,9 @@ export const useGameStore = create<GameState>((set, get) => ({
       deck,
       selectedCell: null,
       validPlacements: [],
+      lastPlacedCoord: null,
+      acquiredLocations: [],
+      newlyAcquiredLocationIndex: null,
     });
   },
 
@@ -169,7 +183,23 @@ export const useGameStore = create<GameState>((set, get) => ({
     currentPlayer.settlements.push(coord);
     currentPlayer.remainingSettlements--;
 
+    // Check if placement is adjacent to any location hex (for tile acquisition)
+    const neighbors = hexNeighbors(coord);
+    let newlyAcquiredLocationIndex: number | null = null;
+    const updatedLocations = [...state.acquiredLocations];
+    for (const neighbor of neighbors) {
+      const cell = state.board.getCell(neighbor);
+      if (cell?.location && !updatedLocations.includes(cell.location as Location)) {
+        updatedLocations.push(cell.location as Location);
+        newlyAcquiredLocationIndex = updatedLocations.length - 1;
+        break; // acquire at most one tile per placement
+      }
+    }
+
     const newRemainingPlacements = state.remainingPlacements - 1;
+
+    // Schedule clearing the last-placed animation marker after 350 ms
+    setTimeout(() => get().clearLastPlaced(), 350);
 
     // Check if player has placed all settlements for this turn
     if (newRemainingPlacements === 0) {
@@ -178,6 +208,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         phase: GamePhase.EndTurn,
         validPlacements: [],
         selectedCell: null,
+        lastPlacedCoord: coord,
+        acquiredLocations: updatedLocations,
+        newlyAcquiredLocationIndex,
       });
     } else {
       // Update valid placements for next settlement
@@ -191,6 +224,9 @@ export const useGameStore = create<GameState>((set, get) => ({
         remainingPlacements: newRemainingPlacements,
         validPlacements: newValidPlacements,
         selectedCell: null,
+        lastPlacedCoord: coord,
+        acquiredLocations: updatedLocations,
+        newlyAcquiredLocationIndex,
       });
     }
   },
@@ -232,5 +268,10 @@ export const useGameStore = create<GameState>((set, get) => ({
   // Select a cell (for UI highlighting)
   selectCell: (coord: AxialCoord | null) => {
     set({ selectedCell: coord });
+  },
+
+  // Clear the last-placed animation marker
+  clearLastPlaced: () => {
+    set({ lastPlacedCoord: null, newlyAcquiredLocationIndex: null });
   },
 }));
