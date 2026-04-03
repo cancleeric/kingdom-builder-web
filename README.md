@@ -133,6 +133,13 @@ npm run build
 - 正式部署：若 repo 方案支援 GitHub Pages，merge 到 main 後可由 GitHub Actions 自動部署
 - Pages 路徑：production build 會自動使用 /kingdom-builder-web/ 作為 base path
 
+### 目前雲端續作主線
+
+- 核心目標：讓 GitHub 雲端 Copilot 能沿著既有 branch、Draft PR 與 GitHub Actions checks 持續開發。
+- 目前活躍 issue：#53 隨機棋盤生成 v2
+- 目前活躍 PR：#60 feat: random board generation v2 for issue #53
+- 實作必須以 current main 為基準，不沿用已關閉的舊 PR 解法。
+
 若目前 GitHub Pages 因 repository plan 無法啟用，可改用 Vercel 作為正式部署目標。
 
 預計部署網址：
@@ -162,8 +169,8 @@ Vercel 備援：
 
 下一步建議：
 
+- 完成 #53 的 QuadrantTemplate、旋轉、隨機抽取、20×20 拼板與單元測試
 - 加入 location tiles 與特殊能力
-- 補齊 GitHub Pages 自動部署與 PR 檢查
 - 引入多玩家與目標卡計分
 
 ## 授權
