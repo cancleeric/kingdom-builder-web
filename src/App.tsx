@@ -423,19 +423,15 @@ function App() {
                       style={{ backgroundColor: player.color }}
                       aria-hidden="true"
                     />
-<<<<<<< HEAD
                     <span className="font-medium">
                       {player.name}
                       {index === currentPlayerIndex && (
                         <span className="ml-2 text-xs font-normal text-blue-600">(current)</span>
                       )}
                     </span>
-=======
-                    <span className="font-medium">{player.name}</span>
                     {player.isBot && (
                       <span className="text-xs text-gray-500">🤖</span>
                     )}
->>>>>>> 2014a73 (feat: Implement Greedy Bot AI opponent with Easy/Normal/Hard difficulty)
                   </div>
                   <p className="text-xs text-gray-600">
                     Placed: {player.settlements.length} | Remaining:{' '}
