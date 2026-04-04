@@ -1,13 +1,15 @@
-import { useEffect, useState } from 'react'
+import { useState } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
+import { GameSetup } from './components/Setup/GameSetup'
 import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
+import type { PlayerConfig } from './types/setup'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -22,6 +24,8 @@ const LOCATION_EMOJI: Record<Location, string> = {
 }
 
 function App() {
+  const [showSetup, setShowSetup] = useState(true)
+
   const {
     board,
     players,
@@ -55,10 +59,15 @@ function App() {
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  useEffect(() => {
-    initGame(2)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const handleStartGame = (configs: PlayerConfig[]) => {
+    initGame(configs.length as 2 | 3 | 4, configs)
+    setShowSetup(false)
+    setDrawerOpen(false)
+  }
+
+  const handleNewGame = () => {
+    setShowSetup(true)
+  }
 
   const currentPlayer = players[currentPlayerIndex]
 
@@ -93,20 +102,32 @@ function App() {
   }))
 
   return (
+    <>
+      {showSetup && <GameSetup onStart={handleStartGame} />}
+      {!showSetup && (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       {/* Header */}
       <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
-        {/* Mobile: show current player name in header */}
-        {currentPlayer && (
-          <div className="flex items-center gap-2 sm:hidden">
-            <div
-              className="w-5 h-5 rounded-full border-2 border-white"
-              style={{ backgroundColor: currentPlayer.color }}
-            />
-            <span className="text-sm font-semibold">{currentPlayer.name}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-3">
+          {/* Mobile: show current player name in header */}
+          {currentPlayer && (
+            <div className="flex items-center gap-2 sm:hidden">
+              <div
+                className="w-5 h-5 rounded-full border-2 border-white"
+                style={{ backgroundColor: currentPlayer.color }}
+              />
+              <span className="text-sm font-semibold">{currentPlayer.name}</span>
+            </div>
+          )}
+          {/* New Game button */}
+          <button
+            onClick={handleNewGame}
+            className="text-sm bg-white text-blue-700 font-semibold px-3 py-1.5 rounded-lg hover:bg-blue-50 transition"
+          >
+            新遊戲
+          </button>
+        </div>
       </header>
 
       {/* Main Game Area */}
@@ -387,10 +408,12 @@ function App() {
           finalScores={finalScores}
           players={players}
           objectiveCards={objectiveCards}
-          onNewGame={() => initGame(players.length)}
+          onNewGame={handleNewGame}
         />
       )}
     </div>
+      )}
+    </>
   )
 }
 

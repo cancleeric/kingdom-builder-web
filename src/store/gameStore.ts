@@ -17,6 +17,7 @@ import {
   scoreObjectiveCard,
 } from '../core/scoring';
 import { GameAction, UndoSnapshot } from '../types/history';
+import { PlayerConfig } from '../types/setup';
 
 // ────────────────────────────────────────────────────
 // State shape
@@ -51,7 +52,7 @@ interface GameState {
   /** Running turn counter (incremented when a new turn begins) */
   turnNumber: number;
 
-  initGame: (playerCount: number) => void;
+  initGame: (playerCount: number, configs?: PlayerConfig[]) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
@@ -180,7 +181,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   turnNumber: 1,
 
   // ── Init ────────────────────────────────────────────
-  initGame: (playerCount: number) => {
+  initGame: (playerCount: number, configs?: PlayerConfig[]) => {
     if (playerCount < 2 || playerCount > 4) {
       console.error('Player count must be between 2 and 4');
       return;
@@ -188,8 +189,8 @@ export const useGameStore = create<GameState>((set, get) => ({
 
     const players: Player[] = Array.from({ length: playerCount }, (_, i) => ({
       id: i + 1,
-      name: `Player ${i + 1}`,
-      color: PLAYER_COLORS[i],
+      name: configs?.[i]?.name ?? `Player ${i + 1}`,
+      color: configs?.[i]?.color ?? PLAYER_COLORS[i],
       settlements: [],
       remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
       tiles: [],
