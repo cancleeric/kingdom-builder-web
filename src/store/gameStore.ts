@@ -206,7 +206,7 @@ export const useGameStore = create<GameState>((set, get) => ({
     const players: Player[] = playerConfigs.map((cfg, i) => ({
       id: i + 1,
       name: cfg.name,
-      color: PLAYER_COLORS[i],
+      color: cfg.color ?? PLAYER_COLORS[i],
       settlements: [],
       remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
       tiles: [],

@@ -34,6 +34,7 @@ export enum BotDifficulty {
  */
 export interface PlayerConfig {
   name: string;
+  color?: string;
   type: 'human' | 'bot';
   difficulty: BotDifficulty;
 }

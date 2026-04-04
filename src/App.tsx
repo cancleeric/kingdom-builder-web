@@ -164,6 +164,14 @@ function App() {
             </div>
           )}
           <button
+            onClick={handleRestart}
+            aria-label="New game"
+            title="New game"
+            className="px-3 py-1 text-sm font-semibold bg-white text-blue-700 rounded-lg hover:bg-blue-50 transition"
+          >
+            新遊戲
+          </button>
+          <button
             onClick={handleToggleMute}
             aria-label={muted ? 'Unmute' : 'Mute'}
             title={muted ? 'Unmute' : 'Mute'}
