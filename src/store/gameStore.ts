@@ -74,6 +74,10 @@ interface GameState {
 
 const SETTLEMENTS_PER_TURN = 3;
 const TOTAL_SETTLEMENTS_PER_PLAYER = 40;
+/** Delay (ms) before a bot places its settlements, simulating "thinking" */
+const BOT_THINKING_DELAY_MS = 600;
+/** Delay (ms) after placing all settlements before the bot ends its turn */
+const BOT_PLACEMENT_DELAY_MS = 400;
 
 const PLAYER_COLORS = [
   '#FF6B6B', // Red
@@ -437,7 +441,12 @@ export const useGameStore = create<GameState>((set, get) => ({
     // After a short thinking delay, pick and place settlements
     setTimeout(() => {
       const s = get();
-      if (s.phase !== GamePhase.PlaceSettlements || !s.currentTerrainCard) {
+      // Guard: ensure the bot is still the current player and state is correct
+      if (
+        s.phase !== GamePhase.PlaceSettlements ||
+        !s.currentTerrainCard ||
+        !s.players[s.currentPlayerIndex]?.isBot
+      ) {
         set({ isBotThinking: false });
         return;
       }
@@ -456,11 +465,12 @@ export const useGameStore = create<GameState>((set, get) => ({
       // End the turn after placements
       setTimeout(() => {
         set({ isBotThinking: false });
-        if (get().phase === GamePhase.EndTurn) {
+        const s2 = get();
+        if (s2.phase === GamePhase.EndTurn && s2.players[s2.currentPlayerIndex]?.isBot) {
           get().endTurn();
         }
-      }, 400);
-    }, 600);
+      }, BOT_PLACEMENT_DELAY_MS);
+    }, BOT_THINKING_DELAY_MS);
   },
 
   // ── Activate tile ability ──────────────────────────
