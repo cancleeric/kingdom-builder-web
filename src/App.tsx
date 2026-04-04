@@ -4,7 +4,9 @@ import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
+import { GameSetup } from './components/Game/GameSetup'
 import { GamePhase } from './types'
+import type { PlayerConfig } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
@@ -25,6 +27,7 @@ const LOCATION_EMOJI: Record<Location, string> = {
 
 function App() {
   const [muted, setMutedState] = useState(isMuted);
+  const [gameStarted, setGameStarted] = useState(false);
 
   const {
     board,
@@ -59,10 +62,10 @@ function App() {
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  useEffect(() => {
-    initGame(2)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [])
+  const handleStart = (configs: PlayerConfig[]) => {
+    initGame(configs);
+    setGameStarted(true);
+  };
 
   const handleToggleMute = () => {
     const next = !muted;
@@ -117,6 +120,10 @@ function App() {
     selectCell(null);
   };
 
+  const handleRestart = () => {
+    setGameStarted(false);
+  };
+
   // Compose a live-region announcement for screen readers on turn changes
   const liveAnnouncement = currentPlayer
     ? `${currentPlayer.name}'s turn — ${phase}${
@@ -125,6 +132,10 @@ function App() {
           : ''
       }`
     : '';
+
+  if (!gameStarted) {
+    return <GameSetup onStart={handleStart} />;
+  }
 
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
@@ -201,6 +212,11 @@ function App() {
                   aria-hidden="true"
                 />
                 <span className="font-semibold">{currentPlayer.name}</span>
+                {currentPlayer.isBot && (
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                    🤖 {currentPlayer.difficulty}
+                  </span>
+                )}
               </div>
               <p className="text-sm text-gray-600">
                 Settlements Remaining: {currentPlayer.remainingSettlements}
@@ -407,12 +423,19 @@ function App() {
                       style={{ backgroundColor: player.color }}
                       aria-hidden="true"
                     />
+<<<<<<< HEAD
                     <span className="font-medium">
                       {player.name}
                       {index === currentPlayerIndex && (
                         <span className="ml-2 text-xs font-normal text-blue-600">(current)</span>
                       )}
                     </span>
+=======
+                    <span className="font-medium">{player.name}</span>
+                    {player.isBot && (
+                      <span className="text-xs text-gray-500">🤖</span>
+                    )}
+>>>>>>> 2014a73 (feat: Implement Greedy Bot AI opponent with Easy/Normal/Hard difficulty)
                   </div>
                   <p className="text-xs text-gray-600">
                     Placed: {player.settlements.length} | Remaining:{' '}

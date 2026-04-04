@@ -217,6 +217,11 @@ export const useGameStore = create<GameState>((set, get) => ({
       turnNumber: 1,
       ...resetTileState(),
     });
+
+    // If first player is a bot, start its turn automatically
+    if (players[0].isBot) {
+      setTimeout(() => get().triggerBotTurn(), 800);
+    }
   },
 
   // ── Draw terrain card ──────────────────────────────
@@ -380,6 +385,12 @@ export const useGameStore = create<GameState>((set, get) => ({
         turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
+
+      // If the next player is a bot, auto-trigger its turn
+      const nextPlayer = get().players[nextPlayerIndex];
+      if (nextPlayer.isBot) {
+        setTimeout(() => get().triggerBotTurn(), 800);
+      }
     }
   },
 
