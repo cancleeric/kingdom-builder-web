@@ -3,7 +3,7 @@ import { render, screen, fireEvent } from '@testing-library/react';
 import { HexGrid } from './HexGrid';
 import { createDefaultBoard } from '../../core/board';
 import { AxialCoord } from '../../core/hex';
-import { Player } from '../../types';
+import { Player, BotDifficulty } from '../../types';
 
 const mockPlayers: Player[] = [
   {
@@ -12,6 +12,9 @@ const mockPlayers: Player[] = [
     color: '#FF6B6B',
     settlements: [],
     remainingSettlements: 40,
+    tiles: [],
+    isBot: false,
+    difficulty: BotDifficulty.Normal,
   },
   {
     id: 2,
@@ -19,6 +22,9 @@ const mockPlayers: Player[] = [
     color: '#4ECDC4',
     settlements: [],
     remainingSettlements: 40,
+    tiles: [],
+    isBot: false,
+    difficulty: BotDifficulty.Normal,
   },
 ];
 
