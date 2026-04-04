@@ -24,9 +24,18 @@ export interface LocationTile {
  * Bot difficulty levels
  */
 export enum BotDifficulty {
-  Easy = 'easy',
-  Normal = 'normal',
-  Hard = 'hard',
+  Easy = 'easy',       // Random valid placement
+  Normal = 'normal',   // Greedy: maximise immediate score
+  Hard = 'hard',       // Greedy + 1-step lookahead
+}
+
+/**
+ * Configuration for a single player slot at game setup
+ */
+export interface PlayerConfig {
+  name: string;
+  type: 'human' | 'bot';
+  difficulty: BotDifficulty;
 }
 
 /**

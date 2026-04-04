@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Board, createDefaultBoard } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
-import { Player, GamePhase, PlayerScore, BotDifficulty } from '../types';
+import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
 import { Location } from '../core/terrain';
 import {
@@ -51,11 +51,12 @@ interface GameState {
   /** Running turn counter (incremented when a new turn begins) */
   turnNumber: number;
 
-  initGame: (playerCount: number) => void;
+  initGame: (configs: PlayerConfig[] | number) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
   selectCell: (coord: AxialCoord | null) => void;
+  triggerBotTurn: () => void;
   activateTile: (location: Location) => void;
   cancelTile: () => void;
   applyTilePlacement: (coord: AxialCoord) => void;
@@ -180,21 +181,37 @@ export const useGameStore = create<GameState>((set, get) => ({
   turnNumber: 1,
 
   // ── Init ────────────────────────────────────────────
-  initGame: (playerCount: number) => {
-    if (playerCount < 2 || playerCount > 4) {
-      console.error('Player count must be between 2 and 4');
-      return;
+  initGame: (configs: PlayerConfig[] | number) => {
+    let playerConfigs: PlayerConfig[];
+
+    if (typeof configs === 'number') {
+      const playerCount = configs;
+      if (playerCount < 2 || playerCount > 4) {
+        console.error('Player count must be between 2 and 4');
+        return;
+      }
+      playerConfigs = Array.from({ length: playerCount }, (_, i) => ({
+        name: `Player ${i + 1}`,
+        type: 'human' as const,
+        difficulty: BotDifficulty.Normal,
+      }));
+    } else {
+      if (configs.length < 2 || configs.length > 4) {
+        console.error('Player count must be between 2 and 4');
+        return;
+      }
+      playerConfigs = configs;
     }
 
-    const players: Player[] = Array.from({ length: playerCount }, (_, i) => ({
+    const players: Player[] = playerConfigs.map((cfg, i) => ({
       id: i + 1,
-      name: `Player ${i + 1}`,
+      name: cfg.name,
       color: PLAYER_COLORS[i],
       settlements: [],
       remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
       tiles: [],
-      isBot: false,
-      difficulty: BotDifficulty.Normal,
+      isBot: cfg.type === 'bot',
+      difficulty: cfg.difficulty,
     }));
 
     set({
@@ -397,6 +414,15 @@ export const useGameStore = create<GameState>((set, get) => ({
   // ── Select cell ────────────────────────────────────
   selectCell: (coord: AxialCoord | null) => {
     set({ selectedCell: coord });
+  },
+
+  // ── Trigger bot turn ────────────────────────────────
+  triggerBotTurn: () => {
+    const state = get();
+    const currentPlayer = state.players[state.currentPlayerIndex];
+    if (!currentPlayer?.isBot) return;
+    if (state.phase !== GamePhase.DrawCard) return;
+    get().drawTerrainCard();
   },
 
   // ── Activate tile ability ──────────────────────────

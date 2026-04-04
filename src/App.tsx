@@ -481,7 +481,7 @@ function App() {
           finalScores={finalScores}
           players={players}
           objectiveCards={objectiveCards}
-          onNewGame={() => initGame(players.length)}
+          onNewGame={handleRestart}
         />
       )}
     </div>
