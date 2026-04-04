@@ -2,7 +2,7 @@ import { create } from 'zustand';
 import { Board, createDefaultBoard } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
-import { Player, GamePhase, PlayerScore } from '../types';
+import { Player, GamePhase, PlayerScore, BotDifficulty } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
 import { Location } from '../core/terrain';
 import {
@@ -193,6 +193,8 @@ export const useGameStore = create<GameState>((set, get) => ({
       settlements: [],
       remainingSettlements: TOTAL_SETTLEMENTS_PER_PLAYER,
       tiles: [],
+      isBot: false,
+      difficulty: BotDifficulty.Normal,
     }));
 
     set({
