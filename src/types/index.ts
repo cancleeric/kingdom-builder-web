@@ -21,6 +21,15 @@ export interface LocationTile {
 }
 
 /**
+ * Bot difficulty levels
+ */
+export enum BotDifficulty {
+  Easy = 'easy',
+  Normal = 'normal',
+  Hard = 'hard',
+}
+
+/**
  * Player information
  */
 export interface Player {
@@ -30,6 +39,8 @@ export interface Player {
   settlements: AxialCoord[]; // All settlements placed by this player
   remainingSettlements: number; // Number of settlements left to place
   tiles: LocationTile[]; // Location tiles acquired by this player
+  isBot: boolean;
+  difficulty: BotDifficulty;
 }
 
 /**
