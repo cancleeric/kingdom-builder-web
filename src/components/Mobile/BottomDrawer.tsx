@@ -159,6 +159,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           {phase === GamePhase.DrawCard && (
             <button
               onClick={onDrawCard}
+              aria-label="Draw terrain card to start your turn"
               className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition"
             >
               Draw Terrain Card
@@ -191,6 +192,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
               <button
                 onClick={onUndo}
                 disabled={!canUndo}
+                aria-label="Undo last placement"
                 className={`flex-1 font-bold py-3 rounded-xl border transition ${
                   canUndo
                     ? 'bg-orange-500 text-white border-orange-600 hover:bg-orange-600 active:bg-orange-700'
@@ -204,6 +206,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
             {phase === GamePhase.EndTurn && (
               <button
                 onClick={onEndTurn}
+                aria-label="End turn and pass to the next player"
                 className="flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-3 rounded-xl transition"
               >
                 End Turn
@@ -215,16 +218,22 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           {currentPlayer && currentPlayer.tiles.length > 0 && (
             <div>
               <h4 className="text-sm font-semibold text-gray-700 mb-2">Your Tiles</h4>
-              <div className="flex flex-wrap gap-2">
+              <ul role="list" className="flex flex-wrap gap-2">
                 {currentPlayer.tiles.map((tile: LocationTile, idx: number) => (
-                  <div
+                  <li
                     key={`${tile.location}-${idx}`}
+                    role="listitem"
                     className="flex items-center gap-1 px-3 py-2 rounded-xl border bg-gray-50"
                   >
                     <span>{LOCATION_EMOJI[tile.location]} {tile.location}</span>
                     {!tile.usedThisTurn &&
                       (phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
                         <button
+                          aria-label={
+                            activeTile === tile.location
+                              ? `Cancel ${tile.location} tile`
+                              : `Use ${tile.location} tile`
+                          }
                           className={`ml-2 px-2 py-0.5 text-xs rounded-lg font-semibold ${
                             activeTile === tile.location
                               ? 'bg-orange-500 text-white'
@@ -242,9 +251,9 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     {tile.usedThisTurn && (
                       <span className="ml-2 text-xs text-gray-400 italic">Used</span>
                     )}
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
             </div>
           )}
 

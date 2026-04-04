@@ -268,10 +268,11 @@ function App() {
           {currentPlayer && currentPlayer.tiles.length > 0 && (
             <div className="mb-4">
               <h3 className="text-lg font-semibold mb-2">Your Tiles</h3>
-              <div className="space-y-1">
+              <ul role="list" className="space-y-1">
                 {currentPlayer.tiles.map((tile, idx) => (
-                  <div
+                  <li
                     key={`${tile.location}-${idx}`}
+                    role="listitem"
                     className="flex items-center justify-between p-2 rounded border"
                   >
                     <span className="text-sm">
@@ -282,6 +283,11 @@ function App() {
                         (phase === GamePhase.PlaceSettlements ||
                           phase === GamePhase.EndTurn) && (
                           <button
+                            aria-label={
+                              activeTile === tile.location
+                                ? `Cancel ${tile.location} tile`
+                                : `Use ${tile.location} tile`
+                            }
                             className={`px-2 py-0.5 text-xs rounded font-semibold ${
                               activeTile === tile.location
                                 ? 'bg-orange-500 text-white'
@@ -300,9 +306,9 @@ function App() {
                         <span className="text-xs text-gray-400 italic">Used</span>
                       )}
                     </div>
-                  </div>
+                  </li>
                 ))}
-              </div>
+              </ul>
               {activeTile && (
                 <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
                   {activeTile === Location.Paddock || activeTile === Location.Barn
@@ -349,6 +355,7 @@ function App() {
               <button
                 onClick={undoLastAction}
                 disabled={!canUndo}
+                aria-label="Undo last placement"
                 className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
                   canUndo
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
