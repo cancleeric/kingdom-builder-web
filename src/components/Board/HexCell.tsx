@@ -2,12 +2,14 @@ import React from 'react';
 import { hexCorners, HEX_SIZE } from '../../core/hex';
 import { HexCell as HexCellType } from '../../types';
 import { getTerrainColor } from '../../core/terrain';
+import '../../styles/animations.css';
 
 interface HexCellProps {
   cell: HexCellType;
   isValid: boolean;
   isSelected: boolean;
   isHovered: boolean;
+  isRecentlyPlaced?: boolean;
   playerColor?: string;
   onClick: () => void;
   /** Called on touchend when the touch was a tap (no significant movement). */
@@ -21,6 +23,7 @@ export const HexCell: React.FC<HexCellProps> = ({
   isValid,
   isSelected,
   isHovered,
+  isRecentlyPlaced = false,
   playerColor,
   onClick,
   onTap,
@@ -97,6 +100,7 @@ export const HexCell: React.FC<HexCellProps> = ({
           fill={playerColor}
           stroke="#000"
           strokeWidth={2}
+          className={isRecentlyPlaced ? 'animate-settlement-drop' : undefined}
         />
       )}
     </g>
