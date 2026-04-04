@@ -8,6 +8,7 @@ import { GamePhase } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
+import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -22,6 +23,8 @@ const LOCATION_EMOJI: Record<Location, string> = {
 }
 
 function App() {
+  const [muted, setMutedState] = useState(isMuted);
+
   const {
     board,
     players,
@@ -60,7 +63,22 @@ function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [])
 
+  const handleToggleMute = () => {
+    const next = !muted;
+    setMuted(next);
+    setMutedState(next);
+    // Re-init audio on first unmute interaction
+    if (!next) initAudio();
+  };
+
   const currentPlayer = players[currentPlayerIndex]
+
+  // Play game over sound when phase changes to GameOver
+  useEffect(() => {
+    if (phase === GamePhase.GameOver) {
+      playSound(SoundType.GAME_OVER);
+    }
+  }, [phase]);
 
   const handleCellClick = (coord: { q: number; r: number }) => {
     if (activeTile) {
@@ -79,7 +97,9 @@ function App() {
         applyTilePlacement(coord)
       }
     } else if (phase === GamePhase.PlaceSettlements) {
+      initAudio();
       placeSettlement(coord)
+      playSound(SoundType.PLACE);
     }
   }
 
@@ -97,16 +117,26 @@ function App() {
       {/* Header */}
       <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
-        {/* Mobile: show current player name in header */}
-        {currentPlayer && (
-          <div className="flex items-center gap-2 sm:hidden">
-            <div
-              className="w-5 h-5 rounded-full border-2 border-white"
-              style={{ backgroundColor: currentPlayer.color }}
-            />
-            <span className="text-sm font-semibold">{currentPlayer.name}</span>
-          </div>
-        )}
+        <div className="flex items-center gap-2">
+          {/* Mobile: show current player name in header */}
+          {currentPlayer && (
+            <div className="flex items-center gap-2 sm:hidden">
+              <div
+                className="w-5 h-5 rounded-full border-2 border-white"
+                style={{ backgroundColor: currentPlayer.color }}
+              />
+              <span className="text-sm font-semibold">{currentPlayer.name}</span>
+            </div>
+          )}
+          <button
+            onClick={handleToggleMute}
+            aria-label={muted ? 'Unmute' : 'Mute'}
+            title={muted ? 'Unmute' : 'Mute'}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 transition text-xl"
+          >
+            {muted ? '🔇' : '🔊'}
+          </button>
+        </div>
       </header>
 
       {/* Main Game Area */}
