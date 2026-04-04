@@ -113,9 +113,31 @@ function App() {
     })),
   }))
 
+  const handleEscape = () => {
+    selectCell(null);
+  };
+
+  // Compose a live-region announcement for screen readers on turn changes
+  const liveAnnouncement = currentPlayer
+    ? `${currentPlayer.name}'s turn — ${phase}${
+        currentTerrainCard
+          ? `, terrain: ${getTerrainName(currentTerrainCard.terrain)}, placements remaining: ${remainingPlacements}`
+          : ''
+      }`
+    : '';
+
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
       <InstallPrompt />
+      {/* Hidden ARIA live region for screen-reader turn announcements */}
+      <div
+        aria-live="polite"
+        aria-atomic="true"
+        className="sr-only"
+      >
+        {liveAnnouncement}
+      </div>
+
       {/* Header */}
       <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
@@ -157,15 +179,17 @@ function App() {
               players={players}
               onCellClick={handleCellClick}
               onCellSelect={selectCell}
+              onEscape={handleEscape}
             />
           )}
         </div>
 
         {/* Sidebar – hidden on mobile (< md), visible on md+ */}
-        <aside className="hidden md:flex w-80 bg-white shadow-lg p-6 overflow-y-auto flex-col gap-0">
+        <aside className="hidden md:flex w-80 bg-white shadow-lg p-6 overflow-y-auto flex-col gap-0" aria-label="Game information">
           {/* Current Player Info */}
           {currentPlayer && (
-            <div
+            <section
+              aria-label={`Current player: ${currentPlayer.name}`}
               className="mb-4 p-4 rounded-lg border-2"
               style={{ borderColor: currentPlayer.color }}
             >
@@ -174,26 +198,27 @@ function App() {
                 <div
                   className="w-6 h-6 rounded-full border-2 border-gray-800"
                   style={{ backgroundColor: currentPlayer.color }}
+                  aria-hidden="true"
                 />
                 <span className="font-semibold">{currentPlayer.name}</span>
               </div>
               <p className="text-sm text-gray-600">
                 Settlements Remaining: {currentPlayer.remainingSettlements}
               </p>
-            </div>
+            </section>
           )}
 
           {/* Game Phase */}
-          <div className="mb-4">
+          <section className="mb-4" aria-label="Game phase">
             <h3 className="text-lg font-semibold mb-2">Phase</h3>
             <div className="p-3 bg-gray-100 rounded">
               <p className="font-medium">{phase}</p>
             </div>
-          </div>
+          </section>
 
           {/* Terrain Card */}
           {currentTerrainCard && (
-            <div className="mb-4">
+            <section className="mb-4" aria-label="Current terrain card" role="region">
               <h3 className="text-lg font-semibold mb-2">Terrain</h3>
               <div className="p-4 bg-gray-100 rounded text-center">
                 <p className="text-2xl font-bold">
@@ -203,7 +228,7 @@ function App() {
                   Placements left: {remainingPlacements}
                 </p>
               </div>
-            </div>
+            </section>
           )}
 
           {/* Objective Cards */}
@@ -275,22 +300,27 @@ function App() {
           )}
 
           {/* Actions */}
-          <div className="mb-4">
+          <section className="mb-4" aria-label="Actions">
             <h3 className="text-lg font-semibold mb-2">Actions</h3>
 
             {phase === GamePhase.DrawCard && (
               <button
                 onClick={drawTerrainCard}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded transition"
+                aria-label="Draw terrain card to start your turn"
+                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
               >
                 Draw Terrain Card
               </button>
             )}
 
             {phase === GamePhase.PlaceSettlements && !activeTile && (
-              <div className="p-3 bg-yellow-100 border border-yellow-400 rounded">
+              <div
+                role="status"
+                className="p-3 bg-yellow-100 border border-yellow-400 rounded"
+              >
                 <p className="text-sm">
-                  Click a highlighted hex to place a settlement.
+                  Click or press Enter on a highlighted hex to place a settlement.
+                  Use arrow keys to navigate the board. Press Escape to deselect.
                 </p>
                 <p className="text-xs text-gray-600 mt-1">
                   {remainingPlacements} placement
@@ -316,12 +346,13 @@ function App() {
             {phase === GamePhase.EndTurn && (
               <button
                 onClick={endTurn}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition mt-2"
+                aria-label="End your turn and pass to the next player"
+                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition mt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
               >
                 End Turn
               </button>
             )}
-          </div>
+          </section>
 
           {/* Operation Log */}
           <GameLog history={history} players={players} />
@@ -357,12 +388,14 @@ function App() {
           )}
 
           {/* Players list */}
-          <div>
+          <section aria-label="Players">
             <h3 className="text-lg font-semibold mb-2">Players</h3>
-            <div className="space-y-2">
+            <ul role="list" className="space-y-2">
               {players.map((player, index) => (
-                <div
+                <li
                   key={player.id}
+                  role="listitem"
+                  aria-label={`${player.name}: ${player.settlements.length} placed, ${player.remainingSettlements} remaining${index === currentPlayerIndex ? ', current player' : ''}`}
                   className={`p-3 rounded border-2 ${
                     index === currentPlayerIndex ? 'bg-blue-50' : 'bg-gray-50'
                   }`}
@@ -372,8 +405,14 @@ function App() {
                     <div
                       className="w-4 h-4 rounded-full border border-gray-800"
                       style={{ backgroundColor: player.color }}
+                      aria-hidden="true"
                     />
-                    <span className="font-medium">{player.name}</span>
+                    <span className="font-medium">
+                      {player.name}
+                      {index === currentPlayerIndex && (
+                        <span className="ml-2 text-xs font-normal text-blue-600">(current)</span>
+                      )}
+                    </span>
                   </div>
                   <p className="text-xs text-gray-600">
                     Placed: {player.settlements.length} | Remaining:{' '}
@@ -385,10 +424,10 @@ function App() {
                       {player.tiles.map(t => LOCATION_EMOJI[t.location]).join(' ')}
                     </p>
                   )}
-                </div>
+                </li>
               ))}
-            </div>
-          </div>
+            </ul>
+          </section>
         </aside>
       </div>
 
