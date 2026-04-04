@@ -9,6 +9,7 @@ import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
+import { InstallPrompt } from './components/InstallPrompt'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -114,6 +115,7 @@ function App() {
 
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-50">
+      <InstallPrompt />
       {/* Header */}
       <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
