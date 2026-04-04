@@ -9,6 +9,13 @@ import {
   saveConfigs,
 } from '../../types/setup'
 
+/** Clamp a number to the valid player-count union type. */
+function toPlayerCount(n: number): 2 | 3 | 4 {
+  if (n >= 4) return 4
+  if (n >= 3) return 3
+  return 2
+}
+
 interface Props {
   onStart: (configs: PlayerConfig[]) => void
 }
@@ -16,7 +23,7 @@ interface Props {
 export function GameSetup({ onStart }: Props) {
   const saved = loadSavedConfigs()
   const [playerCount, setPlayerCount] = useState<2 | 3 | 4>(
-    saved ? (Math.min(4, Math.max(2, saved.length)) as 2 | 3 | 4) : 2
+    saved ? toPlayerCount(saved.length) : 2
   )
   const [configs, setConfigs] = useState<PlayerConfig[]>(
     saved ?? defaultPlayerConfigs(2)

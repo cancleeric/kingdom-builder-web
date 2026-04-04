@@ -23,6 +23,12 @@ const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Tavern]: '🍺',
 }
 
+function toPlayerCount(n: number): 2 | 3 | 4 {
+  if (n >= 4) return 4
+  if (n >= 3) return 3
+  return 2
+}
+
 function App() {
   const [showSetup, setShowSetup] = useState(true)
 
@@ -60,7 +66,7 @@ function App() {
   const [drawerOpen, setDrawerOpen] = useState(false)
 
   const handleStartGame = (configs: PlayerConfig[]) => {
-    initGame(configs.length as 2 | 3 | 4, configs)
+    initGame(toPlayerCount(configs.length), configs)
     setShowSetup(false)
     setDrawerOpen(false)
   }
