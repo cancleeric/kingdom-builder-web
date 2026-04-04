@@ -124,6 +124,19 @@ npm test
 npm run build
 ```
 
+## GitHub 工作流程
+
+- 功能開發：從 issue 建立分支，先 push 分支，再開 Draft PR。
+- 驗證基準：以 GitHub Actions checks 為主，本機操作只作為輔助，不作為完成依據。
+- 核心目標：讓 GitHub 雲端 Copilot 能沿著既有 branch、Draft PR 與 checks 持續開發。
+
+### 目前雲端續作主線
+
+- 目前活躍 issue：#27 RWD 行動裝置優化
+- 目前活躍 PR：#62 feat: mobile RWD and touch support for issue #27
+- 前一條已完成主線：#53 已關閉，對應 PR #60 已 merged
+- 新工作線必須以目前 GitHub main 為基準，避免使用本機超前分支作為起點。
+
 ## 開發狀態
 
 🚧 **Phase 1 開發中** — 核心基礎建設
