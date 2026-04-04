@@ -5,6 +5,7 @@ import { getValidPlacements } from '../core/rules';
 import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
 import { Location } from '../core/terrain';
+import { BotPlayer } from '../ai/botPlayer';
 import {
   getExtraPlacementPositions,
   getMovementOptions,
@@ -50,6 +51,8 @@ interface GameState {
   undoUsedThisTurn: boolean;
   /** Running turn counter (incremented when a new turn begins) */
   turnNumber: number;
+  /** True while a bot is executing its turn (draw + place + end) */
+  isBotThinking: boolean;
 
   initGame: (configs: PlayerConfig[] | number) => void;
   drawTerrainCard: () => void;
@@ -179,6 +182,7 @@ export const useGameStore = create<GameState>((set, get) => ({
   undoSnapshot: null,
   undoUsedThisTurn: false,
   turnNumber: 1,
+  isBotThinking: false,
 
   // ── Init ────────────────────────────────────────────
   initGame: (configs: PlayerConfig[] | number) => {
@@ -232,6 +236,7 @@ export const useGameStore = create<GameState>((set, get) => ({
       undoSnapshot: null,
       undoUsedThisTurn: false,
       turnNumber: 1,
+      isBotThinking: false,
       ...resetTileState(),
     });
 
@@ -387,6 +392,7 @@ export const useGameStore = create<GameState>((set, get) => ({
         canUndo: false,
         undoSnapshot: null,
         undoUsedThisTurn: false,
+        isBotThinking: false,
         turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
@@ -422,7 +428,39 @@ export const useGameStore = create<GameState>((set, get) => ({
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer?.isBot) return;
     if (state.phase !== GamePhase.DrawCard) return;
+
+    set({ isBotThinking: true });
+
+    // Draw the terrain card
     get().drawTerrainCard();
+
+    // After a short thinking delay, pick and place settlements
+    setTimeout(() => {
+      const s = get();
+      if (s.phase !== GamePhase.PlaceSettlements || !s.currentTerrainCard) {
+        set({ isBotThinking: false });
+        return;
+      }
+
+      const bot = new BotPlayer(currentPlayer.id, currentPlayer.difficulty);
+      const moves = bot.chooseMoves(
+        s.board,
+        s.currentTerrainCard.terrain,
+        s.remainingPlacements
+      );
+
+      for (const coord of moves) {
+        get().placeSettlement(coord);
+      }
+
+      // End the turn after placements
+      setTimeout(() => {
+        set({ isBotThinking: false });
+        if (get().phase === GamePhase.EndTurn) {
+          get().endTurn();
+        }
+      }, 400);
+    }, 600);
   },
 
   // ── Activate tile ability ──────────────────────────

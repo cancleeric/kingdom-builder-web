@@ -66,6 +66,7 @@ export function GameLog({ history, players }: GameLogProps) {
             >
               <span className="font-semibold" style={{ color }}>
                 [回合 {action.turnNumber}] {player?.name ?? `Player ${action.playerId}`}
+                {player?.isBot && ' 🤖'}
               </span>{' '}
               {actionLabel(action)}
               {action.acquiredTile && (

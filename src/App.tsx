@@ -46,6 +46,7 @@ function App() {
     tileMoveDestinations,
     history,
     canUndo,
+    isBotThinking,
     initGame,
     drawTerrainCard,
     placeSettlement,
@@ -178,6 +179,16 @@ function App() {
       <div className="flex-1 flex overflow-hidden">
         {/* Game Board – always visible, takes all space on mobile */}
         <div className="flex-1 relative">
+          {isBotThinking && currentPlayer && (
+            <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/20 pointer-events-none">
+              <div className="bg-white rounded-xl shadow-lg px-6 py-4 flex items-center gap-3">
+                <span className="text-2xl animate-spin">⚙️</span>
+                <span className="font-semibold text-gray-700">
+                  🤖 {currentPlayer.name} is thinking…
+                </span>
+              </div>
+            </div>
+          )}
           {players.length > 0 && (
             <HexGrid
               board={board}
