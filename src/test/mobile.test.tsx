@@ -14,7 +14,7 @@ import React from 'react';
 
 import { useBoardTransform } from '../hooks/useBoardTransform';
 import { BottomDrawer } from '../components/Mobile/BottomDrawer';
-import { GamePhase } from '../types';
+import { GamePhase, BotDifficulty } from '../types';
 import type { Player } from '../types';
 import type { GameAction } from '../types/history';
 
@@ -29,6 +29,8 @@ function makePlayer(overrides?: Partial<Player>): Player {
     settlements: [],
     remainingSettlements: 40,
     tiles: [],
+    isBot: false,
+    difficulty: BotDifficulty.Normal,
     ...overrides,
   };
 }
