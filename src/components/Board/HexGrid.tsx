@@ -88,13 +88,14 @@ export const HexGrid: React.FC<HexGridProps> = ({
   }, []);
 
   // Arrow-key direction map (pointy-top hex, axial coords)
+  // Keys are lowercased to handle Caps Lock / Shift combinations for WASD
   const handleKeyDown = useCallback(
     (e: React.KeyboardEvent<SVGGElement>, coord: AxialCoord) => {
       const directionMap: Record<string, AxialCoord> = {
-        ArrowRight: { q: 1, r: 0 },
-        ArrowLeft: { q: -1, r: 0 },
-        ArrowUp: { q: 0, r: -1 },
-        ArrowDown: { q: 0, r: 1 },
+        arrowright: { q: 1, r: 0 },
+        arrowleft: { q: -1, r: 0 },
+        arrowup: { q: 0, r: -1 },
+        arrowdown: { q: 0, r: 1 },
         w: { q: 0, r: -1 },
         a: { q: -1, r: 0 },
         s: { q: 0, r: 1 },
@@ -110,12 +111,14 @@ export const HexGrid: React.FC<HexGridProps> = ({
       } else if (e.key === 'Escape') {
         e.preventDefault();
         onEscape?.();
-      } else if (directionMap[e.key]) {
-        e.preventDefault();
-        const dir = directionMap[e.key];
-        const neighbor: AxialCoord = { q: coord.q + dir.q, r: coord.r + dir.r };
-        if (board.getCell(neighbor)) {
-          focusHex(neighbor);
+      } else {
+        const dir = directionMap[e.key.toLowerCase()];
+        if (dir) {
+          e.preventDefault();
+          const neighbor: AxialCoord = { q: coord.q + dir.q, r: coord.r + dir.r };
+          if (board.getCell(neighbor)) {
+            focusHex(neighbor);
+          }
         }
       }
     },

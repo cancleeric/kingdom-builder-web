@@ -205,6 +205,7 @@ describe('HexGrid – keyboard navigation', () => {
 
     // Patch focus on all gridcells
     screen.getAllByRole('gridcell').forEach(el => {
+      // jsdom returns HTMLElement for SVG elements; casting through unknown is safe here
       (el as unknown as SVGGElement).focus = focusSpy;
     });
 
