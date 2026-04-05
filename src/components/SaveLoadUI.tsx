@@ -17,7 +17,6 @@ export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
   const handleNewGame = () => {
     clearSave();
     setHasSave(false);
-    gameStore.getState().initGame(2);
   };
 
   const handleClearSave = () => {

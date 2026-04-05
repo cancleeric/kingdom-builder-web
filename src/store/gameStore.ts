@@ -773,7 +773,7 @@ export const gameStore = create<GameState>((set, get) => ({
   },
 }));
 
-// Auto-save: subscribe to state changes and persist
+// Auto-save: subscribe to state changes and persist (debounced)
 const ACTION_KEYS: (keyof GameState)[] = [
   'initGame',
   'drawTerrainCard',
@@ -790,13 +790,18 @@ const ACTION_KEYS: (keyof GameState)[] = [
   'loadSavedGame',
 ];
 
+let saveTimer: ReturnType<typeof setTimeout> | undefined;
+
 gameStore.subscribe((state) => {
-  const serializableState = Object.fromEntries(
-    (Object.keys(state) as (keyof GameState)[])
-      .filter(k => !ACTION_KEYS.includes(k))
-      .map(k => [k, state[k]])
-  ) as unknown as SerializableGameState;
-  saveGame(serializableState);
+  clearTimeout(saveTimer);
+  saveTimer = setTimeout(() => {
+    const serializableState = Object.fromEntries(
+      (Object.keys(state) as (keyof GameState)[])
+        .filter(k => !ACTION_KEYS.includes(k))
+        .map(k => [k, state[k]])
+    ) as unknown as SerializableGameState;
+    saveGame(serializableState);
+  }, 300);
 });
 
 export const useGameStore = gameStore;
