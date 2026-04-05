@@ -2,6 +2,26 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Theme CSS variables — light mode defaults */
+:root {
+  --color-bg: #f9fafb;       /* gray-50 */
+  --color-surface: #ffffff;  /* white */
+  --color-text: #111827;     /* gray-900 */
+  --color-text-muted: #6b7280; /* gray-500 */
+  --color-border: #e5e7eb;   /* gray-200 */
+  --color-panel: #f3f4f6;    /* gray-100 */
+}
+
+/* Dark mode overrides (applied when .dark is on <html>) */
+.dark {
+  --color-bg: #111827;       /* gray-900 */
+  --color-surface: #1f2937;  /* gray-800 */
+  --color-text: #f9fafb;     /* gray-50 */
+  --color-text-muted: #9ca3af; /* gray-400 */
+  --color-border: #374151;   /* gray-700 */
+  --color-panel: #374151;    /* gray-700 */
+}
+
 body {
   margin: 0;
   min-height: 100vh;

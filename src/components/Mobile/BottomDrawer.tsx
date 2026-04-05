@@ -94,7 +94,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
       <div
         className={`
           fixed bottom-0 left-0 right-0 z-30
-          bg-white rounded-t-2xl shadow-2xl
+          bg-white dark:bg-gray-800 rounded-t-2xl shadow-2xl
           transition-transform duration-300 ease-in-out
           ${isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-3.5rem)]'}
         `}
@@ -113,30 +113,30 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && onToggle()}
         >
-          <div className="w-10 h-1 rounded-full bg-gray-300 mb-1" />
+          <div className="w-10 h-1 rounded-full bg-gray-300 dark:bg-gray-600 mb-1" />
           <div className="flex items-center justify-between w-full px-4 py-1">
             {/* Current player pill */}
             {currentPlayer && (
               <div className="flex items-center gap-1.5">
                 <div
-                  className="w-4 h-4 rounded-full border border-gray-800"
+                  className="w-4 h-4 rounded-full border border-gray-800 dark:border-gray-200"
                   style={{ backgroundColor: currentPlayer.color }}
                 />
-                <span className="font-semibold text-sm">{currentPlayer.name}</span>
+                <span className="font-semibold text-sm dark:text-gray-100">{currentPlayer.name}</span>
               </div>
             )}
 
             {/* Phase badge */}
-            <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+            <span className="text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {phase}
             </span>
 
             {/* Terrain card quick-view */}
             {currentTerrainCard && (
-              <span className="text-sm font-bold">
+              <span className="text-sm font-bold dark:text-gray-100">
                 {getTerrainName(currentTerrainCard.terrain)}
                 {remainingPlacements > 0 && (
-                  <span className="ml-1 text-xs font-normal text-gray-500">
+                  <span className="ml-1 text-xs font-normal text-gray-500 dark:text-gray-400">
                     ×{remainingPlacements}
                   </span>
                 )}
@@ -145,7 +145,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
             {/* Chevron indicator */}
             <span
-              className={`text-gray-400 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
+              className={`text-gray-400 dark:text-gray-500 transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}
               aria-hidden="true"
             >
               ▲
@@ -167,17 +167,17 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           )}
 
           {phase === GamePhase.PlaceSettlements && !activeTile && (
-            <div className="p-3 bg-yellow-50 border border-yellow-300 rounded-xl text-sm text-center">
+            <div className="p-3 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded-xl text-sm text-center dark:text-yellow-200">
               Tap a highlighted hex to place a settlement
               <br />
-              <span className="text-xs text-gray-500">
+              <span className="text-xs text-gray-500 dark:text-gray-400">
                 {remainingPlacements} placement{remainingPlacements !== 1 ? 's' : ''} left
               </span>
             </div>
           )}
 
           {activeTile && (
-            <div className="p-3 bg-orange-50 border border-orange-300 rounded-xl text-sm text-center">
+            <div className="p-3 bg-orange-50 dark:bg-orange-900/30 border border-orange-300 dark:border-orange-700 rounded-xl text-sm text-center dark:text-orange-200">
               {activeTile === Location.Paddock || activeTile === Location.Barn
                 ? tileMoveFrom
                   ? 'Tap a highlighted destination to move.'
@@ -196,7 +196,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 className={`flex-1 font-bold py-3 rounded-xl border transition ${
                   canUndo
                     ? 'bg-orange-500 text-white border-orange-600 hover:bg-orange-600 active:bg-orange-700'
-                    : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-200 dark:border-gray-600 cursor-not-allowed'
                 }`}
               >
                 Undo
@@ -217,13 +217,13 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           {/* Location tiles */}
           {currentPlayer && currentPlayer.tiles.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Your Tiles</h4>
+              <h4 className="text-sm font-semibold text-gray-700 dark:text-gray-200 mb-2">Your Tiles</h4>
               <ul role="list" className="flex flex-wrap gap-2">
                 {currentPlayer.tiles.map((tile: LocationTile, idx: number) => (
                   <li
                     key={`${tile.location}-${idx}`}
                     role="listitem"
-                    className="flex items-center gap-1 px-3 py-2 rounded-xl border bg-gray-50"
+                    className="flex items-center gap-1 px-3 py-2 rounded-xl border dark:border-gray-600 bg-gray-50 dark:bg-gray-700 dark:text-gray-100"
                   >
                     <span>{LOCATION_EMOJI[tile.location]} {tile.location}</span>
                     {!tile.usedThisTurn &&
@@ -259,7 +259,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
           {/* Last action summary */}
           {lastAction && (
-            <p className="text-xs text-gray-400 text-center">
+            <p className="text-xs text-gray-400 dark:text-gray-500 text-center">
               Last: {lastAction.type === 'PLACE_SETTLEMENT'
                 ? `Settlement at Q${lastAction.hex?.q}R${lastAction.hex?.r}`
                 : lastAction.type === 'TILE_MOVE'

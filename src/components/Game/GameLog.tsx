@@ -45,7 +45,7 @@ export function GameLog({ history, players }: GameLogProps) {
   if (recent.length === 0) {
     return (
       <div className="mb-4">
-        <h3 className="text-lg font-semibold mb-2">操作日誌</h3>
+        <h3 className="text-lg font-semibold mb-2 dark:text-white">操作日誌</h3>
         <p className="text-xs text-gray-400 italic">尚無操作記錄</p>
       </div>
     );
@@ -53,7 +53,7 @@ export function GameLog({ history, players }: GameLogProps) {
 
   return (
     <div className="mb-4">
-      <h3 className="text-lg font-semibold mb-2">操作日誌</h3>
+      <h3 className="text-lg font-semibold mb-2 dark:text-white">操作日誌</h3>
       <ul className="space-y-1 max-h-48 overflow-y-auto pr-1">
         {recent.map((action, idx) => {
           const player = players.find(p => p.id === action.playerId);
@@ -61,15 +61,15 @@ export function GameLog({ history, players }: GameLogProps) {
           return (
             <li
               key={`${action.timestamp}-${idx}`}
-              className="text-xs rounded px-2 py-1 border-l-4"
+              className="text-xs rounded px-2 py-1 border-l-4 bg-gray-50 dark:bg-gray-700"
               style={{ borderColor: color }}
             >
               <span className="font-semibold" style={{ color }}>
                 [回合 {action.turnNumber}] {player?.name ?? `Player ${action.playerId}`}
               </span>{' '}
-              {actionLabel(action)}
+              <span className="dark:text-gray-300">{actionLabel(action)}</span>
               {action.acquiredTile && (
-                <span className="ml-1 text-gray-500">
+                <span className="ml-1 text-gray-500 dark:text-gray-400">
                   （獲得 {LOCATION_EMOJI[action.acquiredTile] ?? ''} {action.acquiredTile}）
                 </span>
               )}

@@ -45,18 +45,18 @@ export function GameSetup({ onStart }: GameSetupProps) {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 dark:bg-gray-900">
+      <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-8 w-full max-w-lg">
+        <h1 className="text-3xl font-bold text-center text-blue-700 dark:text-blue-400 mb-6">
           Kingdom Builder
         </h1>
-        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">
+        <h2 className="text-xl font-semibold text-center text-gray-700 dark:text-gray-200 mb-6">
           Game Setup
         </h2>
 
         {/* Player Count */}
         <div className="mb-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Number of Players
           </label>
           <div className="flex gap-2">
@@ -67,7 +67,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                 className={`flex-1 py-2 rounded-lg border-2 font-semibold transition ${
                   playerCount === n
                     ? 'bg-blue-600 border-blue-600 text-white'
-                    : 'bg-white border-gray-300 text-gray-700 hover:border-blue-400'
+                    : 'bg-white dark:bg-gray-700 border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-200 hover:border-blue-400'
                 }`}
               >
                 {n}
@@ -79,16 +79,16 @@ export function GameSetup({ onStart }: GameSetupProps) {
         {/* Per-player config */}
         <div className="space-y-4 mb-8">
           {configs.map((cfg, i) => (
-            <div key={i} className="border rounded-lg p-4 bg-gray-50">
+            <div key={i} className="border dark:border-gray-600 rounded-lg p-4 bg-gray-50 dark:bg-gray-700">
               <div className="flex items-center gap-3 mb-3">
-                <span className="font-semibold text-gray-700 w-20">
+                <span className="font-semibold text-gray-700 dark:text-gray-200 w-20">
                   Player {i + 1}
                 </span>
                 <input
                   type="text"
                   value={cfg.name}
                   onChange={e => updateConfig(i, { name: e.target.value })}
-                  className="flex-1 border rounded px-2 py-1 text-sm"
+                  className="flex-1 border dark:border-gray-500 rounded px-2 py-1 text-sm bg-white dark:bg-gray-600 dark:text-gray-100"
                   placeholder={`Player ${i + 1}`}
                 />
               </div>
@@ -102,7 +102,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                     className={`px-3 py-1 rounded text-sm font-medium transition ${
                       cfg.type === type
                         ? 'bg-blue-600 text-white'
-                        : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                        : 'bg-gray-200 dark:bg-gray-600 text-gray-700 dark:text-gray-200 hover:bg-gray-300 dark:hover:bg-gray-500'
                     }`}
                   >
                     {type === 'human' ? '🧑 Human' : '🤖 Computer'}
@@ -113,7 +113,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
               {/* Difficulty selector (only for bots) */}
               {cfg.type === 'bot' && (
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">
+                  <label className="block text-xs text-gray-500 dark:text-gray-400 mb-1">
                     AI Difficulty
                   </label>
                   <select
@@ -123,7 +123,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                         difficulty: e.target.value as BotDifficulty,
                       })
                     }
-                    className="w-full border rounded px-2 py-1 text-sm bg-white"
+                    className="w-full border dark:border-gray-500 rounded px-2 py-1 text-sm bg-white dark:bg-gray-600 dark:text-gray-100"
                   >
                     {Object.values(BotDifficulty).map(d => (
                       <option key={d} value={d}>

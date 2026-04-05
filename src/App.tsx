@@ -12,6 +12,7 @@ import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
 import { InstallPrompt } from './components/InstallPrompt'
+import { useTheme } from './hooks/useTheme'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -28,6 +29,7 @@ const LOCATION_EMOJI: Record<Location, string> = {
 function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
+  const { theme, toggleTheme } = useTheme();
 
   const {
     board,
@@ -138,7 +140,7 @@ function App() {
   }
 
   return (
-    <div className="w-screen h-screen flex flex-col bg-gray-50">
+    <div className="w-screen h-screen flex flex-col bg-gray-50 dark:bg-gray-900">
       <InstallPrompt />
       {/* Hidden ARIA live region for screen-reader turn announcements */}
       <div
@@ -150,7 +152,7 @@ function App() {
       </div>
 
       {/* Header */}
-      <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
+      <header className="bg-blue-600 dark:bg-blue-900 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
         <div className="flex items-center gap-2">
           {/* Mobile: show current player name in header */}
@@ -163,11 +165,20 @@ function App() {
               <span className="text-sm font-semibold">{currentPlayer.name}</span>
             </div>
           )}
+          {/* Theme toggle */}
+          <button
+            onClick={toggleTheme}
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            title={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 dark:hover:bg-blue-800 transition text-xl"
+          >
+            {theme === 'dark' ? '☀️' : '🌙'}
+          </button>
           <button
             onClick={handleToggleMute}
             aria-label={muted ? 'Unmute' : 'Mute'}
             title={muted ? 'Unmute' : 'Mute'}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 transition text-xl"
+            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 dark:hover:bg-blue-800 transition text-xl"
           >
             {muted ? '🔇' : '🔊'}
           </button>
@@ -196,7 +207,7 @@ function App() {
         </div>
 
         {/* Sidebar – hidden on mobile (< md), visible on md+ */}
-        <aside className="hidden md:flex w-80 bg-white shadow-lg p-6 overflow-y-auto flex-col gap-0" aria-label="Game information">
+        <aside className="hidden md:flex w-80 bg-white dark:bg-gray-800 shadow-lg p-6 overflow-y-auto flex-col gap-0" aria-label="Game information">
           {/* Current Player Info */}
           {currentPlayer && (
             <section
@@ -204,21 +215,21 @@ function App() {
               className="mb-4 p-4 rounded-lg border-2"
               style={{ borderColor: currentPlayer.color }}
             >
-              <h2 className="text-xl font-bold mb-2">Current Player</h2>
+              <h2 className="text-xl font-bold mb-2 dark:text-white">Current Player</h2>
               <div className="flex items-center gap-2 mb-1">
                 <div
-                  className="w-6 h-6 rounded-full border-2 border-gray-800"
+                  className="w-6 h-6 rounded-full border-2 border-gray-800 dark:border-gray-200"
                   style={{ backgroundColor: currentPlayer.color }}
                   aria-hidden="true"
                 />
-                <span className="font-semibold">{currentPlayer.name}</span>
+                <span className="font-semibold dark:text-gray-100">{currentPlayer.name}</span>
                 {currentPlayer.isBot && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
+                  <span className="text-xs bg-purple-100 dark:bg-purple-900 text-purple-700 dark:text-purple-300 px-2 py-0.5 rounded-full">
                     🤖 {currentPlayer.difficulty}
                   </span>
                 )}
               </div>
-              <p className="text-sm text-gray-600">
+              <p className="text-sm text-gray-600 dark:text-gray-400">
                 Settlements Remaining: {currentPlayer.remainingSettlements}
               </p>
             </section>
@@ -226,21 +237,21 @@ function App() {
 
           {/* Game Phase */}
           <section className="mb-4" aria-label="Game phase">
-            <h3 className="text-lg font-semibold mb-2">Phase</h3>
-            <div className="p-3 bg-gray-100 rounded">
-              <p className="font-medium">{phase}</p>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Phase</h3>
+            <div className="p-3 bg-gray-100 dark:bg-gray-700 rounded">
+              <p className="font-medium dark:text-gray-100">{phase}</p>
             </div>
           </section>
 
           {/* Terrain Card */}
           {currentTerrainCard && (
             <section className="mb-4" aria-label="Current terrain card" role="region">
-              <h3 className="text-lg font-semibold mb-2">Terrain</h3>
-              <div className="p-4 bg-gray-100 rounded text-center">
-                <p className="text-2xl font-bold">
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">Terrain</h3>
+              <div className="p-4 bg-gray-100 dark:bg-gray-700 rounded text-center">
+                <p className="text-2xl font-bold dark:text-gray-100">
                   {getTerrainName(currentTerrainCard.terrain)}
                 </p>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray-600 dark:text-gray-400 mt-1">
                   Placements left: {remainingPlacements}
                 </p>
               </div>
@@ -250,12 +261,12 @@ function App() {
           {/* Objective Cards */}
           {objectiveCards.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Objectives</h3>
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">Objectives</h3>
               <div className="flex flex-wrap gap-1">
                 {objectiveCards.map(card => (
                   <span
                     key={card}
-                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
+                    className="px-2 py-1 bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 text-xs rounded-full"
                   >
                     {card}
                   </span>
@@ -267,15 +278,15 @@ function App() {
           {/* Location Tiles (current player) */}
           {currentPlayer && currentPlayer.tiles.length > 0 && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Your Tiles</h3>
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">Your Tiles</h3>
               <ul role="list" className="space-y-1">
                 {currentPlayer.tiles.map((tile, idx) => (
                   <li
                     key={`${tile.location}-${idx}`}
                     role="listitem"
-                    className="flex items-center justify-between p-2 rounded border"
+                    className="flex items-center justify-between p-2 rounded border dark:border-gray-600 dark:bg-gray-700"
                   >
-                    <span className="text-sm">
+                    <span className="text-sm dark:text-gray-100">
                       {LOCATION_EMOJI[tile.location]} {tile.location}
                     </span>
                     <div className="flex gap-1">
@@ -310,7 +321,7 @@ function App() {
                 ))}
               </ul>
               {activeTile && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
+                <div className="mt-2 p-2 bg-yellow-50 dark:bg-yellow-900/30 border border-yellow-300 dark:border-yellow-700 rounded text-xs dark:text-yellow-200">
                   {activeTile === Location.Paddock || activeTile === Location.Barn
                     ? tileMoveFrom
                       ? 'Click a highlighted destination to move.'
@@ -323,7 +334,7 @@ function App() {
 
           {/* Actions */}
           <section className="mb-4" aria-label="Actions">
-            <h3 className="text-lg font-semibold mb-2">Actions</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Actions</h3>
 
             {phase === GamePhase.DrawCard && (
               <button
@@ -338,13 +349,13 @@ function App() {
             {phase === GamePhase.PlaceSettlements && !activeTile && (
               <div
                 role="status"
-                className="p-3 bg-yellow-100 border border-yellow-400 rounded"
+                className="p-3 bg-yellow-100 dark:bg-yellow-900/30 border border-yellow-400 dark:border-yellow-700 rounded"
               >
-                <p className="text-sm">
+                <p className="text-sm dark:text-yellow-200">
                   Click or press Enter on a highlighted hex to place a settlement.
                   Use arrow keys to navigate the board. Press Escape to deselect.
                 </p>
-                <p className="text-xs text-gray-600 mt-1">
+                <p className="text-xs text-gray-600 dark:text-gray-400 mt-1">
                   {remainingPlacements} placement
                   {remainingPlacements !== 1 ? 's' : ''} remaining
                 </p>
@@ -359,7 +370,7 @@ function App() {
                 className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
                   canUndo
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
-                    : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
+                    : 'bg-gray-100 dark:bg-gray-700 text-gray-400 dark:text-gray-500 border-gray-300 dark:border-gray-600 cursor-not-allowed'
                 }`}
               >
               Undo
@@ -383,7 +394,7 @@ function App() {
           {/* Live Scores */}
           {players.length > 0 && phase !== GamePhase.Setup && (
             <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">Live Scores</h3>
+              <h3 className="text-lg font-semibold mb-2 dark:text-white">Live Scores</h3>
               <div className="space-y-2">
                 {liveScores.map(ps => {
                   const p = players.find(pl => pl.id === ps.playerId)
@@ -395,11 +406,11 @@ function App() {
                       className="p-2 rounded border"
                       style={{ borderColor: p?.color ?? '#ccc' }}
                     >
-                      <div className="flex justify-between text-sm font-medium">
+                      <div className="flex justify-between text-sm font-medium dark:text-gray-100">
                         <span>{p?.name}</span>
                         <span>{total} pts</span>
                       </div>
-                      <p className="text-xs text-gray-500">
+                      <p className="text-xs text-gray-500 dark:text-gray-400">
                         🏰 {ps.castle} |{' '}
                         {ps.objectives.map(o => `${o.card}: ${o.score}`).join(' | ')}
                       </p>
@@ -412,7 +423,7 @@ function App() {
 
           {/* Players list */}
           <section aria-label="Players">
-            <h3 className="text-lg font-semibold mb-2">Players</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-white">Players</h3>
             <ul role="list" className="space-y-2">
               {players.map((player, index) => (
                 <li
@@ -420,32 +431,34 @@ function App() {
                   role="listitem"
                   aria-label={`${player.name}: ${player.settlements.length} placed, ${player.remainingSettlements} remaining${index === currentPlayerIndex ? ', current player' : ''}`}
                   className={`p-3 rounded border-2 ${
-                    index === currentPlayerIndex ? 'bg-blue-50' : 'bg-gray-50'
+                    index === currentPlayerIndex
+                      ? 'bg-blue-50 dark:bg-blue-950'
+                      : 'bg-gray-50 dark:bg-gray-700'
                   }`}
                   style={{ borderColor: player.color }}
                 >
                   <div className="flex items-center gap-2 mb-1">
                     <div
-                      className="w-4 h-4 rounded-full border border-gray-800"
+                      className="w-4 h-4 rounded-full border border-gray-800 dark:border-gray-200"
                       style={{ backgroundColor: player.color }}
                       aria-hidden="true"
                     />
-                    <span className="font-medium">
+                    <span className="font-medium dark:text-gray-100">
                       {player.name}
                       {index === currentPlayerIndex && (
-                        <span className="ml-2 text-xs font-normal text-blue-600">(current)</span>
+                        <span className="ml-2 text-xs font-normal text-blue-600 dark:text-blue-400">(current)</span>
                       )}
                     </span>
                     {player.isBot && (
-                      <span className="text-xs text-gray-500">🤖</span>
+                      <span className="text-xs text-gray-500 dark:text-gray-400">🤖</span>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600">
+                  <p className="text-xs text-gray-600 dark:text-gray-400">
                     Placed: {player.settlements.length} | Remaining:{' '}
                     {player.remainingSettlements}
                   </p>
                   {player.tiles.length > 0 && (
-                    <p className="text-xs text-gray-500 mt-0.5">
+                    <p className="text-xs text-gray-500 dark:text-gray-500 mt-0.5">
                       Tiles:{' '}
                       {player.tiles.map(t => LOCATION_EMOJI[t.location]).join(' ')}
                     </p>
