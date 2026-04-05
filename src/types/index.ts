@@ -72,3 +72,17 @@ export enum GamePhase {
   EndTurn = 'EndTurn',
   GameOver = 'GameOver',
 }
+
+/**
+ * Board size options for game setup
+ */
+export type BoardSize = 'small' | 'medium' | 'large';
+
+/**
+ * Optional game configuration chosen at setup time
+ */
+export interface GameOptions {
+  boardSize: BoardSize;
+  objectiveCount: 1 | 2 | 3;
+  enableUndo: boolean;
+}

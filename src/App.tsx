@@ -6,7 +6,7 @@ import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
 import { GamePhase } from './types'
-import type { PlayerConfig } from './types'
+import type { PlayerConfig, GameOptions } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
@@ -63,8 +63,8 @@ function App() {
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
-  const handleStart = (configs: PlayerConfig[]) => {
-    initGame(configs);
+  const handleStart = (configs: PlayerConfig[], options: GameOptions) => {
+    initGame(configs, options);
     setGameStarted(true);
   };
 

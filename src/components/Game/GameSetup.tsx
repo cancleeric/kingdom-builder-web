@@ -1,8 +1,8 @@
 import { useState } from 'react';
-import { PlayerConfig, BotDifficulty } from '../../types';
+import { PlayerConfig, BotDifficulty, GameOptions, BoardSize } from '../../types';
 
 interface GameSetupProps {
-  onStart: (configs: PlayerConfig[]) => void;
+  onStart: (configs: PlayerConfig[], options: GameOptions) => void;
 }
 
 const DEFAULT_PLAYER_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
@@ -11,6 +11,18 @@ const DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
   [BotDifficulty.Easy]: 'Easy (Random)',
   [BotDifficulty.Normal]: 'Normal (Greedy)',
   [BotDifficulty.Hard]: 'Hard (Lookahead)',
+};
+
+const BOARD_SIZE_LABELS: Record<BoardSize, string> = {
+  small: 'Small (12×12)',
+  medium: 'Medium (16×16)',
+  large: 'Large (20×20)',
+};
+
+const DEFAULT_OPTIONS: GameOptions = {
+  boardSize: 'large',
+  objectiveCount: 3,
+  enableUndo: true,
 };
 
 export function GameSetup({ onStart }: GameSetupProps) {
@@ -22,6 +34,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
       difficulty: BotDifficulty.Normal,
     }))
   );
+  const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
 
   const handlePlayerCountChange = (count: number) => {
     setPlayerCount(count);
@@ -40,12 +53,16 @@ export function GameSetup({ onStart }: GameSetupProps) {
     );
   };
 
+  const updateOption = <K extends keyof GameOptions>(key: K, value: GameOptions[K]) => {
+    setOptions(prev => ({ ...prev, [key]: value }));
+  };
+
   const handleStart = () => {
-    onStart(configs);
+    onStart(configs, options);
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
           Kingdom Builder
@@ -77,7 +94,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
         </div>
 
         {/* Per-player config */}
-        <div className="space-y-4 mb-8">
+        <div className="space-y-4 mb-6">
           {configs.map((cfg, i) => (
             <div key={i} className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-center gap-3 mb-3">
@@ -135,6 +152,74 @@ export function GameSetup({ onStart }: GameSetupProps) {
               )}
             </div>
           ))}
+        </div>
+
+        {/* Board Size */}
+        <div className="mb-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Board Size
+          </label>
+          <div className="flex gap-2">
+            {(['small', 'medium', 'large'] as BoardSize[]).map(size => (
+              <button
+                key={size}
+                onClick={() => updateOption('boardSize', size)}
+                className={`flex-1 py-2 rounded-lg border-2 text-sm font-semibold transition ${
+                  options.boardSize === size
+                    ? 'bg-green-600 border-green-600 text-white'
+                    : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
+                }`}
+              >
+                {BOARD_SIZE_LABELS[size]}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        {/* Game Options */}
+        <div className="mb-8 border rounded-lg p-4 bg-gray-50">
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">Game Options</h3>
+
+          {/* Objective count */}
+          <div className="mb-4">
+            <label className="block text-xs text-gray-500 mb-2">
+              Objective Cards
+            </label>
+            <div className="flex gap-2">
+              {([1, 2, 3] as const).map(n => (
+                <button
+                  key={n}
+                  onClick={() => updateOption('objectiveCount', n)}
+                  className={`flex-1 py-1 rounded border-2 text-sm font-semibold transition ${
+                    options.objectiveCount === n
+                      ? 'bg-purple-600 border-purple-600 text-white'
+                      : 'bg-white border-gray-300 text-gray-700 hover:border-purple-400'
+                  }`}
+                >
+                  {n}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {/* Enable undo */}
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-gray-600">Allow Undo (once per turn)</span>
+            <button
+              role="switch"
+              aria-checked={options.enableUndo}
+              onClick={() => updateOption('enableUndo', !options.enableUndo)}
+              className={`relative inline-flex h-6 w-11 items-center rounded-full transition ${
+                options.enableUndo ? 'bg-blue-600' : 'bg-gray-300'
+              }`}
+            >
+              <span
+                className={`inline-block h-4 w-4 transform rounded-full bg-white transition ${
+                  options.enableUndo ? 'translate-x-6' : 'translate-x-1'
+                }`}
+              />
+            </button>
+          </div>
         </div>
 
         <button

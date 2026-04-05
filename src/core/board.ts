@@ -1,6 +1,6 @@
 import { AxialCoord, hexToKey } from './hex';
 import { Terrain, Location } from './terrain';
-import { HexCell } from '../types';
+import { HexCell, BoardSize } from '../types';
 
 /**
  * Board class managing the hex grid
@@ -196,5 +196,124 @@ export function createBoardFromQuadrants(
     }
   });
   
+  return board;
+}
+
+const BOARD_SIZE_MAP: Record<BoardSize, number> = {
+  small: 12,
+  medium: 16,
+  large: 20,
+};
+
+/**
+ * Create a board scaled to the requested size preset.
+ * - small  → 12×12
+ * - medium → 16×16
+ * - large  → 20×20 (same layout as createDefaultBoard)
+ */
+export function createBoardForSize(boardSize: BoardSize = 'large'): Board {
+  const size = BOARD_SIZE_MAP[boardSize];
+  const board = new Board(size, size);
+  const last = size - 1;
+  const mid = Math.floor(size / 2);
+
+  for (let q = 0; q < size; q++) {
+    for (let r = 0; r < size; r++) {
+      const coord: AxialCoord = { q, r };
+
+      let terrain: Terrain;
+
+      // Border mountains
+      if (q === 0 || r === 0 || q === last || r === last) {
+        terrain = Terrain.Mountain;
+      }
+      // Scaled water bodies
+      else if (
+        (q === Math.floor(size * 0.25) &&
+          r >= Math.floor(size * 0.25) &&
+          r <= Math.floor(size * 0.5)) ||
+        (q === Math.floor(size * 0.7) &&
+          r >= Math.floor(size * 0.45) &&
+          r <= Math.floor(size * 0.7))
+      ) {
+        terrain = Terrain.Water;
+      }
+      // Quadrant-based terrains
+      else if (q < mid && r < mid) {
+        terrain = (q + r) % 3 === 0 ? Terrain.Forest : Terrain.Grass;
+      } else if (q >= mid && r < mid) {
+        terrain = (q + r) % 3 === 0 ? Terrain.Canyon : Terrain.Desert;
+      } else if (q < mid && r >= mid) {
+        terrain = (q + r) % 3 === 0 ? Terrain.Flower : Terrain.Grass;
+      } else {
+        terrain =
+          [
+            Terrain.Grass,
+            Terrain.Forest,
+            Terrain.Desert,
+            Terrain.Flower,
+            Terrain.Canyon,
+          ][(q + r) % 5];
+      }
+
+      const cell: HexCell = { coord, terrain, settlement: undefined };
+
+      // Scale castle positions proportionally
+      const castlePos = Math.floor(size * 0.15);
+      const castleFar = Math.floor(size * 0.8);
+
+      if (
+        (q === castlePos && r === castlePos) ||
+        (q === castleFar && r === castlePos) ||
+        (q === castlePos && r === castleFar) ||
+        (q === castleFar && r === castleFar)
+      ) {
+        cell.location = Location.Castle;
+      } else if (
+        q === Math.floor(size * 0.35) &&
+        r === Math.floor(size * 0.35)
+      ) {
+        cell.location = Location.Farm;
+      } else if (
+        q === Math.floor(size * 0.3) &&
+        r === Math.floor(size * 0.3)
+      ) {
+        cell.location = Location.Harbor;
+      } else if (
+        q === Math.floor(size * 0.7) &&
+        r === Math.floor(size * 0.25)
+      ) {
+        cell.location = Location.Oasis;
+      } else if (
+        q === Math.floor(size * 0.45) &&
+        r === Math.floor(size * 0.2)
+      ) {
+        cell.location = Location.Tower;
+      } else if (
+        q === Math.floor(size * 0.4) &&
+        r === Math.floor(size * 0.6)
+      ) {
+        cell.location = Location.Paddock;
+      } else if (
+        q === Math.floor(size * 0.65) &&
+        r === Math.floor(size * 0.65)
+      ) {
+        cell.location = Location.Barn;
+      } else if (
+        q === Math.floor(size * 0.2) &&
+        r === Math.floor(size * 0.65)
+      ) {
+        cell.location = Location.Oracle;
+      } else if (
+        q === Math.floor(size * 0.75) &&
+        r === Math.floor(size * 0.4)
+      ) {
+        cell.location = Location.Tavern;
+      }
+
+      board.setCell(cell);
+    }
+  }
+
   return board;
 }
