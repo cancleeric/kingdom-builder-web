@@ -774,7 +774,7 @@ export const gameStore = create<GameState>((set, get) => ({
 }));
 
 // Auto-save: subscribe to state changes and persist (debounced)
-const ACTION_KEYS: (keyof GameState)[] = [
+const METHOD_KEYS: (keyof GameState)[] = [
   'initGame',
   'drawTerrainCard',
   'placeSettlement',
@@ -797,7 +797,7 @@ gameStore.subscribe((state) => {
   saveTimer = setTimeout(() => {
     const serializableState = Object.fromEntries(
       (Object.keys(state) as (keyof GameState)[])
-        .filter(k => !ACTION_KEYS.includes(k))
+        .filter(k => !METHOD_KEYS.includes(k))
         .map(k => [k, state[k]])
     ) as unknown as SerializableGameState;
     saveGame(serializableState);

@@ -42,17 +42,14 @@ export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
           新遊戲 (New Game)
         </button>
       )}
-      <button
-        onClick={handleClearSave}
-        disabled={!hasSave}
-        className={`w-full font-bold py-2 px-4 rounded transition border ${
-          hasSave
-            ? 'bg-red-100 hover:bg-red-200 text-red-700 border-red-300'
-            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
-        }`}
-      >
-        清除存檔 (Clear Save)
-      </button>
+      {hasSave && (
+        <button
+          onClick={handleClearSave}
+          className="w-full font-bold py-2 px-4 rounded transition border bg-red-100 hover:bg-red-200 text-red-700 border-red-300"
+        >
+          清除存檔 (Clear Save)
+        </button>
+      )}
     </div>
   );
 }
