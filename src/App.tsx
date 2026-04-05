@@ -85,6 +85,18 @@ function App() {
     }
   }, [phase]);
 
+  // Keyboard shortcut: Ctrl+Z / Cmd+Z triggers undo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'z' && canUndo) {
+        e.preventDefault();
+        undoLastAction();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [canUndo, undoLastAction]);
+
   const handleCellClick = (coord: { q: number; r: number }) => {
     if (activeTile) {
       const isMoveTile =
@@ -357,13 +369,19 @@ function App() {
               <button
                 onClick={undoLastAction}
                 disabled={!canUndo}
+                aria-label={
+                  canUndo
+                    ? 'Undo last action (Ctrl+Z)'
+                    : 'Undo unavailable — one undo allowed per turn'
+                }
+                title={canUndo ? 'Undo last action (Ctrl+Z)' : 'One undo allowed per turn'}
                 className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
                   canUndo
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
                     : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
                 }`}
               >
-              Undo
+                Undo
               </button>
             )}
 
