@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <rect width="512" height="512" fill="#1a1a2e" rx="64"/>
+  <!-- Castle tower -->
+  <rect x="96" y="210" width="320" height="214" fill="#c9a227"/>
+  <rect x="96" y="170" width="75" height="86" fill="#c9a227"/>
+  <rect x="218" y="170" width="76" height="86" fill="#c9a227"/>
+  <rect x="341" y="170" width="75" height="86" fill="#c9a227"/>
+  <!-- Battlements left tower -->
+  <rect x="96" y="150" width="26" height="32" fill="#c9a227"/>
+  <rect x="145" y="150" width="26" height="32" fill="#c9a227"/>
+  <!-- Battlements middle tower -->
+  <rect x="218" y="150" width="26" height="32" fill="#c9a227"/>
+  <rect x="268" y="150" width="26" height="32" fill="#c9a227"/>
+  <!-- Battlements right tower -->
+  <rect x="341" y="150" width="26" height="32" fill="#c9a227"/>
+  <rect x="391" y="150" width="26" height="32" fill="#c9a227"/>
+  <!-- Gate -->
+  <rect x="213" y="320" width="86" height="104" fill="#1a1a2e"/>
+  <ellipse cx="256" cy="320" rx="43" ry="28" fill="#1a1a2e"/>
+  <!-- Windows -->
+  <rect x="130" y="256" width="42" height="52" fill="#1a1a2e" rx="4"/>
+  <rect x="340" y="256" width="42" height="52" fill="#1a1a2e" rx="4"/>
+  <!-- Crown above castle -->
+  <polygon points="256,42 196,96 226,78 256,106 286,78 316,96" fill="#c9a227"/>
+</svg>

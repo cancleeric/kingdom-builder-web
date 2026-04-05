@@ -1,0 +1,59 @@
+import { useState } from 'react';
+import { loadGame, clearSave } from '../store/persistence';
+import { gameStore } from '../store/gameStore';
+
+interface SaveLoadUIProps {
+  onGameLoaded?: () => void;
+}
+
+export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
+  const [hasSave, setHasSave] = useState(() => loadGame() !== null);
+
+  const handleContinue = () => {
+    gameStore.getState().loadSavedGame();
+    onGameLoaded?.();
+  };
+
+  const handleNewGame = () => {
+    clearSave();
+    setHasSave(false);
+    gameStore.getState().initGame(2);
+  };
+
+  const handleClearSave = () => {
+    clearSave();
+    setHasSave(false);
+  };
+
+  return (
+    <div className="flex flex-col gap-2">
+      {hasSave && (
+        <button
+          onClick={handleContinue}
+          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition"
+        >
+          繼續遊戲 (Continue)
+        </button>
+      )}
+      {hasSave && (
+        <button
+          onClick={handleNewGame}
+          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition"
+        >
+          新遊戲 (New Game)
+        </button>
+      )}
+      <button
+        onClick={handleClearSave}
+        disabled={!hasSave}
+        className={`w-full font-bold py-2 px-4 rounded transition border ${
+          hasSave
+            ? 'bg-red-100 hover:bg-red-200 text-red-700 border-red-300'
+            : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
+        }`}
+      >
+        清除存檔 (Clear Save)
+      </button>
+    </div>
+  );
+}
