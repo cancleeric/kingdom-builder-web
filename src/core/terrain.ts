@@ -1,6 +1,8 @@
 /**
  * Terrain types in Kingdom Builder
  */
+import { getRandom } from '../utils/seededRandom';
+
 export enum Terrain {
   Grass = 'Grass',
   Forest = 'Forest',
@@ -95,12 +97,14 @@ export function createTerrainDeck(): TerrainCard[] {
 }
 
 /**
- * Shuffle an array in place using Fisher-Yates algorithm
+ * Shuffle an array in place using Fisher-Yates algorithm.
+ * Uses the globally configured RNG so callers can pass ?seed= for
+ * deterministic output during testing.
  */
 export function shuffleDeck<T>(deck: T[]): T[] {
   const shuffled = [...deck];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(getRandom() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled;

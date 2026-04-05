@@ -19,6 +19,7 @@ import {
   scoreObjectiveCard,
 } from '../core/scoring';
 import { GameAction, UndoSnapshot } from '../types/history';
+import { selectBestMoves } from '../ai/botPlayer';
 
 // ────────────────────────────────────────────────────
 // State shape
@@ -425,7 +426,30 @@ export const gameStore = create<GameState>((set, get) => ({
     const currentPlayer = state.players[state.currentPlayerIndex];
     if (!currentPlayer?.isBot) return;
     if (state.phase !== GamePhase.DrawCard) return;
+
+    // 1. Draw a terrain card (synchronous state update)
     get().drawTerrainCard();
+
+    // 2. Compute best placements from the now-updated state
+    const afterDraw = get();
+    if (!afterDraw.currentTerrainCard) return;
+
+    const moves = selectBestMoves(
+      afterDraw.board,
+      afterDraw.currentTerrainCard.terrain,
+      currentPlayer.id,
+      currentPlayer.difficulty,
+      SETTLEMENTS_PER_TURN
+    );
+
+    // 3. Place each settlement with a short stagger so the UI can update
+    const STEP_MS = 100;
+    moves.forEach((coord, i) => {
+      setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
+    });
+
+    // 4. End the turn after all placements have been dispatched
+    setTimeout(() => get().endTurn(), STEP_MS * (moves.length + 1));
   },
 
   // ── Activate tile ability ──────────────────────────
