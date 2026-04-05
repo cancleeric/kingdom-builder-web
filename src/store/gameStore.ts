@@ -1,10 +1,10 @@
 import { create } from 'zustand';
 import { saveGame, loadGame } from './persistence';
 import type { SerializableGameState } from './persistence';
-import { Board, createDefaultBoard } from '../core/board';
+import { Board, createDefaultBoard, createBoardForSize } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
-import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty } from '../types';
+import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty, GameOptions } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
 import { Location } from '../core/terrain';
 import {
@@ -54,7 +54,10 @@ interface GameState {
   /** Running turn counter (incremented when a new turn begins) */
   turnNumber: number;
 
-  initGame: (configs: PlayerConfig[] | number) => void;
+  /** Options chosen at setup time */
+  gameOptions: GameOptions;
+
+  initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
@@ -183,9 +186,10 @@ export const gameStore = create<GameState>((set, get) => ({
   undoSnapshot: null,
   undoUsedThisTurn: false,
   turnNumber: 1,
+  gameOptions: { boardSize: 'large', objectiveCount: 3, enableUndo: true },
 
   // ── Init ────────────────────────────────────────────
-  initGame: (configs: PlayerConfig[] | number) => {
+  initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => {
     let playerConfigs: PlayerConfig[];
 
     if (typeof configs === 'number') {
@@ -207,6 +211,12 @@ export const gameStore = create<GameState>((set, get) => ({
       playerConfigs = configs;
     }
 
+    const resolvedOptions: GameOptions = options ?? {
+      boardSize: 'large',
+      objectiveCount: 3,
+      enableUndo: true,
+    };
+
     const players: Player[] = playerConfigs.map((cfg, i) => ({
       id: i + 1,
       name: cfg.name,
@@ -219,7 +229,7 @@ export const gameStore = create<GameState>((set, get) => ({
     }));
 
     set({
-      board: createDefaultBoard(),
+      board: createBoardForSize(resolvedOptions.boardSize),
       players,
       currentPlayerIndex: 0,
       phase: GamePhase.DrawCard,
@@ -227,7 +237,7 @@ export const gameStore = create<GameState>((set, get) => ({
       remainingPlacements: 0,
       deck: shuffleDeck(createTerrainDeck()),
       acquiredLocations: [],
-      objectiveCards: selectObjectiveCards(3),
+      objectiveCards: selectObjectiveCards(resolvedOptions.objectiveCount),
       finalScores: [],
       selectedCell: null,
       validPlacements: [],
@@ -236,6 +246,7 @@ export const gameStore = create<GameState>((set, get) => ({
       undoSnapshot: null,
       undoUsedThisTurn: false,
       turnNumber: 1,
+      gameOptions: resolvedOptions,
       ...resetTileState(),
     });
 
@@ -335,7 +346,7 @@ export const gameStore = create<GameState>((set, get) => ({
         acquiredLocations: updatedAcquiredLocations,
         history: [...state.history, action],
         undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-        canUndo: !state.undoUsedThisTurn,
+        canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
         ...resetTileState(),
       });
     } else {
@@ -350,7 +361,7 @@ export const gameStore = create<GameState>((set, get) => ({
         acquiredLocations: updatedAcquiredLocations,
         history: [...state.history, action],
         undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-        canUndo: !state.undoUsedThisTurn,
+        canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
       });
     }
   },
@@ -554,7 +565,7 @@ export const gameStore = create<GameState>((set, get) => ({
       acquiredLocations: updatedAcquiredLocations,
       history: [...state.history, action],
       undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-      canUndo: !state.undoUsedThisTurn,
+      canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
       ...resetTileState(),
       validPlacements: restoredValid,
     });
@@ -634,7 +645,7 @@ export const gameStore = create<GameState>((set, get) => ({
     set({
       history: [...state.history, action],
       undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-      canUndo: !state.undoUsedThisTurn,
+      canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
       ...resetTileState(),
       validPlacements: restoredValid,
     });
