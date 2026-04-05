@@ -8,6 +8,7 @@
 
 import { AxialCoord, hexNeighbors, hexToKey } from './hex';
 import { Board } from './board';
+import { getRandom } from '../utils/seededRandom';
 import { Terrain, Location } from './terrain';
 
 // ────────────────────────────────────────────────────
@@ -356,7 +357,7 @@ export function calculatePlayerScore(
 export function selectObjectiveCards(count: number = 3): ObjectiveCard[] {
   const shuffled = [...ALL_OBJECTIVE_CARDS];
   for (let i = shuffled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
+    const j = Math.floor(getRandom() * (i + 1));
     [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]];
   }
   return shuffled.slice(0, count);
