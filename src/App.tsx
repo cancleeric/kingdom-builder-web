@@ -1,4 +1,4 @@
-import { useGameStore, INITIAL_SETTLEMENTS } from './store/gameStore';
+import { useGameStore } from './store/gameStore';
 import GameLog from './components/Game/GameLog';
 
 function App() {
@@ -109,7 +109,7 @@ function App() {
                 fontWeight: p.id === currentPlayerIndex ? 'bold' : 'normal',
               }}
             >
-              {p.name}: {INITIAL_SETTLEMENTS - p.settlements} settlements
+              {p.name}: {p.settlements} settlements remaining
             </span>
           ))}
         </div>
