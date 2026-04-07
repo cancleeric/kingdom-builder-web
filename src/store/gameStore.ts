@@ -40,12 +40,14 @@ function createInitialBoard(): Cell[] {
   return cells;
 }
 
+const INITIAL_SETTLEMENTS = 40;
+
 function createPlayers(count: number): GameState['players'] {
   return Array.from({ length: count }, (_, i) => ({
     id: i,
     name: PLAYER_NAMES[i],
     color: PLAYER_COLORS[i],
-    settlements: 40,
+    settlements: INITIAL_SETTLEMENTS,
     locationTiles: [],
     undoUsedThisTurn: false,
   }));
@@ -69,6 +71,8 @@ const buildInitialState = (): InitialState => ({
   phase: 'setup',
   undoSnapshot: null,
 });
+
+export { INITIAL_SETTLEMENTS };
 
 export const useGameStore = create<GameStore>((set, get) => ({
   ...buildInitialState(),
@@ -121,8 +125,8 @@ export const useGameStore = create<GameStore>((set, get) => ({
     const currentPlayer = players[currentPlayerIndex];
     if (currentPlayer.settlements <= 0) return;
 
-    // Save snapshot for undo only before the first placement of the turn
-    const snapshot: UndoSnapshot | null = !currentPlayer.undoUsedThisTurn
+    // Save snapshot only before the first placement so undo always reverts the whole turn
+    const snapshot: UndoSnapshot | null = placementsThisTurn === 0
       ? {
           board: board.map(c => ({ ...c })),
           players: players.map(p => ({ ...p })),
