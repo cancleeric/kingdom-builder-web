@@ -86,3 +86,27 @@ export interface GameOptions {
   objectiveCount: 1 | 2 | 3;
   enableUndo: boolean;
 }
+
+// ────────────────────────────────────────────────────
+// Tutorial types
+// ────────────────────────────────────────────────────
+
+/**
+ * A single step in the interactive tutorial
+ */
+export interface TutorialStep {
+  /** Unique id for the step */
+  id: string;
+  /** Short title shown in the tooltip header */
+  title: string;
+  /** Detailed description shown in the tooltip body */
+  description: string;
+  /** Optional emoji / icon to visually identify the step */
+  icon?: string;
+  /** IDs of board-cell coordinates to highlight (encoded as "q,r") */
+  highlightCells?: string[];
+  /** CSS selector (or logical name) of the UI element to point at */
+  targetElement?: string;
+  /** Which user action, if any, should auto-advance to the next step */
+  advanceOn?: 'click' | 'drawCard' | 'placeSettlement' | 'endTurn' | 'none';
+}
