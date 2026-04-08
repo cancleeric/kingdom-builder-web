@@ -5,6 +5,7 @@ import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
+import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import { getTerrainName } from './core/terrain'
@@ -141,6 +142,7 @@ function App() {
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
           <SaveLoadUI onGameLoaded={() => setGameStarted(true)} />
         </div>
+        <TutorialOverlay />
       </div>
     );
   }
@@ -488,6 +490,9 @@ function App() {
           onNewGame={handleRestart}
         />
       )}
+
+      {/* Tutorial overlay – available from any screen */}
+      <TutorialOverlay />
     </div>
   )
 }

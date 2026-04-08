@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { PlayerConfig, BotDifficulty, GameOptions, BoardSize } from '../../types';
+import { useTutorialStore } from '../../store/tutorialStore';
 
 interface GameSetupProps {
   onStart: (configs: PlayerConfig[], options: GameOptions) => void;
@@ -35,6 +36,8 @@ export function GameSetup({ onStart }: GameSetupProps) {
     }))
   );
   const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
+
+  const startTutorial = useTutorialStore((s) => s.startTutorial);
 
   const handlePlayerCountChange = (count: number) => {
     setPlayerCount(count);
@@ -222,6 +225,12 @@ export function GameSetup({ onStart }: GameSetupProps) {
           </div>
         </div>
 
+        <button
+          onClick={startTutorial}
+          className="w-full mb-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl text-lg transition"
+        >
+          📖 How to Play (Tutorial)
+        </button>
         <button
           onClick={handleStart}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-lg transition"
