@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useMultiplayerStore } from '../../store/multiplayerStore';
 import { HexGrid } from '../Board/HexGrid';
 import { GameOver } from '../Game/GameOver';
@@ -140,13 +140,8 @@ export function MultiplayerGame({ onLeave }: MultiplayerGameProps) {
     sendAction({ type: 'END_TURN' });
   };
 
-  // Auto-clear selectedCell on phase transitions using ref comparison
-  const phaseRef = useRef(phase);
-  if (phaseRef.current !== phase) {
-    phaseRef.current = phase;
-    // Schedule deselect - avoids calling setState during render
-    Promise.resolve().then(() => setSelectedCell(null));
-  }
+  // Only show a selected cell during the PlaceSettlements phase
+  const effectiveSelectedCell = phase === GamePhase.PlaceSettlements ? selectedCell : null;
 
   if (!gameState) return null;
 
@@ -193,7 +188,7 @@ export function MultiplayerGame({ onLeave }: MultiplayerGameProps) {
           <HexGrid
             board={board}
             validPlacements={validPlacements}
-            selectedCell={selectedCell}
+            selectedCell={effectiveSelectedCell}
             players={players}
             onCellClick={handleCellClick}
             onCellSelect={setSelectedCell}

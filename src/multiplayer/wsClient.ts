@@ -182,8 +182,8 @@ class MultiplayerWSClient {
       return;
     }
     const delay = RECONNECT_DELAY_MS * Math.pow(1.5, this.reconnectAttempts);
-    this.reconnectAttempts++;
-    console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${this.reconnectAttempts})`);
+    const attempt = ++this.reconnectAttempts;
+    console.log(`[WS] Reconnecting in ${Math.round(delay)}ms (attempt ${attempt})`);
     this.reconnectTimer = setTimeout(() => this._connect(), delay);
   }
 

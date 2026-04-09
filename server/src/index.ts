@@ -42,20 +42,15 @@ function broadcastAll(roomId: string, msg: ServerMessage): void {
 function startTurnTimeout(roomId: string, timeoutSeconds: number): void {
   clearTurnTimeout(roomId);
   const handle = setTimeout(() => {
-    const gameState = roomManager.skipTurn(roomId);
-    if (!gameState) return;
-    // Find who was skipped (the player whose turn just ended)
-    const players = roomManager.getRoomPlayers(roomId);
-    const skippedPlayer = players[0]; // simplification
-    if (skippedPlayer) {
-      const skippedEntry = [...wsIds.entries()].find(
-        ([, id]) => roomManager.getPlayerWsId(roomId, id) === id
-      );
-      broadcastAll(roomId, {
-        type: 'TURN_TIMEOUT',
-        skippedPlayerId: skippedEntry?.[1] ?? '',
-      });
-    }
+    const result = roomManager.skipTurn(roomId);
+    if (!result) return;
+    const { gameState, skippedWsId } = result;
+    // Find the PlayerId that maps to the skipped WS connection
+    const skippedEntry = roomManager.getPlayerEntry(skippedWsId);
+    broadcastAll(roomId, {
+      type: 'TURN_TIMEOUT',
+      skippedPlayerId: skippedEntry?.playerId ?? '',
+    });
     broadcastAll(roomId, { type: 'GAME_STATE_UPDATE', gameState });
   }, timeoutSeconds * 1000);
   turnTimeouts.set(roomId, handle);
@@ -188,12 +183,11 @@ wss.on('connection', (ws: WebSocket) => {
       case 'SEND_CHAT': {
         const entry = roomManager.getPlayerEntry(wsId);
         if (!entry) return;
-        const players = roomManager.getRoomPlayers(entry.roomId);
-        const player = players.find(p => p.isConnected); // simplified lookup
+        const playerName = roomManager.getPlayerName(entry.roomId, entry.playerId);
         broadcastAll(entry.roomId, {
           type: 'CHAT_RECEIVED',
           playerId: entry.playerId,
-          playerName: player?.name ?? 'Unknown',
+          playerName,
           text: msg.text.slice(0, 200),
           timestamp: Date.now(),
         });

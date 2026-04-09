@@ -456,6 +456,11 @@ export class RoomManager {
     return this.wsToPlayer.get(wsId);
   }
 
+  getPlayerName(roomId: RoomId, playerId: PlayerId): string {
+    const room = this.rooms.get(roomId);
+    return room?.players.get(playerId)?.name ?? 'Unknown';
+  }
+
   getRoomPlayers(roomId: RoomId): InternalPlayer[] {
     const room = this.rooms.get(roomId);
     if (!room) return [];
@@ -467,10 +472,13 @@ export class RoomManager {
     return room?.players.get(playerId)?.wsId;
   }
 
-  skipTurn(roomId: RoomId): SerializedGameState | null {
+  skipTurn(roomId: RoomId): { gameState: SerializedGameState; skippedWsId: string } | null {
     const room = this.rooms.get(roomId);
     if (!room || room.status !== 'in_game') return null;
     const players = [...room.players.values()];
+    // Record the skipped player before advancing
+    const skippedPlayer = players[room.currentPlayerIndex];
+    const skippedWsId = skippedPlayer?.wsId ?? '';
     room.currentPlayerIndex = (room.currentPlayerIndex + 1) % players.length;
     room.phase = 'DrawCard';
     room.currentTerrainCard = null;
@@ -479,7 +487,7 @@ export class RoomManager {
     for (const p of players) {
       for (const t of p.tiles) t.usedThisTurn = false;
     }
-    return this.buildGameState(room);
+    return { gameState: this.buildGameState(room), skippedWsId };
   }
 
   // ─── Private helpers ────────────────────────────────────────────────────────
