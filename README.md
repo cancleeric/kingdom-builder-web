@@ -110,6 +110,8 @@ kingdom-builder-web/
 
 ## 快速開始
 
+### 前端
+
 ```bash
 # 安裝依賴
 npm install
@@ -123,6 +125,38 @@ npm test
 # 打包部署
 npm run build
 ```
+
+### 多人連線伺服器
+
+多人對戰功能需要獨立的 WebSocket 伺服器：
+
+```bash
+# 安裝伺服器依賴
+npm run server:install
+
+# 開發模式（需要 ts-node）
+npm run server:dev
+
+# 或是先打包再啟動
+npm run server:build && npm run server:start
+```
+
+伺服器預設在 `ws://localhost:8080` 監聽。  
+前端可透過設定 `VITE_WS_URL` 環境變數來指向不同伺服器：
+
+```bash
+# .env（複製 .env.example）
+VITE_WS_URL=wss://your-server.example.com
+```
+
+#### 如何進行多人對戰
+
+1. 啟動 WebSocket 伺服器
+2. 啟動前端開發伺服器（`npm run dev`）
+3. 在遊戲主畫面選擇「🌐 Online Multiplayer」
+4. 第一位玩家選擇「Create Room」，複製房間代碼
+5. 其他玩家選擇「Join Room」，輸入代碼加入
+6. 房主按下「Start Game」開始對戰
 
 ## 開發狀態
 

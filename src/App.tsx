@@ -1,11 +1,15 @@
 import { useEffect, useState } from 'react'
 import { useGameStore } from './store/gameStore'
+import { useMultiplayerStore } from './store/multiplayerStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
+import { MultiplayerLobby } from './components/Multiplayer/MultiplayerLobby'
+import { WaitingRoom } from './components/Multiplayer/WaitingRoom'
+import { MultiplayerGame } from './components/Multiplayer/MultiplayerGame'
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import { getTerrainName } from './core/terrain'
@@ -30,6 +34,11 @@ const LOCATION_EMOJI: Record<Location, string> = {
 function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
+  const [appMode, setAppMode] = useState<'home' | 'singleplayer' | 'multiplayer'>('home');
+
+  const multiplayerScreenView = useMultiplayerStore(s => s.screenView);
+  const leaveMultiplayer = useMultiplayerStore(s => s.leaveRoom);
+  const disconnectMultiplayer = useMultiplayerStore(s => s.disconnect);
 
   const {
     board,
@@ -124,6 +133,7 @@ function App() {
 
   const handleRestart = () => {
     setGameStarted(false);
+    setAppMode('home');
   };
 
   // Compose a live-region announcement for screen readers on turn changes
@@ -134,6 +144,64 @@ function App() {
           : ''
       }`
     : '';
+
+  // ── Multiplayer screens ─────────────────────────────────────────────────────
+
+  if (appMode === 'multiplayer') {
+    if (multiplayerScreenView === 'lobby') {
+      return (
+        <MultiplayerLobby
+          onBack={() => {
+            disconnectMultiplayer();
+            setAppMode('home');
+          }}
+        />
+      );
+    }
+    if (multiplayerScreenView === 'waiting_room') {
+      return <WaitingRoom />;
+    }
+    if (multiplayerScreenView === 'in_game') {
+      return (
+        <MultiplayerGame
+          onLeave={() => {
+            leaveMultiplayer();
+            disconnectMultiplayer();
+            setAppMode('home');
+          }}
+        />
+      );
+    }
+  }
+
+  // ── Home screen (mode selector) ─────────────────────────────────────────────
+
+  if (appMode === 'home') {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-100">
+        <div className="bg-white rounded-2xl shadow-xl p-10 w-full max-w-sm text-center">
+          <h1 className="text-4xl font-bold text-blue-700 mb-2">Kingdom Builder</h1>
+          <p className="text-gray-500 mb-8 text-sm">Choose game mode</p>
+          <div className="space-y-4">
+            <button
+              onClick={() => setAppMode('singleplayer')}
+              className="w-full py-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-bold text-lg transition"
+            >
+              🎮 Single Player / vs AI
+            </button>
+            <button
+              onClick={() => setAppMode('multiplayer')}
+              className="w-full py-4 rounded-xl bg-green-600 hover:bg-green-700 text-white font-bold text-lg transition"
+            >
+              🌐 Online Multiplayer
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ── Single-player setup ─────────────────────────────────────────────────────
 
   if (!gameStarted) {
     return (

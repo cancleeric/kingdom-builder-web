@@ -9,7 +9,11 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "server:install": "cd server && npm install",
+    "server:build": "cd server && npm run build",
+    "server:start": "cd server && npm start",
+    "server:dev": "cd server && npm run dev"
   },
   "dependencies": {
     "autoprefixer": "^10.4.24",
