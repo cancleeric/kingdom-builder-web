@@ -1,11 +1,10 @@
 /**
- * Greedy Bot AI player
+ * AI player – three difficulty levels:
  *
- * Difficulty levels:
  *   easy   – random valid placement
- *   normal – greedy: always picks the highest-scoring available cell
- *   hard   – greedy + 1-step lookahead (simulates placing subsequent
- *             settlements and sums the expected scores)
+ *   normal – greedy: always picks the highest heuristic-scoring cell
+ *   hard   – Strategic AI: uses objective card-aware incremental scoring
+ *            with 1-step lookahead across the full turn
  */
 
 import { AxialCoord, hexNeighbors } from '../core/hex';
@@ -13,6 +12,7 @@ import { getValidPlacements } from '../core/rules';
 import { Board } from '../core/board';
 import { Terrain, Location } from '../core/terrain';
 import { BotDifficulty } from '../types';
+import { ObjectiveCard, calculatePlayerScore } from '../core/scoring';
 
 // ------------------------------------------------------------------
 // Score constants
@@ -67,14 +67,15 @@ export function evaluateMove(
  * Pick the single best coordinate from `validMoves` for `playerId`.
  *   easy   – random choice
  *   normal – highest evaluateMove score (ties broken randomly)
- *   hard   – same as normal at the individual-move level; the caller
- *            (selectBestMoves) applies lookahead across the full turn
+ *   hard   – highest evaluateMoveStrategic score when objectiveCards provided,
+ *            else falls back to evaluateMove (ties broken randomly)
  */
 function pickBestCoord(
   board: Board,
   validMoves: AxialCoord[],
   playerId: number,
-  difficulty: BotDifficulty
+  difficulty: BotDifficulty,
+  objectiveCards: ObjectiveCard[] = []
 ): AxialCoord | null {
   if (validMoves.length === 0) return null;
 
@@ -82,12 +83,16 @@ function pickBestCoord(
     return validMoves[Math.floor(Math.random() * validMoves.length)];
   }
 
-  // Normal / Hard: greedy
+  // Normal: greedy heuristic; Hard (step 2+): strategic scoring
+  const useStrategic = difficulty === BotDifficulty.Hard && objectiveCards.length > 0;
+
   let best: AxialCoord[] = [];
   let bestScore = -Infinity;
 
   for (const coord of validMoves) {
-    const score = evaluateMove(board, coord, playerId);
+    const score = useStrategic
+      ? evaluateMoveStrategic(board, coord, playerId, objectiveCards)
+      : evaluateMove(board, coord, playerId);
     if (score > bestScore) {
       bestScore = score;
       best = [coord];
@@ -100,6 +105,33 @@ function pickBestCoord(
 }
 
 // ------------------------------------------------------------------
+// evaluateMoveStrategic (hard difficulty – objective-card-aware)
+// ------------------------------------------------------------------
+
+/**
+ * Score how much placing a settlement at `coord` increases `playerId`'s
+ * total game score given the active `objectiveCards`.
+ *
+ * Returns the incremental score delta (scoreAfter – scoreBefore).
+ * Uses the full `calculatePlayerScore` function so all objective cards
+ * are considered accurately.
+ */
+export function evaluateMoveStrategic(
+  board: Board,
+  coord: AxialCoord,
+  playerId: number,
+  objectiveCards: ObjectiveCard[]
+): number {
+  const before = calculatePlayerScore(board, playerId, objectiveCards);
+
+  const sim = cloneBoard(board);
+  sim.placeSettlement(coord, playerId);
+
+  const after = calculatePlayerScore(sim, playerId, objectiveCards);
+  return after - before;
+}
+
+// ------------------------------------------------------------------
 // selectBestMoves (full turn: 3 placements)
 // ------------------------------------------------------------------
 
@@ -107,13 +139,15 @@ function pickBestCoord(
  * Select up to `count` placements (default 3) for the AI player.
  *
  * For `easy` and `normal` difficulties, each placement is chosen
- * independently (greedy per-step).
+ * independently (greedy per-step) using the heuristic evaluateMove.
  *
- * For `hard` difficulty, a 1-step lookahead is applied:
+ * For `hard` difficulty, a 1-step lookahead is applied using
+ * objective-card-aware scoring (evaluateMoveStrategic):
  *   – Try every possible first move
  *   – Simulate placing it, then greedily pick the best second move
- *   – Sum the scores; choose the first move that maximises the total
+ *   – Sum the strategic scores; choose the first move that maximises the total
  *
+ * @param objectiveCards - Active objective cards (required for Hard AI)
  * Returns a (possibly shorter) list of `AxialCoord` to place in order.
  */
 export function selectBestMoves(
@@ -121,7 +155,8 @@ export function selectBestMoves(
   terrain: Terrain,
   playerId: number,
   difficulty: BotDifficulty,
-  count: number = 3
+  count: number = 3,
+  objectiveCards: ObjectiveCard[] = []
 ): AxialCoord[] {
   const moves: AxialCoord[] = [];
 
@@ -135,12 +170,21 @@ export function selectBestMoves(
     let chosen: AxialCoord | null = null;
 
     if (difficulty === BotDifficulty.Hard && i === 0 && count > 1) {
-      chosen = lookaheadPick(simBoard, terrain, playerId, valid);
+      chosen = strategicLookaheadPick(simBoard, terrain, playerId, valid, objectiveCards);
     } else {
-      chosen = pickBestCoord(simBoard, valid, playerId, difficulty);
+      chosen = pickBestCoord(simBoard, valid, playerId, difficulty, objectiveCards);
     }
 
     if (!chosen) break;
+
+    if (difficulty === BotDifficulty.Hard) {
+      const score = objectiveCards.length > 0
+        ? evaluateMoveStrategic(simBoard, chosen, playerId, objectiveCards)
+        : evaluateMove(simBoard, chosen, playerId);
+      console.debug(
+        `[AI Hard] Player ${playerId} picks Q${chosen.q}R${chosen.r} (strategic Δscore=${score})`
+      );
+    }
 
     moves.push(chosen);
     simBoard.placeSettlement(chosen, playerId);
@@ -150,24 +194,29 @@ export function selectBestMoves(
 }
 
 // ------------------------------------------------------------------
-// Lookahead helper (hard difficulty)
+// Lookahead helper (hard difficulty – strategic)
 // ------------------------------------------------------------------
 
 /**
- * 1-step lookahead: evaluate all first moves by greedily summing the
- * score of the best second move reachable afterwards.
+ * Strategic 1-step lookahead: evaluate all first moves using objective-card
+ * scoring, simulate placing each, then greedily pick the best second move.
+ * Sum of (score1 + score2) determines the chosen first move.
  */
-function lookaheadPick(
+function strategicLookaheadPick(
   board: Board,
   terrain: Terrain,
   playerId: number,
-  validFirst: AxialCoord[]
+  validFirst: AxialCoord[],
+  objectiveCards: ObjectiveCard[]
 ): AxialCoord {
+  const useObjectives = objectiveCards.length > 0;
   let bestCoord = validFirst[0];
   let bestTotal = -Infinity;
 
   for (const first of validFirst) {
-    const score1 = evaluateMove(board, first, playerId);
+    const score1 = useObjectives
+      ? evaluateMoveStrategic(board, first, playerId, objectiveCards)
+      : evaluateMove(board, first, playerId);
 
     // Simulate placing 'first'
     const sim = cloneBoard(board);
@@ -177,7 +226,13 @@ function lookaheadPick(
     const valid2 = getValidPlacements(sim, terrain, playerId);
     let score2 = 0;
     if (valid2.length > 0) {
-      score2 = Math.max(...valid2.map(c => evaluateMove(sim, c, playerId)));
+      score2 = Math.max(
+        ...valid2.map(c =>
+          useObjectives
+            ? evaluateMoveStrategic(sim, c, playerId, objectiveCards)
+            : evaluateMove(sim, c, playerId)
+        )
+      );
     }
 
     const total = score1 + score2;
@@ -222,19 +277,26 @@ export class BotPlayer {
   /**
    * Choose the best moves for this bot on its turn.
    * Returns an ordered list of coordinates to place settlements.
+   *
+   * @param objectiveCards - Active objective cards (used by Hard difficulty)
    */
   chooseMoves(
     board: Board,
     terrain: Terrain,
-    count: number = 3
+    count: number = 3,
+    objectiveCards: ObjectiveCard[] = []
   ): AxialCoord[] {
-    return selectBestMoves(board, terrain, this.playerId, this.difficulty, count);
+    return selectBestMoves(board, terrain, this.playerId, this.difficulty, count, objectiveCards);
   }
 
   /**
    * Evaluate how good a single placement at `coord` is.
+   * Hard difficulty uses objective-card-aware scoring when cards are provided.
    */
-  evaluateMove(board: Board, coord: AxialCoord): number {
+  evaluateMove(board: Board, coord: AxialCoord, objectiveCards: ObjectiveCard[] = []): number {
+    if (this.difficulty === BotDifficulty.Hard && objectiveCards.length > 0) {
+      return evaluateMoveStrategic(board, coord, this.playerId, objectiveCards);
+    }
     return evaluateMove(board, coord, this.playerId);
   }
 }

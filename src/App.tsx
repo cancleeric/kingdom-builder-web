@@ -48,6 +48,7 @@ function App() {
     tileMoveDestinations,
     history,
     canUndo,
+    isBotThinking,
     initGame,
     drawTerrainCard,
     placeSettlement,
@@ -231,6 +232,11 @@ function App() {
               <p className="text-sm text-gray-600">
                 Settlements Remaining: {currentPlayer.remainingSettlements}
               </p>
+              {isBotThinking && (
+                <p className="text-sm text-purple-600 font-medium mt-1 animate-pulse">
+                  🤔 Thinking…
+                </p>
+              )}
             </section>
           )}
 

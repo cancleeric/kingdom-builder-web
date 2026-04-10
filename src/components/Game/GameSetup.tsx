@@ -10,8 +10,8 @@ const DEFAULT_PLAYER_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
 const DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
   [BotDifficulty.Easy]: 'Easy (Random)',
-  [BotDifficulty.Normal]: 'Normal (Greedy)',
-  [BotDifficulty.Hard]: 'Hard (Lookahead)',
+  [BotDifficulty.Normal]: 'Medium (Greedy)',
+  [BotDifficulty.Hard]: 'Hard (Strategic)',
 };
 
 const BOARD_SIZE_LABELS: Record<BoardSize, string> = {

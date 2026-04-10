@@ -57,6 +57,9 @@ interface GameState {
   /** Options chosen at setup time */
   gameOptions: GameOptions;
 
+  /** True while a bot is computing and executing its turn */
+  isBotThinking: boolean;
+
   initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
@@ -187,6 +190,7 @@ export const gameStore = create<GameState>((set, get) => ({
   undoUsedThisTurn: false,
   turnNumber: 1,
   gameOptions: { boardSize: 'large', objectiveCount: 3, enableUndo: true },
+  isBotThinking: false,
 
   // ── Init ────────────────────────────────────────────
   initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => {
@@ -438,29 +442,40 @@ export const gameStore = create<GameState>((set, get) => ({
     if (!currentPlayer?.isBot) return;
     if (state.phase !== GamePhase.DrawCard) return;
 
+    // Signal that the bot is computing its turn
+    set({ isBotThinking: true });
+
     // 1. Draw a terrain card (synchronous state update)
     get().drawTerrainCard();
 
     // 2. Compute best placements from the now-updated state
     const afterDraw = get();
-    if (!afterDraw.currentTerrainCard) return;
+    if (!afterDraw.currentTerrainCard) {
+      set({ isBotThinking: false });
+      return;
+    }
 
     const moves = selectBestMoves(
       afterDraw.board,
       afterDraw.currentTerrainCard.terrain,
       currentPlayer.id,
       currentPlayer.difficulty,
-      SETTLEMENTS_PER_TURN
+      SETTLEMENTS_PER_TURN,
+      afterDraw.objectiveCards
     );
 
-    // 3. Place each settlement with a short stagger so the UI can update
-    const STEP_MS = 100;
+    // 3. Place each settlement with a stagger scaled by difficulty
+    //    Hard AI has a longer "thinking" delay to simulate deliberation
+    const STEP_MS = currentPlayer.difficulty === BotDifficulty.Hard ? 400 : 200;
     moves.forEach((coord, i) => {
       setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
     });
 
-    // 4. End the turn after all placements have been dispatched
-    setTimeout(() => get().endTurn(), STEP_MS * (moves.length + 1));
+    // 4. End the turn after all placements; clear the thinking indicator
+    setTimeout(() => {
+      get().endTurn();
+      set({ isBotThinking: false });
+    }, STEP_MS * (moves.length + 1));
   },
 
   // ── Activate tile ability ──────────────────────────
