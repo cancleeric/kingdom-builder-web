@@ -111,7 +111,7 @@ describe('evaluateMoveStrategic', () => {
     expect(delta).toBe(0);
   });
 
-  it('Lords: entering a new quadrant beats staying in an occupied quadrant', () => {
+  it('returns positive delta for Lords: entering a new quadrant beats staying in an occupied quadrant', () => {
     const board = makeBoard(20, 20);
     for (let q = 0; q < 20; q++) {
       for (let r = 0; r < 20; r++) {

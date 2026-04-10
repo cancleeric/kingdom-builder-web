@@ -177,7 +177,7 @@ export function selectBestMoves(
 
     if (!chosen) break;
 
-    if (difficulty === BotDifficulty.Hard) {
+    if (difficulty === BotDifficulty.Hard && import.meta.env.DEV) {
       const score = objectiveCards.length > 0
         ? evaluateMoveStrategic(simBoard, chosen, playerId, objectiveCards)
         : evaluateMove(simBoard, chosen, playerId);

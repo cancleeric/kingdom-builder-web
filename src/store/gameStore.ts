@@ -82,6 +82,11 @@ interface GameState {
 const SETTLEMENTS_PER_TURN = 3;
 const TOTAL_SETTLEMENTS_PER_PLAYER = 40;
 
+/** Milliseconds between bot placements for Hard difficulty (longer = more dramatic) */
+const BOT_STEP_MS_HARD = 400;
+/** Milliseconds between bot placements for Easy/Normal difficulty */
+const BOT_STEP_MS_NORMAL = 200;
+
 const PLAYER_COLORS = [
   '#FF6B6B', // Red
   '#4ECDC4', // Cyan
@@ -466,7 +471,9 @@ export const gameStore = create<GameState>((set, get) => ({
 
     // 3. Place each settlement with a stagger scaled by difficulty
     //    Hard AI has a longer "thinking" delay to simulate deliberation
-    const STEP_MS = currentPlayer.difficulty === BotDifficulty.Hard ? 400 : 200;
+    const STEP_MS = currentPlayer.difficulty === BotDifficulty.Hard
+      ? BOT_STEP_MS_HARD
+      : BOT_STEP_MS_NORMAL;
     moves.forEach((coord, i) => {
       setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
     });
