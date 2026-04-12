@@ -9,8 +9,22 @@ const SCORE_CASTLE_ADJACENT = 3;
 const SCORE_LOCATION_ADJACENT = 2;
 const SCORE_CLUSTER = 1;
 
+// Depth and branching cap for hard-mode alpha-beta search.
+// Kept modest to avoid UI stalls while still looking beyond immediate gains.
 const HARD_SEARCH_DEPTH = 3;
 const HARD_BRANCH_FACTOR = 10;
+
+// Strategic heuristic blend for medium/hard evaluation:
+// - score delta prioritizes objective/castle point growth
+// - mobility/openness preserve future flexibility
+// - contested rewards claiming high-pressure spaces near opponents
+const STRATEGY_WEIGHT_SCORE_DELTA = 2.5;
+const STRATEGY_WEIGHT_MOBILITY = 0.15;
+const STRATEGY_WEIGHT_OPENNESS = 0.2;
+const STRATEGY_WEIGHT_CONTESTED = 0.6;
+
+const OPPONENT_SCORE_WEIGHT = 0.9;
+const MOBILITY_DIFFERENTIAL_WEIGHT = 0.1;
 
 export interface BotStrategyContext {
   objectiveCards?: ObjectiveCard[];
@@ -43,7 +57,7 @@ export function evaluateMove(
   return score;
 }
 
-function getEffectiveDifficulty(difficulty: BotDifficulty): BotDifficulty {
+function normalizeDifficulty(difficulty: BotDifficulty): BotDifficulty {
   return difficulty === BotDifficulty.Normal ? BotDifficulty.Medium : difficulty;
 }
 
@@ -110,11 +124,22 @@ function evaluateMoveStrategic(
 
   return (
     immediate +
-    scoreDelta * 2.5 +
-    mobility * 0.15 +
-    openness * 0.2 +
-    contested * 0.6
+    scoreDelta * STRATEGY_WEIGHT_SCORE_DELTA +
+    mobility * STRATEGY_WEIGHT_MOBILITY +
+    openness * STRATEGY_WEIGHT_OPENNESS +
+    contested * STRATEGY_WEIGHT_CONTESTED
   );
+}
+
+function getContextOpponentIds(
+  currentPlayerId: number,
+  maximizingPlayerId: number,
+  minimizingPlayerId: number | undefined
+): number[] {
+  if (currentPlayerId === maximizingPlayerId) {
+    return minimizingPlayerId === undefined ? [] : [minimizingPlayerId];
+  }
+  return [maximizingPlayerId];
 }
 
 function pickRandom(validMoves: AxialCoord[]): AxialCoord | null {
@@ -178,7 +203,11 @@ function evaluateBoardState(
     oppMobility = getValidPlacements(board, terrain, primaryOpponentId).length;
   }
 
-  return selfScore - oppScore * 0.9 + (selfMobility - oppMobility) * 0.1;
+  return (
+    selfScore -
+    oppScore * OPPONENT_SCORE_WEIGHT +
+    (selfMobility - oppMobility) * MOBILITY_DIFFERENTIAL_WEIGHT
+  );
 }
 
 function getOrderedCandidates(
@@ -217,6 +246,16 @@ function alphaBetaValue(
   beta: number,
   maximizing: boolean
 ): number {
+  if (!maximizing && minimizingPlayerId === undefined) {
+    return evaluateBoardState(
+      board,
+      terrain,
+      maximizingPlayerId,
+      objectiveCards,
+      minimizingPlayerId
+    );
+  }
+
   const currentPlayerId = maximizing ? maximizingPlayerId : minimizingPlayerId;
   if (depth === 0 || currentPlayerId === undefined) {
     return evaluateBoardState(
@@ -233,7 +272,11 @@ function alphaBetaValue(
     terrain,
     currentPlayerId,
     objectiveCards,
-    currentPlayerId === maximizingPlayerId ? [minimizingPlayerId].filter(Boolean) as number[] : [maximizingPlayerId],
+    getContextOpponentIds(
+      currentPlayerId,
+      maximizingPlayerId,
+      minimizingPlayerId
+    ),
     maximizing
   );
 
@@ -305,7 +348,17 @@ function pickHardAlphaBeta(
   opponentIds: number[]
 ): AxialCoord | null {
   if (validMoves.length === 0) return null;
-  const primaryOpponentId = opponentIds[0];
+  const primaryOpponentId = opponentIds.length > 0 ? opponentIds[0] : undefined;
+  if (primaryOpponentId === undefined) {
+    return pickGreedyStrategic(
+      board,
+      terrain,
+      validMoves,
+      playerId,
+      objectiveCards,
+      opponentIds
+    );
+  }
   let bestCoord: AxialCoord | null = null;
   let bestValue = -Infinity;
   let alpha = -Infinity;
@@ -352,7 +405,7 @@ export function selectBestMoves(
 ): AxialCoord[] {
   const moves: AxialCoord[] = [];
   const simBoard = cloneBoard(board);
-  const effectiveDifficulty = getEffectiveDifficulty(difficulty);
+  const effectiveDifficulty = normalizeDifficulty(difficulty);
   const objectiveCards = context.objectiveCards ?? [];
   const opponentIds = context.opponentIds ?? [];
 

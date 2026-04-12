@@ -30,11 +30,11 @@ const DEFAULT_OPTIONS: GameOptions = {
 export function GameSetup({ onStart }: GameSetupProps) {
   const [playerCount, setPlayerCount] = useState(2);
   const [configs, setConfigs] = useState<PlayerConfig[]>(
-      DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
-        name,
-        type: i === 0 ? 'human' : 'bot',
-        difficulty: BotDifficulty.Medium,
-      }))
+    DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
+      name,
+      type: i === 0 ? 'human' : 'bot',
+      difficulty: BotDifficulty.Medium,
+    }))
   );
   const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
 

@@ -25,9 +25,9 @@ export interface LocationTile {
  */
 export enum BotDifficulty {
   Easy = 'easy',       // Random valid placement
+  Normal = 'normal',   // Backward compatibility for older saved data
   Medium = 'medium',   // Greedy strategic evaluation
   Hard = 'hard',       // Alpha-beta strategic search
-  Normal = 'normal',   // Backward compatibility for older saved data
 }
 
 /**
