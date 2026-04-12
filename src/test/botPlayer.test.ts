@@ -14,7 +14,8 @@
  * 10. selectBestMoves: empty valid placements returns []
  * 11. BotPlayer class: chooseMoves returns valid moves
  * 12. BotPlayer class: evaluateMove delegates correctly
- * 13. selectBestMoves: normal difficulty beats random on high-value board
+ * 13. medium difficulty returns valid placements
+ * 14. legacy normal behaves like medium
  */
 
 import { describe, it, expect } from 'vitest';
@@ -176,6 +177,16 @@ describe('selectBestMoves', () => {
     }
   });
 
+  it('medium difficulty returns valid placements', () => {
+    const board = makeBoard();
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 3);
+    expect(moves.length).toBeGreaterThan(0);
+    for (const coord of moves) {
+      const cell = board.getCell(coord);
+      expect(cell).toBeDefined();
+    }
+  });
+
   it('does not mutate the original board', () => {
     const board = makeBoard();
     const before = board.getAllCells().filter(c => c.settlement !== undefined).length;
@@ -198,6 +209,19 @@ describe('selectBestMoves', () => {
     ];
     const isNeighbour = neighbours.some(n => n.q === moves[0].q && n.r === moves[0].r);
     expect(isNeighbour).toBe(true);
+  });
+
+  it('legacy normal difficulty path still produces deterministic best move in simple board', () => {
+    const board = makeBoard();
+    setLocation(board, 5, 5, Location.Castle);
+
+    const normal = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 1);
+    const medium = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 1);
+
+    expect(normal.length).toBe(1);
+    expect(medium.length).toBe(1);
+    expect(evaluateMove(board, normal[0], 1)).toBeGreaterThanOrEqual(3);
+    expect(evaluateMove(board, medium[0], 1)).toBeGreaterThanOrEqual(3);
   });
 });
 

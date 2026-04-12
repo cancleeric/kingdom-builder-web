@@ -1,38 +1,22 @@
-/**
- * Greedy Bot AI player
- *
- * Difficulty levels:
- *   easy   – random valid placement
- *   normal – greedy: always picks the highest-scoring available cell
- *   hard   – greedy + 1-step lookahead (simulates placing subsequent
- *             settlements and sums the expected scores)
- */
-
 import { AxialCoord, hexNeighbors } from '../core/hex';
 import { getValidPlacements } from '../core/rules';
 import { Board } from '../core/board';
 import { Terrain, Location } from '../core/terrain';
+import { calculatePlayerScore, type ObjectiveCard } from '../core/scoring';
 import { BotDifficulty } from '../types';
 
-// ------------------------------------------------------------------
-// Score constants
-// ------------------------------------------------------------------
-const SCORE_CASTLE_ADJACENT = 3;   // Settlement adjacent to a castle
-const SCORE_LOCATION_ADJACENT = 2; // Settlement adjacent to any location tile
-const SCORE_CLUSTER = 1;           // Settlement adjacent to own existing settlement
+const SCORE_CASTLE_ADJACENT = 3;
+const SCORE_LOCATION_ADJACENT = 2;
+const SCORE_CLUSTER = 1;
 
-// ------------------------------------------------------------------
-// evaluateMove
-// ------------------------------------------------------------------
+const HARD_SEARCH_DEPTH = 3;
+const HARD_BRANCH_FACTOR = 10;
 
-/**
- * Score how good it is for `playerId` to place a settlement at `coord`.
- *
- * Scoring heuristic:
- *   +3 for each neighbouring castle (Kingdom Builder rules: +3 pts/castle neighbour)
- *   +2 for each neighbouring location tile (triggers special abilities)
- *   +1 for each neighbouring own settlement (builds connected groups)
- */
+export interface BotStrategyContext {
+  objectiveCards?: ObjectiveCard[];
+  opponentIds?: number[];
+}
+
 export function evaluateMove(
   board: Board,
   coord: AxialCoord,
@@ -59,35 +43,107 @@ export function evaluateMove(
   return score;
 }
 
-// ------------------------------------------------------------------
-// selectBestMove (single placement)
-// ------------------------------------------------------------------
+function getEffectiveDifficulty(difficulty: BotDifficulty): BotDifficulty {
+  return difficulty === BotDifficulty.Normal ? BotDifficulty.Medium : difficulty;
+}
 
-/**
- * Pick the single best coordinate from `validMoves` for `playerId`.
- *   easy   – random choice
- *   normal – highest evaluateMove score (ties broken randomly)
- *   hard   – same as normal at the individual-move level; the caller
- *            (selectBestMoves) applies lookahead across the full turn
- */
-function pickBestCoord(
+function countOpenNeighbors(board: Board, coord: AxialCoord): number {
+  let open = 0;
+  for (const neighbor of hexNeighbors(coord)) {
+    const cell = board.getCell(neighbor);
+    if (cell && cell.settlement === undefined) {
+      open++;
+    }
+  }
+  return open;
+}
+
+function countContestedNeighbors(
   board: Board,
+  coord: AxialCoord,
+  opponentIds: number[]
+): number {
+  if (opponentIds.length === 0) return 0;
+  const opponents = new Set(opponentIds);
+  let contested = 0;
+
+  for (const neighbor of hexNeighbors(coord)) {
+    const cell = board.getCell(neighbor);
+    if (cell?.settlement !== undefined && opponents.has(cell.settlement)) {
+      contested++;
+    }
+  }
+
+  return contested;
+}
+
+function strategicScoreDelta(
+  board: Board,
+  coord: AxialCoord,
+  playerId: number,
+  objectiveCards: ObjectiveCard[]
+): number {
+  if (objectiveCards.length === 0) return 0;
+  const before = calculatePlayerScore(board, playerId, objectiveCards);
+  const sim = cloneBoard(board);
+  sim.placeSettlement(coord, playerId);
+  const after = calculatePlayerScore(sim, playerId, objectiveCards);
+  return after - before;
+}
+
+function evaluateMoveStrategic(
+  board: Board,
+  coord: AxialCoord,
+  terrain: Terrain,
+  playerId: number,
+  objectiveCards: ObjectiveCard[],
+  opponentIds: number[]
+): number {
+  const immediate = evaluateMove(board, coord, playerId);
+  const scoreDelta = strategicScoreDelta(board, coord, playerId, objectiveCards);
+
+  const sim = cloneBoard(board);
+  sim.placeSettlement(coord, playerId);
+  const mobility = getValidPlacements(sim, terrain, playerId).length;
+  const openness = countOpenNeighbors(board, coord);
+  const contested = countContestedNeighbors(board, coord, opponentIds);
+
+  return (
+    immediate +
+    scoreDelta * 2.5 +
+    mobility * 0.15 +
+    openness * 0.2 +
+    contested * 0.6
+  );
+}
+
+function pickRandom(validMoves: AxialCoord[]): AxialCoord | null {
+  if (validMoves.length === 0) return null;
+  return validMoves[Math.floor(Math.random() * validMoves.length)];
+}
+
+function pickGreedyStrategic(
+  board: Board,
+  terrain: Terrain,
   validMoves: AxialCoord[],
   playerId: number,
-  difficulty: BotDifficulty
+  objectiveCards: ObjectiveCard[],
+  opponentIds: number[]
 ): AxialCoord | null {
   if (validMoves.length === 0) return null;
 
-  if (difficulty === BotDifficulty.Easy) {
-    return validMoves[Math.floor(Math.random() * validMoves.length)];
-  }
-
-  // Normal / Hard: greedy
   let best: AxialCoord[] = [];
   let bestScore = -Infinity;
 
   for (const coord of validMoves) {
-    const score = evaluateMove(board, coord, playerId);
+    const score = evaluateMoveStrategic(
+      board,
+      coord,
+      terrain,
+      playerId,
+      objectiveCards,
+      opponentIds
+    );
     if (score > bestScore) {
       bestScore = score;
       best = [coord];
@@ -99,45 +155,232 @@ function pickBestCoord(
   return best[Math.floor(Math.random() * best.length)];
 }
 
-// ------------------------------------------------------------------
-// selectBestMoves (full turn: 3 placements)
-// ------------------------------------------------------------------
+function evaluateBoardState(
+  board: Board,
+  terrain: Terrain,
+  playerId: number,
+  objectiveCards: ObjectiveCard[],
+  primaryOpponentId: number | undefined
+): number {
+  const selfScore =
+    objectiveCards.length > 0
+      ? calculatePlayerScore(board, playerId, objectiveCards)
+      : board.getPlayerSettlements(playerId).length;
+  const selfMobility = getValidPlacements(board, terrain, playerId).length;
 
-/**
- * Select up to `count` placements (default 3) for the AI player.
- *
- * For `easy` and `normal` difficulties, each placement is chosen
- * independently (greedy per-step).
- *
- * For `hard` difficulty, a 1-step lookahead is applied:
- *   – Try every possible first move
- *   – Simulate placing it, then greedily pick the best second move
- *   – Sum the scores; choose the first move that maximises the total
- *
- * Returns a (possibly shorter) list of `AxialCoord` to place in order.
- */
+  let oppScore = 0;
+  let oppMobility = 0;
+  if (primaryOpponentId !== undefined) {
+    oppScore =
+      objectiveCards.length > 0
+        ? calculatePlayerScore(board, primaryOpponentId, objectiveCards)
+        : board.getPlayerSettlements(primaryOpponentId).length;
+    oppMobility = getValidPlacements(board, terrain, primaryOpponentId).length;
+  }
+
+  return selfScore - oppScore * 0.9 + (selfMobility - oppMobility) * 0.1;
+}
+
+function getOrderedCandidates(
+  board: Board,
+  terrain: Terrain,
+  playerId: number,
+  objectiveCards: ObjectiveCard[],
+  opponentIds: number[],
+  maximizing: boolean
+): AxialCoord[] {
+  const validMoves = getValidPlacements(board, terrain, playerId);
+  const scored = validMoves.map(coord => ({
+    coord,
+    score: evaluateMoveStrategic(
+      board,
+      coord,
+      terrain,
+      playerId,
+      objectiveCards,
+      opponentIds
+    ),
+  }));
+
+  scored.sort((a, b) => (maximizing ? b.score - a.score : a.score - b.score));
+  return scored.slice(0, HARD_BRANCH_FACTOR).map(s => s.coord);
+}
+
+function alphaBetaValue(
+  board: Board,
+  terrain: Terrain,
+  maximizingPlayerId: number,
+  minimizingPlayerId: number | undefined,
+  objectiveCards: ObjectiveCard[],
+  depth: number,
+  alpha: number,
+  beta: number,
+  maximizing: boolean
+): number {
+  const currentPlayerId = maximizing ? maximizingPlayerId : minimizingPlayerId;
+  if (depth === 0 || currentPlayerId === undefined) {
+    return evaluateBoardState(
+      board,
+      terrain,
+      maximizingPlayerId,
+      objectiveCards,
+      minimizingPlayerId
+    );
+  }
+
+  const candidates = getOrderedCandidates(
+    board,
+    terrain,
+    currentPlayerId,
+    objectiveCards,
+    currentPlayerId === maximizingPlayerId ? [minimizingPlayerId].filter(Boolean) as number[] : [maximizingPlayerId],
+    maximizing
+  );
+
+  if (candidates.length === 0) {
+    return evaluateBoardState(
+      board,
+      terrain,
+      maximizingPlayerId,
+      objectiveCards,
+      minimizingPlayerId
+    );
+  }
+
+  if (maximizing) {
+    let value = -Infinity;
+    for (const move of candidates) {
+      const sim = cloneBoard(board);
+      sim.placeSettlement(move, currentPlayerId);
+      value = Math.max(
+        value,
+        alphaBetaValue(
+          sim,
+          terrain,
+          maximizingPlayerId,
+          minimizingPlayerId,
+          objectiveCards,
+          depth - 1,
+          alpha,
+          beta,
+          false
+        )
+      );
+      alpha = Math.max(alpha, value);
+      if (beta <= alpha) break;
+    }
+    return value;
+  }
+
+  let value = Infinity;
+  for (const move of candidates) {
+    const sim = cloneBoard(board);
+    sim.placeSettlement(move, currentPlayerId);
+    value = Math.min(
+      value,
+      alphaBetaValue(
+        sim,
+        terrain,
+        maximizingPlayerId,
+        minimizingPlayerId,
+        objectiveCards,
+        depth - 1,
+        alpha,
+        beta,
+        true
+      )
+    );
+    beta = Math.min(beta, value);
+    if (beta <= alpha) break;
+  }
+  return value;
+}
+
+function pickHardAlphaBeta(
+  board: Board,
+  terrain: Terrain,
+  validMoves: AxialCoord[],
+  playerId: number,
+  objectiveCards: ObjectiveCard[],
+  opponentIds: number[]
+): AxialCoord | null {
+  if (validMoves.length === 0) return null;
+  const primaryOpponentId = opponentIds[0];
+  let bestCoord: AxialCoord | null = null;
+  let bestValue = -Infinity;
+  let alpha = -Infinity;
+  const beta = Infinity;
+
+  const orderedMoves = [...validMoves].sort(
+    (a, b) =>
+      evaluateMoveStrategic(board, b, terrain, playerId, objectiveCards, opponentIds) -
+      evaluateMoveStrategic(board, a, terrain, playerId, objectiveCards, opponentIds)
+  );
+
+  for (const move of orderedMoves) {
+    const sim = cloneBoard(board);
+    sim.placeSettlement(move, playerId);
+    const value = alphaBetaValue(
+      sim,
+      terrain,
+      playerId,
+      primaryOpponentId,
+      objectiveCards,
+      HARD_SEARCH_DEPTH - 1,
+      alpha,
+      beta,
+      false
+    );
+
+    if (value > bestValue) {
+      bestValue = value;
+      bestCoord = move;
+    }
+    alpha = Math.max(alpha, bestValue);
+  }
+
+  return bestCoord;
+}
+
 export function selectBestMoves(
   board: Board,
   terrain: Terrain,
   playerId: number,
   difficulty: BotDifficulty,
-  count: number = 3
+  count: number = 3,
+  context: BotStrategyContext = {}
 ): AxialCoord[] {
   const moves: AxialCoord[] = [];
-
-  // Deep-clone the board so we can simulate placements without mutating
   const simBoard = cloneBoard(board);
+  const effectiveDifficulty = getEffectiveDifficulty(difficulty);
+  const objectiveCards = context.objectiveCards ?? [];
+  const opponentIds = context.opponentIds ?? [];
 
   for (let i = 0; i < count; i++) {
     const valid = getValidPlacements(simBoard, terrain, playerId);
     if (valid.length === 0) break;
 
     let chosen: AxialCoord | null = null;
-
-    if (difficulty === BotDifficulty.Hard && i === 0 && count > 1) {
-      chosen = lookaheadPick(simBoard, terrain, playerId, valid);
+    if (effectiveDifficulty === BotDifficulty.Easy) {
+      chosen = pickRandom(valid);
+    } else if (effectiveDifficulty === BotDifficulty.Hard) {
+      chosen = pickHardAlphaBeta(
+        simBoard,
+        terrain,
+        valid,
+        playerId,
+        objectiveCards,
+        opponentIds
+      );
     } else {
-      chosen = pickBestCoord(simBoard, valid, playerId, difficulty);
+      chosen = pickGreedyStrategic(
+        simBoard,
+        terrain,
+        valid,
+        playerId,
+        objectiveCards,
+        opponentIds
+      );
     }
 
     if (!chosen) break;
@@ -149,55 +392,6 @@ export function selectBestMoves(
   return moves;
 }
 
-// ------------------------------------------------------------------
-// Lookahead helper (hard difficulty)
-// ------------------------------------------------------------------
-
-/**
- * 1-step lookahead: evaluate all first moves by greedily summing the
- * score of the best second move reachable afterwards.
- */
-function lookaheadPick(
-  board: Board,
-  terrain: Terrain,
-  playerId: number,
-  validFirst: AxialCoord[]
-): AxialCoord {
-  let bestCoord = validFirst[0];
-  let bestTotal = -Infinity;
-
-  for (const first of validFirst) {
-    const score1 = evaluateMove(board, first, playerId);
-
-    // Simulate placing 'first'
-    const sim = cloneBoard(board);
-    sim.placeSettlement(first, playerId);
-
-    // Best second move after placing 'first'
-    const valid2 = getValidPlacements(sim, terrain, playerId);
-    let score2 = 0;
-    if (valid2.length > 0) {
-      score2 = Math.max(...valid2.map(c => evaluateMove(sim, c, playerId)));
-    }
-
-    const total = score1 + score2;
-    if (total > bestTotal) {
-      bestTotal = total;
-      bestCoord = first;
-    }
-  }
-
-  return bestCoord;
-}
-
-// ------------------------------------------------------------------
-// Board cloning utility
-// ------------------------------------------------------------------
-
-/**
- * Create a lightweight copy of a Board for simulation purposes.
- * Only cells that exist are copied; cell objects are shallow-cloned.
- */
 function cloneBoard(board: Board): Board {
   const copy = new Board(board.width, board.height);
   for (const cell of board.getAllCells()) {
@@ -206,34 +400,31 @@ function cloneBoard(board: Board): Board {
   return copy;
 }
 
-// ------------------------------------------------------------------
-// BotPlayer class
-// ------------------------------------------------------------------
-
 export class BotPlayer {
   readonly playerId: number;
   readonly difficulty: BotDifficulty;
 
-  constructor(playerId: number, difficulty: BotDifficulty = BotDifficulty.Normal) {
+  constructor(playerId: number, difficulty: BotDifficulty = BotDifficulty.Medium) {
     this.playerId = playerId;
     this.difficulty = difficulty;
   }
 
-  /**
-   * Choose the best moves for this bot on its turn.
-   * Returns an ordered list of coordinates to place settlements.
-   */
   chooseMoves(
     board: Board,
     terrain: Terrain,
-    count: number = 3
+    count: number = 3,
+    context: BotStrategyContext = {}
   ): AxialCoord[] {
-    return selectBestMoves(board, terrain, this.playerId, this.difficulty, count);
+    return selectBestMoves(
+      board,
+      terrain,
+      this.playerId,
+      this.difficulty,
+      count,
+      context
+    );
   }
 
-  /**
-   * Evaluate how good a single placement at `coord` is.
-   */
   evaluateMove(board: Board, coord: AxialCoord): number {
     return evaluateMove(board, coord, this.playerId);
   }

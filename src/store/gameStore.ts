@@ -201,7 +201,7 @@ export const gameStore = create<GameState>((set, get) => ({
       playerConfigs = Array.from({ length: playerCount }, (_, i) => ({
         name: `Player ${i + 1}`,
         type: 'human' as const,
-        difficulty: BotDifficulty.Normal,
+        difficulty: BotDifficulty.Medium,
       }));
     } else {
       if (configs.length < 2 || configs.length > 4) {
@@ -450,7 +450,13 @@ export const gameStore = create<GameState>((set, get) => ({
       afterDraw.currentTerrainCard.terrain,
       currentPlayer.id,
       currentPlayer.difficulty,
-      SETTLEMENTS_PER_TURN
+      SETTLEMENTS_PER_TURN,
+      {
+        objectiveCards: afterDraw.objectiveCards,
+        opponentIds: afterDraw.players
+          .filter(p => p.id !== currentPlayer.id)
+          .map(p => p.id),
+      }
     );
 
     // 3. Place each settlement with a short stagger so the UI can update
