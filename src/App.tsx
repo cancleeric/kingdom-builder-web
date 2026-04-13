@@ -5,6 +5,7 @@ import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
+import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { GamePhase, BotDifficulty } from './types'
 import type { PlayerConfig, GameOptions } from './types'
@@ -14,6 +15,9 @@ import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
 import { InstallPrompt } from './components/InstallPrompt'
 import { SaveLoadUI } from './components/SaveLoadUI'
+import { useMultiplayerStore } from './store/multiplayerStore'
+import { extractSerializableState } from './multiplayer/stateSerializer'
+import type { MultiplayerAction } from './multiplayer/types'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -37,6 +41,7 @@ const BOT_DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
 function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
+  const [menuMode, setMenuMode] = useState<'local' | 'multiplayer'>('local');
 
   const {
     board,
@@ -68,6 +73,14 @@ function App() {
     undoLastAction,
   } = useGameStore()
 
+  const multiplayerMode = useMultiplayerStore((s) => s.mode);
+  const multiplayerRoom = useMultiplayerStore((s) => s.room);
+  const multiplayerConnectionStatus = useMultiplayerStore((s) => s.connectionStatus);
+  const multiplayerLocalPlayerId = useMultiplayerStore((s) => s.localPlayerId);
+  const sendPlayerAction = useMultiplayerStore((s) => s.sendPlayerAction);
+  const sendStateUpdate = useMultiplayerStore((s) => s.sendStateUpdate);
+  const leaveRoom = useMultiplayerStore((s) => s.leaveRoom);
+
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
 
@@ -85,6 +98,25 @@ function App() {
   };
 
   const currentPlayer = players[currentPlayerIndex]
+  const isNetworkGame = multiplayerMode === 'in_game' && !!multiplayerRoom;
+  const isHost = !!multiplayerRoom && multiplayerLocalPlayerId === multiplayerRoom.hostPlayerId;
+  const isLocalTurn =
+    !isNetworkGame || (!!currentPlayer && multiplayerLocalPlayerId === currentPlayer.id);
+  const canControlActions =
+    !isNetworkGame || (isLocalTurn && multiplayerConnectionStatus === 'connected');
+
+  const runNetworkedAction = (localAction: () => void, networkAction: MultiplayerAction) => {
+    if (isNetworkGame) {
+      if (!isLocalTurn) return;
+      if (isHost) {
+        localAction();
+      } else {
+        sendPlayerAction(networkAction);
+      }
+      return;
+    }
+    localAction();
+  };
 
   // Play game over sound when phase changes to GameOver
   useEffect(() => {
@@ -93,7 +125,23 @@ function App() {
     }
   }, [phase]);
 
+  useEffect(() => {
+    if (multiplayerMode === 'in_game') {
+      setMenuMode('multiplayer');
+      setGameStarted(true);
+    }
+  }, [multiplayerMode]);
+
+  useEffect(() => {
+    if (!isNetworkGame || !isHost || !multiplayerRoom?.gameStarted) return;
+    const unsubscribe = useGameStore.subscribe(() => {
+      sendStateUpdate(extractSerializableState());
+    });
+    return unsubscribe;
+  }, [isNetworkGame, isHost, multiplayerRoom?.gameStarted, sendStateUpdate]);
+
   const handleCellClick = (coord: { q: number; r: number }) => {
+    if (!canControlActions) return;
     if (activeTile) {
       const isMoveTile =
         activeTile === Location.Paddock || activeTile === Location.Barn
@@ -101,17 +149,29 @@ function App() {
       if (isMoveTile) {
         if (!tileMoveFrom) {
           // First click: select source
-          selectTileMoveSource(coord)
+          runNetworkedAction(
+            () => selectTileMoveSource(coord),
+            { type: 'select_tile_move_source', coord }
+          )
         } else {
           // Second click: execute move
-          applyTileMove(coord)
+          runNetworkedAction(
+            () => applyTileMove(coord),
+            { type: 'apply_tile_move', coord }
+          )
         }
       } else {
-        applyTilePlacement(coord)
+        runNetworkedAction(
+          () => applyTilePlacement(coord),
+          { type: 'apply_tile_placement', coord }
+        )
       }
     } else if (phase === GamePhase.PlaceSettlements) {
       initAudio();
-      placeSettlement(coord)
+      runNetworkedAction(
+        () => placeSettlement(coord),
+        { type: 'place_settlement', coord }
+      )
       playSound(SoundType.PLACE);
     }
   }
@@ -130,7 +190,46 @@ function App() {
   };
 
   const handleRestart = () => {
+    if (isNetworkGame) {
+      leaveRoom();
+      setMenuMode('multiplayer');
+    }
     setGameStarted(false);
+  };
+
+  const handleDrawTerrainCard = () => {
+    runNetworkedAction(
+      () => drawTerrainCard(),
+      { type: 'draw_terrain_card' }
+    );
+  };
+
+  const handleEndTurn = () => {
+    runNetworkedAction(
+      () => endTurn(),
+      { type: 'end_turn' }
+    );
+  };
+
+  const handleUndo = () => {
+    runNetworkedAction(
+      () => undoLastAction(),
+      { type: 'undo_last_action' }
+    );
+  };
+
+  const handleActivateTile = (location: Location) => {
+    runNetworkedAction(
+      () => activateTile(location),
+      { type: 'activate_tile', location }
+    );
+  };
+
+  const handleCancelTile = () => {
+    runNetworkedAction(
+      () => cancelTile(),
+      { type: 'cancel_tile' }
+    );
   };
 
   // Compose a live-region announcement for screen readers on turn changes
@@ -143,9 +242,26 @@ function App() {
     : '';
 
   if (!gameStarted) {
+    if (menuMode === 'multiplayer') {
+      return (
+        <MultiplayerSetup
+          onBack={() => setMenuMode('local')}
+          onGameStarted={() => setGameStarted(true)}
+        />
+      );
+    }
+
     return (
       <div>
         <GameSetup onStart={handleStart} />
+        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
+          <button
+            onClick={() => setMenuMode('multiplayer')}
+            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-lg transition"
+          >
+            🌐 Play Online Multiplayer
+          </button>
+        </div>
         <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
           <SaveLoadUI onGameLoaded={() => setGameStarted(true)} />
         </div>
@@ -170,6 +286,11 @@ function App() {
       <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
         <h1 className="text-xl sm:text-3xl font-bold">Kingdom Builder</h1>
         <div className="flex items-center gap-2">
+          {isNetworkGame && multiplayerRoom && (
+            <span className="hidden sm:inline-block text-xs bg-blue-500 px-2 py-1 rounded">
+              Room {multiplayerRoom.id} · {multiplayerConnectionStatus}
+            </span>
+          )}
           {/* Mobile: show current player name in header */}
           {currentPlayer && (
             <div className="flex items-center gap-2 sm:hidden">
@@ -304,10 +425,11 @@ function App() {
                                 ? 'bg-orange-500 text-white'
                                 : 'bg-green-500 text-white hover:bg-green-600'
                             }`}
+                            disabled={!canControlActions}
                             onClick={() =>
                               activeTile === tile.location
-                                ? cancelTile()
-                                : activateTile(tile.location)
+                                ? handleCancelTile()
+                                : handleActivateTile(tile.location)
                             }
                           >
                             {activeTile === tile.location ? 'Cancel' : 'Use'}
@@ -338,7 +460,8 @@ function App() {
 
             {phase === GamePhase.DrawCard && (
               <button
-                onClick={drawTerrainCard}
+                onClick={handleDrawTerrainCard}
+                disabled={!canControlActions}
                 aria-label="Draw terrain card to start your turn"
                 className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
               >
@@ -364,10 +487,10 @@ function App() {
 
             {(phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
               <button
-                onClick={undoLastAction}
-                disabled={!canUndo}
+                onClick={handleUndo}
+                disabled={!canUndo || !canControlActions}
                 className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
-                  canUndo
+                  canUndo && canControlActions
                     ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
                     : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
                 }`}
@@ -378,7 +501,8 @@ function App() {
 
             {phase === GamePhase.EndTurn && (
               <button
-                onClick={endTurn}
+                onClick={handleEndTurn}
+                disabled={!canControlActions}
                 aria-label="End your turn and pass to the next player"
                 className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition mt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
               >
@@ -480,11 +604,11 @@ function App() {
           tileMoveFrom={tileMoveFrom}
           canUndo={canUndo}
           history={history}
-          onDrawCard={drawTerrainCard}
-          onEndTurn={endTurn}
-          onUndo={undoLastAction}
-          onActivateTile={activateTile}
-          onCancelTile={cancelTile}
+          onDrawCard={handleDrawTerrainCard}
+          onEndTurn={handleEndTurn}
+          onUndo={handleUndo}
+          onActivateTile={handleActivateTile}
+          onCancelTile={handleCancelTile}
         />
       </div>
 
