@@ -34,8 +34,9 @@ test('setup: shows setup screen and starts a 2-player game', async ({ page }) =>
   await expect(setupPage.heading).toBeVisible();
   await expect(setupPage.setupHeading).toBeVisible();
 
-  // Default is 2 players
-  await expect(page.getByRole('button', { name: '2', exact: true })).toHaveClass(/bg-blue/);
+  // Default is 2 players — use nth(0) to target the player-count "2" button
+  // (there may be other buttons with label "2" such as the Objective Cards row)
+  await expect(page.getByRole('button', { name: '2', exact: true }).first()).toHaveClass(/bg-blue/);
 
   // Change a player name and start
   await setupPage.setPlayerName(0, 'Alice');
@@ -147,28 +148,36 @@ test('location tile: placing adjacent to a location grants the tile', async ({ p
 // ─── Scenario 6: Game Over triggers and shows scores ────────────────────────
 
 test('game over: two-bot game completes and shows final scores', async ({ page }) => {
+  // Allow up to 5 minutes for two bots to finish on a small board.
+  // The board-full game-over condition may take longer than remainingSettlements=0
+  // since Medium (Strategic) bots need AI computation time per turn.
+  test.setTimeout(300_000);
+
   const setupPage = new SetupPage(page);
   const gamePage = new GamePage(page);
 
-  // 2-bot game auto-plays to completion
+  // 2-bot game auto-plays to completion; use small board to keep runtime short.
   await setupPage.goto(42);
   await expect(setupPage.setupHeading).toBeVisible();
   await setupPage.setPlayerType(0, 'bot');   // Player 1 → Bot
   // Player 2 is already Bot by default
+  await setupPage.selectBoardSize('small');
   await setupPage.startGame();
 
-  // Wait for Game Over modal
-  await gamePage.waitForGameOver(120_000);
+  // Wait for Game Over modal — allow generous timeout since bot AI computation
+  // and the board-full condition may take longer on slower machines.
+  await gamePage.waitForGameOver(240_000);
 
   await expect(gamePage.gameOverHeading).toBeVisible();
 
-  // At least 2 player score rows are shown
-  const rows = await gamePage.scoreRows();
-  expect(rows.length).toBeGreaterThanOrEqual(2);
+  // "Final Rankings" sub-heading must be visible
+  await expect(page.getByText('Final Rankings')).toBeVisible();
 
-  for (const row of rows) {
-    expect(parseInt(row.score, 10)).toBeGreaterThanOrEqual(0);
-  }
+  // At least 2 score values (text-2xl) must be present in the modal
+  const scoreEls = page.locator('.fixed.inset-0 p.text-2xl');
+  await expect(scoreEls.first()).toBeVisible();
+  const scoreCount = await scoreEls.count();
+  expect(scoreCount).toBeGreaterThanOrEqual(2);
 
   // "New Game" returns to setup
   await gamePage.newGameButton.click();

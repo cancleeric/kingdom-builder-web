@@ -3,6 +3,7 @@ import { saveGame, loadGame } from './persistence';
 import type { SerializableGameState } from './persistence';
 import { Board, createDefaultBoard, createBoardForSize } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
+import { isBuildable } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
 import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty, GameOptions } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
@@ -78,6 +79,11 @@ interface GameState {
 
 const SETTLEMENTS_PER_TURN = 3;
 const TOTAL_SETTLEMENTS_PER_PLAYER = 40;
+
+// Tracks how many consecutive turns have ended with 0 placements (bot stuck).
+// When all players skip consecutively, it signals the board is unreachable and
+// we should force a game-over rather than loop forever.
+let _consecutiveEmptyTurns = 0;
 
 const PLAYER_COLORS = [
   '#FF6B6B', // Red
@@ -190,6 +196,7 @@ export const gameStore = create<GameState>((set, get) => ({
 
   // ── Init ────────────────────────────────────────────
   initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => {
+    _consecutiveEmptyTurns = 0;
     let playerConfigs: PlayerConfig[];
 
     if (typeof configs === 'number') {
@@ -201,7 +208,7 @@ export const gameStore = create<GameState>((set, get) => ({
       playerConfigs = Array.from({ length: playerCount }, (_, i) => ({
         name: `Player ${i + 1}`,
         type: 'human' as const,
-        difficulty: BotDifficulty.Normal,
+        difficulty: BotDifficulty.Medium,
       }));
     } else {
       if (configs.length < 2 || configs.length > 4) {
@@ -387,7 +394,11 @@ export const gameStore = create<GameState>((set, get) => ({
 
     // Per spec: game ends when ANY player runs out of settlements
     // (Kingdom Builder rule: "任一玩家用完所有 40 間房屋")
-    if (state.players.some(p => p.remainingSettlements === 0)) {
+    // Also end when the board is completely full so bots cannot deadlock.
+    const boardFull = !state.board.getAllCells().some(
+      cell => isBuildable(cell.terrain) && cell.settlement === undefined
+    );
+    if (state.players.some(p => p.remainingSettlements <= 0) || boardFull) {
       const finalScores = buildPlayerScores(
         state.board,
         state.players,
@@ -450,7 +461,13 @@ export const gameStore = create<GameState>((set, get) => ({
       afterDraw.currentTerrainCard.terrain,
       currentPlayer.id,
       currentPlayer.difficulty,
-      SETTLEMENTS_PER_TURN
+      SETTLEMENTS_PER_TURN,
+      {
+        objectiveCards: afterDraw.objectiveCards,
+        opponentIds: afterDraw.players
+          .filter(p => p.id !== currentPlayer.id)
+          .map(p => p.id),
+      }
     );
 
     // 3. Place each settlement with a short stagger so the UI can update
@@ -459,8 +476,32 @@ export const gameStore = create<GameState>((set, get) => ({
       setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
     });
 
-    // 4. End the turn after all placements have been dispatched
-    setTimeout(() => get().endTurn(), STEP_MS * (moves.length + 1));
+    // 4. End the turn after all placements have been dispatched.
+    // If the bot has fewer moves than SETTLEMENTS_PER_TURN (e.g. no valid
+    // placements for the drawn terrain), the game will remain in
+    // PlaceSettlements phase because placeSettlement only transitions to
+    // EndTurn once remainingPlacements reaches 0.  Force the transition so
+    // the game never gets stuck.
+    setTimeout(() => {
+      const s = get();
+      if (s.phase === GamePhase.PlaceSettlements) {
+        // Bot could not fill all placements — force phase to EndTurn so the
+        // turn can complete normally.
+        _consecutiveEmptyTurns++;
+        // If every player has been stuck for a full round, the board has no
+        // reachable placements left.  Force remaining settlements to 0 on the
+        // stuck player so endTurn() can trigger game-over.
+        const numPlayers = s.players.length;
+        if (_consecutiveEmptyTurns >= numPlayers) {
+          const stuckPlayer = s.players[s.currentPlayerIndex];
+          if (stuckPlayer) stuckPlayer.remainingSettlements = 0;
+        }
+        set({ phase: GamePhase.EndTurn, remainingPlacements: 0, validPlacements: [] });
+      } else {
+        _consecutiveEmptyTurns = 0;
+      }
+      get().endTurn();
+    }, STEP_MS * (moves.length + 1));
   },
 
   // ── Activate tile ability ──────────────────────────

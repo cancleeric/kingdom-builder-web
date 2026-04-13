@@ -9,12 +9,13 @@
  *  5. evaluateMove: empty board (score = 0)
  *  6. selectBestMoves: returns valid placements only (easy difficulty)
  *  7. selectBestMoves: returns ≤ count placements
- *  8. selectBestMoves: greedy prefers castle-adjacent cells
+ *  8. selectBestMoves: medium prefers castle-adjacent cells
  *  9. selectBestMoves: hard difficulty returns valid placements
  * 10. selectBestMoves: empty valid placements returns []
  * 11. BotPlayer class: chooseMoves returns valid moves
  * 12. BotPlayer class: evaluateMove delegates correctly
- * 13. selectBestMoves: normal difficulty beats random on high-value board
+ * 13. selectBestMoves: legacy normal maps to medium
+ * 14. selectBestMoves: hard accepts strategic context
  */
 
 import { describe, it, expect } from 'vitest';
@@ -112,7 +113,7 @@ describe('evaluateMove', () => {
 describe('selectBestMoves', () => {
   it('returns only valid placements (all Grass, no prior settlements)', () => {
     const board = makeBoard();
-    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 3);
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 3);
     expect(moves.length).toBeGreaterThan(0);
     for (const coord of moves) {
       const cell = board.getCell(coord);
@@ -123,17 +124,17 @@ describe('selectBestMoves', () => {
 
   it('returns at most `count` placements', () => {
     const board = makeBoard();
-    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 3);
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 3);
     expect(moves.length).toBeLessThanOrEqual(3);
   });
 
-  it('greedy mode prefers a castle-adjacent cell over a plain cell', () => {
+  it('medium mode prefers a castle-adjacent cell over a plain cell', () => {
     const board = makeBoard();
     // Place a castle at (5,5)
     setLocation(board, 5, 5, Location.Castle);
     // Make only Desert tiles except the castle-adjacent ones
     // so the bot has both castle-adjacent and non-adjacent Grass options
-    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 1);
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 1);
     // The first move should be adjacent to the castle if possible
     expect(moves.length).toBe(1);
     // The chosen cell should have score >= 0
@@ -152,7 +153,7 @@ describe('selectBestMoves', () => {
   it('returns [] when no valid placements exist (terrain not on board)', () => {
     const board = makeBoard();
     // All cells are Grass; requesting Canyon returns nothing
-    const moves = selectBestMoves(board, Terrain.Canyon, 1, BotDifficulty.Normal, 3);
+    const moves = selectBestMoves(board, Terrain.Canyon, 1, BotDifficulty.Medium, 3);
     expect(moves).toEqual([]);
   });
 
@@ -179,7 +180,7 @@ describe('selectBestMoves', () => {
   it('does not mutate the original board', () => {
     const board = makeBoard();
     const before = board.getAllCells().filter(c => c.settlement !== undefined).length;
-    selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 3);
+    selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 3);
     const after = board.getAllCells().filter(c => c.settlement !== undefined).length;
     expect(after).toBe(before);
   });
@@ -189,7 +190,7 @@ describe('selectBestMoves', () => {
     // Place one settlement at (3,3)
     placeSettlement(board, 3, 3, 1);
     // Bot must place adjacent to (3,3) if any Grass neighbours exist
-    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 1);
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 1);
     expect(moves.length).toBe(1);
     // (3,3) neighbours include (4,3), (4,2), (3,2), (2,3), (2,4), (3,4)
     const neighbours = [
@@ -204,7 +205,7 @@ describe('selectBestMoves', () => {
 describe('BotPlayer class', () => {
   it('chooseMoves returns the expected number of moves', () => {
     const board = makeBoard();
-    const bot = new BotPlayer(1, BotDifficulty.Normal);
+    const bot = new BotPlayer(1, BotDifficulty.Medium);
     const moves = bot.chooseMoves(board, Terrain.Grass, 3);
     expect(moves.length).toBeGreaterThan(0);
     expect(moves.length).toBeLessThanOrEqual(3);
@@ -213,7 +214,7 @@ describe('BotPlayer class', () => {
   it('evaluateMove delegates to the module-level function', () => {
     const board = makeBoard();
     setLocation(board, 2, 2, Location.Castle);
-    const bot = new BotPlayer(1, BotDifficulty.Normal);
+    const bot = new BotPlayer(1, BotDifficulty.Medium);
     const score = bot.evaluateMove(board, { q: 1, r: 2 });
     expect(score).toBe(3);
   });
@@ -226,6 +227,29 @@ describe('BotPlayer class', () => {
       const cell = board.getCell(coord);
       expect(cell).toBeDefined();
       expect(cell!.terrain).toBe(Terrain.Grass);
+    }
+  });
+
+  it('legacy normal difficulty maps to medium behavior', () => {
+    const board = makeBoard();
+    setLocation(board, 5, 5, Location.Castle);
+    const moveNormal = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Normal, 1);
+    const moveMedium = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Medium, 1);
+    expect(moveNormal.length).toBe(1);
+    expect(moveMedium.length).toBe(1);
+    expect(evaluateMove(board, moveNormal[0], 1)).toBe(evaluateMove(board, moveMedium[0], 1));
+  });
+
+  it('hard difficulty accepts strategic context and returns valid placements', () => {
+    const board = makeBoard();
+    const moves = selectBestMoves(board, Terrain.Grass, 1, BotDifficulty.Hard, 3, {
+      opponentIds: [2],
+      objectiveCards: [],
+    });
+    expect(moves.length).toBeGreaterThan(0);
+    expect(moves.length).toBeLessThanOrEqual(3);
+    for (const coord of moves) {
+      expect(board.getCell(coord)).toBeDefined();
     }
   });
 });
