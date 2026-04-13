@@ -16,6 +16,24 @@ const MEDIUM_CANDIDATE_LIMIT = 10;
 const HARD_CANDIDATE_LIMIT = 8;
 const HARD_OPPONENT_CANDIDATE_LIMIT = 6;
 const HARD_MAX_DEPTH = 3;
+const HARD_MAX_DEPTH_NO_OPPONENT = 2;
+
+// Heuristic tuning notes:
+// - Values are hand-tuned for stable real-time turns on medium/large boards.
+// - Immediate and objective progress are weighted highest, while mobility and
+//   board-shape metrics are lighter tie-breakers.
+const STRATEGIC_WEIGHT_IMMEDIATE = 4;
+const STRATEGIC_WEIGHT_OBJECTIVE_DELTA = 7;
+const STRATEGIC_WEIGHT_EXPANSION = 0.45;
+const STRATEGIC_WEIGHT_CONNECTION = 0.65;
+const STRATEGIC_WEIGHT_OPPONENT_PRESSURE = 0.5;
+const STRATEGIC_WEIGHT_MOBILITY = 0.04;
+
+const BOARD_WEIGHT_SELF_SCORE = 11;
+const BOARD_WEIGHT_SELF_SETTLEMENTS = 0.3;
+const BOARD_WEIGHT_SELF_MOBILITY = 0.08;
+const BOARD_WEIGHT_OPPONENT_SCORE = 6;
+const BOARD_WEIGHT_OPPONENT_MOBILITY = 0.05;
 
 export interface BotStrategyContext {
   objectiveCards?: ObjectiveCard[];
@@ -106,13 +124,17 @@ function evaluateMoveStrategic(
 
   const mobility = getValidPlacements(sim, terrain, playerId).length;
 
+  // Weight rationale:
+  // - immediate/objective deltas dominate (core scoring progress)
+  // - expansion/connection/pressure shape future placement quality
+  // - mobility is a light tiebreaker to avoid self-trapping
   return (
-    immediate * 4 +
-    objectiveDelta * 7 +
-    expansionPotential * 0.45 +
-    connectionStrength * 0.65 +
-    pressureOnOpponents * 0.5 +
-    mobility * 0.04
+    immediate * STRATEGIC_WEIGHT_IMMEDIATE +
+    objectiveDelta * STRATEGIC_WEIGHT_OBJECTIVE_DELTA +
+    expansionPotential * STRATEGIC_WEIGHT_EXPANSION +
+    connectionStrength * STRATEGIC_WEIGHT_CONNECTION +
+    pressureOnOpponents * STRATEGIC_WEIGHT_OPPONENT_PRESSURE +
+    mobility * STRATEGIC_WEIGHT_MOBILITY
   );
 }
 
@@ -143,12 +165,16 @@ function evaluateBoardState(
     if (opponentMobility > strongestOpponentMobility) strongestOpponentMobility = opponentMobility;
   }
 
+  // Weight rationale:
+  // - own objective/castle score is primary win signal
+  // - own settlement count and mobility are secondary board-health signals
+  // - strongest-opponent score/mobility apply defensive pressure
   return (
-    selfObjectiveScore * 11 +
-    selfSettlements * 0.3 +
-    selfMobility * 0.08 -
-    strongestOpponentScore * 6 -
-    strongestOpponentMobility * 0.05
+    selfObjectiveScore * BOARD_WEIGHT_SELF_SCORE +
+    selfSettlements * BOARD_WEIGHT_SELF_SETTLEMENTS +
+    selfMobility * BOARD_WEIGHT_SELF_MOBILITY -
+    strongestOpponentScore * BOARD_WEIGHT_OPPONENT_SCORE -
+    strongestOpponentMobility * BOARD_WEIGHT_OPPONENT_MOBILITY
   );
 }
 
@@ -307,9 +333,17 @@ function pickHardMove(
   if (candidates.length === 0) return null;
 
   const firstOpponentId = context?.opponentIds?.[0];
+  // If an opponent is modeled, search alternates max/min plies:
+  // own move + opponent reply + own move ... so depth scales with
+  // remainingPlacements * 2 - 1 (odd ply count ending on our move).
+  // Without opponent modeling, only own sequence is explored and we cap
+  // depth at 2 to control turn-time latency on large boards.
   const searchDepth = firstOpponentId
-    ? Math.min(HARD_MAX_DEPTH, Math.max(1, remainingPlacements * 2 - 1))
-    : Math.min(2, Math.max(1, remainingPlacements));
+    ? Math.min(
+        HARD_MAX_DEPTH,
+        Math.max(1, remainingPlacements * 2 - 1) // odd ply depth so the final evaluated ply is our move
+      )
+    : Math.min(HARD_MAX_DEPTH_NO_OPPONENT, Math.max(1, remainingPlacements));
 
   let bestMove = candidates[0];
   let bestValue = -Infinity;

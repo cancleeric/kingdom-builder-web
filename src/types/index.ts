@@ -27,7 +27,7 @@ export enum BotDifficulty {
   Easy = 'easy',       // Random valid placement
   Medium = 'medium',   // Strategic greedy heuristics
   Hard = 'hard',       // Alpha-beta strategic search
-  Normal = 'normal',   // Legacy saved-game alias for medium
+  Normal = 'normal',   // Legacy saved-game alias; normalized via normalizeDifficulty()
 }
 
 /**
