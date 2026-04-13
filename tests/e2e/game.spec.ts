@@ -34,8 +34,9 @@ test('setup: shows setup screen and starts a 2-player game', async ({ page }) =>
   await expect(setupPage.heading).toBeVisible();
   await expect(setupPage.setupHeading).toBeVisible();
 
-  // Default is 2 players
-  await expect(page.getByRole('button', { name: '2', exact: true })).toHaveClass(/bg-blue/);
+  // Default is 2 players — use nth(0) to target the player-count "2" button
+  // (there may be other buttons with label "2" such as the Objective Cards row)
+  await expect(page.getByRole('button', { name: '2', exact: true }).first()).toHaveClass(/bg-blue/);
 
   // Change a player name and start
   await setupPage.setPlayerName(0, 'Alice');
@@ -147,14 +148,18 @@ test('location tile: placing adjacent to a location grants the tile', async ({ p
 // ─── Scenario 6: Game Over triggers and shows scores ────────────────────────
 
 test('game over: two-bot game completes and shows final scores', async ({ page }) => {
+  // Allow up to 3 minutes for two bots to finish on a small board.
+  test.setTimeout(180_000);
+
   const setupPage = new SetupPage(page);
   const gamePage = new GamePage(page);
 
-  // 2-bot game auto-plays to completion
+  // 2-bot game auto-plays to completion; use small board to keep runtime short.
   await setupPage.goto(42);
   await expect(setupPage.setupHeading).toBeVisible();
   await setupPage.setPlayerType(0, 'bot');   // Player 1 → Bot
   // Player 2 is already Bot by default
+  await setupPage.selectBoardSize('small');
   await setupPage.startGame();
 
   // Wait for Game Over modal

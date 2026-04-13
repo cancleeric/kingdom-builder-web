@@ -46,6 +46,12 @@ export class SetupPage {
     await playerSection.getByRole('button', { name: label }).click();
   }
 
+  /** Select board size ('small', 'medium', or 'large'). */
+  async selectBoardSize(size: 'small' | 'medium' | 'large'): Promise<void> {
+    const labelMap = { small: 'Small', medium: 'Medium', large: 'Large' };
+    await this.page.getByRole('button', { name: new RegExp(labelMap[size], 'i') }).click();
+  }
+
   /** Click the "Start Game" button. */
   async startGame(): Promise<void> {
     await this.page.getByRole('button', { name: 'Start Game' }).click();
