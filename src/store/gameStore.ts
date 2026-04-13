@@ -465,8 +465,21 @@ export const gameStore = create<GameState>((set, get) => ({
       setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
     });
 
-    // 4. End the turn after all placements have been dispatched
-    setTimeout(() => get().endTurn(), STEP_MS * (moves.length + 1));
+    // 4. End the turn after all placements have been dispatched.
+    // If the bot has fewer moves than SETTLEMENTS_PER_TURN (e.g. no valid
+    // placements for the drawn terrain), the game will remain in
+    // PlaceSettlements phase because placeSettlement only transitions to
+    // EndTurn once remainingPlacements reaches 0.  Force the transition so
+    // the game never gets stuck.
+    setTimeout(() => {
+      const s = get();
+      if (s.phase === GamePhase.PlaceSettlements) {
+        // Bot could not fill all placements — force phase to EndTurn so the
+        // turn can complete normally.
+        set({ phase: GamePhase.EndTurn, remainingPlacements: 0, validPlacements: [] });
+      }
+      get().endTurn();
+    }, STEP_MS * (moves.length + 1));
   },
 
   // ── Activate tile ability ──────────────────────────
