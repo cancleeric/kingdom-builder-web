@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
@@ -37,11 +37,13 @@ const BOT_DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
   [BotDifficulty.Hard]: 'Hard',
   [BotDifficulty.Normal]: 'Medium',
 }
+const STATE_BROADCAST_DEBOUNCE_MS = 50;
 
 function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
   const [menuMode, setMenuMode] = useState<'local' | 'multiplayer'>('local');
+  const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const {
     board,
@@ -126,18 +128,22 @@ function App() {
   }, [phase]);
 
   useEffect(() => {
-    if (multiplayerMode === 'in_game') {
-      setMenuMode('multiplayer');
-      setGameStarted(true);
-    }
-  }, [multiplayerMode]);
-
-  useEffect(() => {
     if (!isNetworkGame || !isHost || !multiplayerRoom?.gameStarted) return;
     const unsubscribe = useGameStore.subscribe(() => {
-      sendStateUpdate(extractSerializableState());
+      if (broadcastTimerRef.current) {
+        clearTimeout(broadcastTimerRef.current);
+      }
+      broadcastTimerRef.current = setTimeout(() => {
+        sendStateUpdate(extractSerializableState());
+      }, STATE_BROADCAST_DEBOUNCE_MS);
     });
-    return unsubscribe;
+    return () => {
+      if (broadcastTimerRef.current) {
+        clearTimeout(broadcastTimerRef.current);
+        broadcastTimerRef.current = null;
+      }
+      unsubscribe();
+    };
   }, [isNetworkGame, isHost, multiplayerRoom?.gameStarted, sendStateUpdate]);
 
   const handleCellClick = (coord: { q: number; r: number }) => {

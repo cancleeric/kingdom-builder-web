@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { WebSocketServer } from 'ws';
+import { WebSocket, WebSocketServer } from 'ws';
 
 const PORT = Number(process.env.PORT ?? 8787);
 const MAX_PLAYERS = 4;
@@ -28,7 +28,7 @@ function roomSummary(room) {
 }
 
 function send(socket, message) {
-  if (socket.readyState === socket.OPEN) {
+  if (socket.readyState === WebSocket.OPEN) {
     socket.send(JSON.stringify(message));
   }
 }

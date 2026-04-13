@@ -71,15 +71,18 @@ interface MultiplayerState {
   sendStateUpdate: (gameState: SerializableGameState) => void;
 }
 
+let listenersBound = false;
+
 export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
-  const unsubscribeMessage = wsClient.subscribe((message) => {
-    handleServerMessage(message, set, get);
-  });
-  const unsubscribeStatus = wsClient.subscribeStatus((status) => {
-    set({ connectionStatus: status });
-  });
-  void unsubscribeMessage;
-  void unsubscribeStatus;
+  if (!listenersBound) {
+    listenersBound = true;
+    wsClient.subscribe((message) => {
+      handleServerMessage(message, set, get);
+    });
+    wsClient.subscribeStatus((status) => {
+      set({ connectionStatus: status });
+    });
+  }
 
   const storedRoom = localStorage.getItem(ROOM_KEY);
   const storedToken = localStorage.getItem(TOKEN_KEY);
@@ -177,7 +180,7 @@ function handleServerMessage(
       error: null,
     });
 
-    if (message.gameState) {
+    if (message.type === 'room_joined' && message.gameState) {
       hydrateSerializableState(message.gameState);
     }
     return;

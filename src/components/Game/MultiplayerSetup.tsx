@@ -46,6 +46,10 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
 
   const isHost = room && localPlayerId === room.hostPlayerId;
   const me = sortedPlayers.find((p) => p.id === localPlayerId);
+  const canHostStart =
+    !!room &&
+    sortedPlayers.length >= 2 &&
+    sortedPlayers.every((p) => p.id === room.hostPlayerId || p.ready);
 
   useEffect(() => {
     if (mode === 'in_game') {
@@ -229,7 +233,7 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                 </div>
                 <button
                   onClick={handleStart}
-                  disabled={sortedPlayers.length < 2}
+                  disabled={!canHostStart}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 rounded mb-3"
                 >
                   Start Multiplayer Game

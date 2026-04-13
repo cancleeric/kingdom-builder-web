@@ -2,6 +2,8 @@ import type { ClientToServerMessage, ServerToClientMessage } from './types';
 
 type MessageListener = (message: ServerToClientMessage) => void;
 type StatusListener = (status: 'connected' | 'connecting' | 'disconnected') => void;
+const BASE_RECONNECT_DELAY_MS = 1000;
+const MAX_RECONNECT_DELAY_MS = 8000;
 
 class WSClient {
   private socket: WebSocket | null = null;
@@ -97,7 +99,7 @@ class WSClient {
   private scheduleReconnect(): void {
     if (!this.url) return;
     if (this.reconnectTimer) clearTimeout(this.reconnectTimer);
-    const delay = Math.min(1000 * 2 ** this.reconnectAttempt, 8000);
+    const delay = Math.min(BASE_RECONNECT_DELAY_MS * 2 ** this.reconnectAttempt, MAX_RECONNECT_DELAY_MS);
     this.reconnectAttempt += 1;
     this.reconnectTimer = setTimeout(() => {
       if (!this.url) return;
