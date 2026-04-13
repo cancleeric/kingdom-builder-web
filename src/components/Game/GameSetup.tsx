@@ -10,9 +10,15 @@ const DEFAULT_PLAYER_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
 const DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
   [BotDifficulty.Easy]: 'Easy (Random)',
-  [BotDifficulty.Normal]: 'Normal (Greedy)',
-  [BotDifficulty.Hard]: 'Hard (Lookahead)',
+  [BotDifficulty.Medium]: 'Medium (Strategic)',
+  [BotDifficulty.Hard]: 'Hard (Alpha-Beta)',
+  [BotDifficulty.Normal]: 'Medium (Legacy)',
 };
+const SELECTABLE_DIFFICULTIES: BotDifficulty[] = [
+  BotDifficulty.Easy,
+  BotDifficulty.Medium,
+  BotDifficulty.Hard,
+];
 
 const BOARD_SIZE_LABELS: Record<BoardSize, string> = {
   small: 'Small (12×12)',
@@ -29,11 +35,11 @@ const DEFAULT_OPTIONS: GameOptions = {
 export function GameSetup({ onStart }: GameSetupProps) {
   const [playerCount, setPlayerCount] = useState(2);
   const [configs, setConfigs] = useState<PlayerConfig[]>(
-    DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
-      name,
-      type: i === 0 ? 'human' : 'bot',
-      difficulty: BotDifficulty.Normal,
-    }))
+      DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
+        name,
+        type: i === 0 ? 'human' : 'bot',
+        difficulty: BotDifficulty.Medium,
+      }))
   );
   const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
 
@@ -45,7 +51,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
       DEFAULT_PLAYER_NAMES.slice(0, count).map((name, i) => ({
         name: configs[i]?.name ?? name,
         type: configs[i]?.type ?? (i === 0 ? 'human' : 'bot'),
-        difficulty: configs[i]?.difficulty ?? BotDifficulty.Normal,
+        difficulty: configs[i]?.difficulty ?? BotDifficulty.Medium,
       }))
     );
   };
@@ -145,7 +151,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                     }
                     className="w-full border rounded px-2 py-1 text-sm bg-white"
                   >
-                    {Object.values(BotDifficulty).map(d => (
+                    {SELECTABLE_DIFFICULTIES.map(d => (
                       <option key={d} value={d}>
                         {DIFFICULTY_LABELS[d]}
                       </option>

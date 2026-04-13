@@ -25,8 +25,9 @@ export interface LocationTile {
  */
 export enum BotDifficulty {
   Easy = 'easy',       // Random valid placement
-  Normal = 'normal',   // Greedy: maximise immediate score
-  Hard = 'hard',       // Greedy + 1-step lookahead
+  Medium = 'medium',   // Strategic greedy heuristics
+  Hard = 'hard',       // Alpha-beta strategic search
+  Normal = 'normal',   // Legacy saved-game alias for medium
 }
 
 /**

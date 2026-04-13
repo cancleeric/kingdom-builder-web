@@ -6,7 +6,7 @@ import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
-import { GamePhase } from './types'
+import { GamePhase, BotDifficulty } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import { getTerrainName } from './core/terrain'
 import { Location } from './core/terrain'
@@ -25,6 +25,13 @@ const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Barn]:   '🏚',
   [Location.Oracle]: '🔮',
   [Location.Tavern]: '🍺',
+}
+
+const BOT_DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
+  [BotDifficulty.Easy]: 'Easy',
+  [BotDifficulty.Medium]: 'Medium',
+  [BotDifficulty.Hard]: 'Hard',
+  [BotDifficulty.Normal]: 'Medium',
 }
 
 function App() {
@@ -224,7 +231,7 @@ function App() {
                 <span className="font-semibold">{currentPlayer.name}</span>
                 {currentPlayer.isBot && (
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                    🤖 {currentPlayer.difficulty}
+                    🤖 {BOT_DIFFICULTY_LABELS[currentPlayer.difficulty]}
                   </span>
                 )}
               </div>
