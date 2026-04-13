@@ -19,8 +19,9 @@ export default defineConfig({
   /* Retry on CI only */
   retries: process.env.CI ? 2 : 0,
 
-  /* Opt out of parallel tests on CI. */
-  workers: process.env.CI ? 1 : undefined,
+  /* Run tests serially (workers=1) so that bot-game setTimeout callbacks are
+     not starved when multiple Chromium instances compete for the JS event loop. */
+  workers: 1,
 
   /* Reporter to use */
   reporter: process.env.CI ? 'github' : 'list',

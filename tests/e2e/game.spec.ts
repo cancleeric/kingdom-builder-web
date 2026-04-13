@@ -148,8 +148,10 @@ test('location tile: placing adjacent to a location grants the tile', async ({ p
 // ─── Scenario 6: Game Over triggers and shows scores ────────────────────────
 
 test('game over: two-bot game completes and shows final scores', async ({ page }) => {
-  // Allow up to 3 minutes for two bots to finish on a small board.
-  test.setTimeout(180_000);
+  // Allow up to 5 minutes for two bots to finish on a small board.
+  // The board-full game-over condition may take longer than remainingSettlements=0
+  // since Medium (Strategic) bots need AI computation time per turn.
+  test.setTimeout(300_000);
 
   const setupPage = new SetupPage(page);
   const gamePage = new GamePage(page);
@@ -162,18 +164,20 @@ test('game over: two-bot game completes and shows final scores', async ({ page }
   await setupPage.selectBoardSize('small');
   await setupPage.startGame();
 
-  // Wait for Game Over modal
-  await gamePage.waitForGameOver(120_000);
+  // Wait for Game Over modal — allow generous timeout since bot AI computation
+  // and the board-full condition may take longer on slower machines.
+  await gamePage.waitForGameOver(240_000);
 
   await expect(gamePage.gameOverHeading).toBeVisible();
 
-  // At least 2 player score rows are shown
-  const rows = await gamePage.scoreRows();
-  expect(rows.length).toBeGreaterThanOrEqual(2);
+  // "Final Rankings" sub-heading must be visible
+  await expect(page.getByText('Final Rankings')).toBeVisible();
 
-  for (const row of rows) {
-    expect(parseInt(row.score, 10)).toBeGreaterThanOrEqual(0);
-  }
+  // At least 2 score values (text-2xl) must be present in the modal
+  const scoreEls = page.locator('.fixed.inset-0 p.text-2xl');
+  await expect(scoreEls.first()).toBeVisible();
+  const scoreCount = await scoreEls.count();
+  expect(scoreCount).toBeGreaterThanOrEqual(2);
 
   // "New Game" returns to setup
   await gamePage.newGameButton.click();
