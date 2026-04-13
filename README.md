@@ -114,6 +114,9 @@ kingdom-builder-web/
 # 安裝依賴
 npm install
 
+# 啟動多人連線 WebSocket 伺服器（預設 ws://localhost:8787）
+npm run server
+
 # 啟動開發伺服器
 npm run dev
 
@@ -123,6 +126,14 @@ npm test
 # 打包部署
 npm run build
 ```
+
+### 多人連線模式
+
+- 前端可在主畫面切換到 `Play Online Multiplayer`
+- 建立房間 / 輸入房號加入房間
+- 房主可在 lobby 設定棋盤選項並開始遊戲
+- 遊戲使用主機權威狀態同步（host authoritative state）
+- 連線中斷後，客戶端會自動嘗試重連並使用 token 回到原房間
 
 ## 開發狀態
 
