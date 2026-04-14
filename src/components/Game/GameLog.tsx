@@ -1,3 +1,4 @@
+import React from 'react';
 import { GameAction } from '../../types/history';
 import { Player } from '../../types';
 import { Location } from '../../core/terrain';
@@ -39,7 +40,7 @@ const LOCATION_EMOJI: Partial<Record<Location, string>> = {
   [Location.Tavern]: '🍺',
 };
 
-export function GameLog({ history, players }: GameLogProps) {
+export const GameLog = React.memo(function GameLog({ history, players }: GameLogProps) {
   const recent = [...history].reverse().slice(0, MAX_LOG_ENTRIES);
 
   if (recent.length === 0) {
@@ -79,4 +80,4 @@ export function GameLog({ history, players }: GameLogProps) {
       </ul>
     </div>
   );
-}
+});

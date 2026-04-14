@@ -1,3 +1,4 @@
+import React from 'react';
 import { PlayerScore } from '../../types';
 import { ObjectiveCard } from '../../core/scoring';
 import { Player } from '../../types';
@@ -9,7 +10,7 @@ interface GameOverProps {
   onNewGame: () => void;
 }
 
-export function GameOver({
+export const GameOver = React.memo(function GameOver({
   finalScores,
   players,
   objectiveCards,
@@ -84,4 +85,4 @@ export function GameOver({
       </div>
     </div>
   );
-}
+});

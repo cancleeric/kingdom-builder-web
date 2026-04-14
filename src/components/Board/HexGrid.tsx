@@ -15,7 +15,7 @@ interface HexGridProps {
   onEscape?: () => void;
 }
 
-export const HexGrid: React.FC<HexGridProps> = ({
+export const HexGrid: React.FC<HexGridProps> = React.memo(({
   board,
   validPlacements,
   selectedCell,
@@ -259,4 +259,6 @@ export const HexGrid: React.FC<HexGridProps> = ({
       </div>
     </div>
   );
-};
+});
+
+HexGrid.displayName = 'HexGrid';
