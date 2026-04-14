@@ -1,0 +1,251 @@
+{
+  "appName": "王國建造者",
+  "language": {
+    "toggle": "切換語言",
+    "english": "EN",
+    "traditionalChinese": "繁中"
+  },
+  "common": {
+    "room": "房間",
+    "connected": "已連線",
+    "reconnecting": "重新連線中",
+    "player": "玩家 {{number}}",
+    "current": "目前",
+    "used": "已使用",
+    "cancel": "取消",
+    "use": "使用",
+    "undo": "復原",
+    "endTurn": "結束回合",
+    "drawTerrainCard": "抽地形卡",
+    "newGame": "新遊戲",
+    "back": "返回",
+    "pts": "分",
+    "enabled": "開啟",
+    "disabled": "關閉",
+    "host": "房主",
+    "you": "你",
+    "ready": "已準備",
+    "notReady": "未準備",
+    "disconnected": "已離線"
+  },
+  "phase": {
+    "Setup": "設定",
+    "DrawCard": "抽牌",
+    "PlaceSettlements": "放置聚落",
+    "EndTurn": "結束回合",
+    "GameOver": "遊戲結束"
+  },
+  "terrain": {
+    "Grass": "草地",
+    "Forest": "森林",
+    "Desert": "沙漠",
+    "Flower": "花地",
+    "Canyon": "峽谷",
+    "Water": "水域",
+    "Mountain": "山脈"
+  },
+  "location": {
+    "Castle": "城堡",
+    "Farm": "農場",
+    "Oasis": "綠洲",
+    "Tower": "高塔",
+    "Harbor": "港口",
+    "Paddock": "牧場",
+    "Barn": "穀倉",
+    "Oracle": "神諭",
+    "Tavern": "酒館"
+  },
+  "objective": {
+    "Fisherman": "漁夫",
+    "Miners": "礦工",
+    "Knights": "騎士",
+    "Farmers": "農夫",
+    "Merchants": "商人",
+    "Rangers": "巡林者",
+    "Hermits": "隱士",
+    "Citizens": "市民",
+    "Lords": "領主",
+    "Shepherds": "牧羊人"
+  },
+  "difficulty": {
+    "easy": "簡單",
+    "medium": "中等",
+    "hard": "困難",
+    "easyFull": "簡單（隨機）",
+    "mediumFull": "中等（策略）",
+    "hardFull": "困難（Alpha-Beta）",
+    "normalLegacy": "中等（舊版）"
+  },
+  "app": {
+    "playOnlineMultiplayer": "🌐 線上多人遊戲",
+    "gameInformation": "遊戲資訊",
+    "currentPlayer": "目前玩家",
+    "settlementsRemaining": "剩餘聚落：{{count}}",
+    "gamePhase": "遊戲階段",
+    "phase": "階段",
+    "currentTerrainCard": "目前地形卡",
+    "terrain": "地形",
+    "placementsLeft": "剩餘放置：{{count}}",
+    "objectives": "目標卡",
+    "yourTiles": "你的地點板塊",
+    "actions": "操作",
+    "drawTerrainCardAria": "抽取地形卡開始你的回合",
+    "placementHelp": "點擊或按 Enter 於高亮六角格放置聚落。可用方向鍵移動，按 Escape 取消選取。",
+    "placementRemaining": "剩餘 {{count}} 次放置",
+    "placementRemaining_other": "剩餘 {{count}} 次放置",
+    "endTurnAria": "結束你的回合並交給下一位玩家",
+    "liveScores": "即時分數",
+    "players": "玩家",
+    "placedRemaining": "已放置：{{placed}}｜剩餘：{{remaining}}",
+    "tilesLine": "板塊：{{tiles}}",
+    "activeTileMoveDest": "點擊高亮目的地以移動。",
+    "activeTileMoveSource": "點擊高亮聚落以移動。",
+    "activeTilePlace": "點擊高亮格子以放置。",
+    "liveAnnouncement": "{{player}} 的回合 — {{phase}}{{details}}",
+    "liveAnnouncementDetails": "，地形：{{terrain}}，剩餘放置：{{count}}",
+    "playerAria": "{{name}}：已放置 {{placed}}，剩餘 {{remaining}}{{current}}",
+    "currentSuffix": "，目前玩家",
+    "currentLabel": "（目前）",
+    "roomStatus": "房間 {{id}} · {{status}}",
+    "mute": "靜音",
+    "unmute": "取消靜音"
+  },
+  "gameSetup": {
+    "title": "遊戲設定",
+    "numberOfPlayers": "玩家人數",
+    "player": "玩家 {{number}}",
+    "playerPlaceholder": "玩家 {{number}}",
+    "human": "🧑 真人",
+    "computer": "🤖 電腦",
+    "aiDifficulty": "AI 難度",
+    "boardSize": "地圖大小",
+    "small": "小（12×12）",
+    "medium": "中（16×16）",
+    "large": "大（20×20）",
+    "gameOptions": "遊戲選項",
+    "objectiveCards": "目標卡數量",
+    "allowUndo": "允許復原（每回合一次）",
+    "howToPlay": "📖 遊戲教學",
+    "startGame": "開始遊戲"
+  },
+  "multiplayer": {
+    "title": "線上多人",
+    "serverUrl": "伺服器網址",
+    "connect": "連線",
+    "yourName": "你的名稱",
+    "playerNamePlaceholder": "玩家名稱",
+    "createRoom": "建立房間",
+    "roomCodePlaceholder": "房間代碼",
+    "join": "加入",
+    "roomLabel": "房間：",
+    "setReady": "設為已準備",
+    "setNotReady": "取消準備",
+    "objShort": "目標",
+    "undoOption": "復原：{{status}}",
+    "startMultiplayerGame": "開始多人遊戲",
+    "leaveRoom": "離開房間"
+  },
+  "gameOver": {
+    "title": "🏆 遊戲結束！",
+    "finalRankings": "最終排名",
+    "castlePts": "🏰 城堡：{{score}} 分",
+    "objectivePts": "🎯 {{card}}：{{score}} 分",
+    "objectiveCards": "目標卡"
+  },
+  "gameLog": {
+    "title": "操作日誌",
+    "empty": "尚無操作記錄",
+    "turnPlayer": "[回合 {{turn}}] {{player}}",
+    "placeSettlementAt": "放置聚落於 Q{{q}}R{{r}}",
+    "placeSettlement": "放置聚落",
+    "useTileAt": "使用 {{tile}} 於 Q{{q}}R{{r}}",
+    "useTile": "使用 {{tile}}",
+    "moveSettlementAt": "移動聚落 Q{{fromQ}}R{{fromR}} → Q{{toQ}}R{{toR}}",
+    "moveSettlement": "移動聚落",
+    "action": "操作",
+    "acquiredTile": "（獲得 {{emoji}} {{tile}}）"
+  },
+  "mobile": {
+    "gameControls": "遊戲控制",
+    "closeGamePanel": "關閉遊戲面板",
+    "openGamePanel": "開啟遊戲面板",
+    "tapPlace": "點擊高亮六角格放置聚落",
+    "placementsLeft": "剩餘 {{count}} 次放置",
+    "placementsLeft_other": "剩餘 {{count}} 次放置",
+    "tapMoveDest": "點擊高亮目的地以移動。",
+    "tapMoveSource": "點擊高亮聚落以移動。",
+    "tapPlaceCell": "點擊高亮格子以放置。",
+    "last": "上一動：",
+    "lastSettlement": "聚落於 Q{{q}}R{{r}}",
+    "lastMoved": "已移動聚落",
+    "lastUsedTile": "已使用板塊"
+  },
+  "board": {
+    "gridLabel": "王國建造者遊戲棋盤",
+    "resetZoom": "重設縮放",
+    "resetBoardZoom": "重設棋盤縮放",
+    "hexAria": "Q{{q}} R{{r}} — {{terrain}}",
+    "playerSettlement": "，{{player}} 的聚落",
+    "validPlacement": "，可放置"
+  },
+  "tutorial": {
+    "dialog": "教學",
+    "close": "關閉教學",
+    "stepCounter": "步驟 {{current}} / {{total}}",
+    "back": "← 上一步",
+    "finish": "完成 🎉",
+    "next": "下一步 →",
+    "keyboardHint": "按左右方向鍵切換 · Esc 關閉",
+    "steps": {
+      "welcome": {
+        "title": "歡迎來到王國建造者！",
+        "description": "本教學會帶你了解遊戲基礎。王國建造者是一款在六角格王國中建立聚落的策略遊戲。點擊「下一步」繼續。"
+      },
+      "board": {
+        "title": "遊戲棋盤",
+        "description": "棋盤由不同地形的六角格組成：草地 🌿、森林 🌲、沙漠 🏜️、花地 🌸、峽谷 🪨、水域 💧，以及不可通行的山脈 ⛰️。你只能在可建造地形上放置聚落（不可在水域或山脈）。"
+      },
+      "castles": {
+        "title": "城堡與地點板塊",
+        "description": "黃色城堡 🏰 六角格是特殊計分點，遊戲結束時與城堡相鄰可得額外分數。特殊地點板塊格（農場、綠洲、高塔…）在你相鄰放置聚落時會給予強力能力。"
+      },
+      "terrain-card": {
+        "title": "地形卡",
+        "description": "每回合開始時你會抽一張地形卡，決定本回合 3 個聚落必須放置的地形。你不能自行選擇，由卡牌決定！點擊「抽地形卡」開始回合。"
+      },
+      "placement-rules": {
+        "title": "放置規則",
+        "description": "你必須在卡牌指定地形上放置恰好 3 個聚落。若你已有聚落鄰接可放置地形，就必須放在既有聚落旁（相鄰規則）。高亮格子顯示合法位置。"
+      },
+      "location-tile-gain": {
+        "title": "獲得地點板塊",
+        "description": "當你把聚落放在地點板塊六角格旁邊時，會自動獲得該板塊並加入收藏。地點板塊每回合可使用一次，進行如移動聚落等特殊操作。"
+      },
+      "objectives": {
+        "title": "目標卡",
+        "description": "遊戲開始會翻開三張目標卡，描述特殊計分條件，例如最大連通群、靠近城堡等。所有玩家都使用相同目標！"
+      },
+      "turn-flow": {
+        "title": "回合流程",
+        "description": "1️⃣ 抽地形卡 → 2️⃣ 在對應地形放置 3 個聚落（遵守相鄰規則）→ 3️⃣ 結束回合。結束前可選擇使用地點板塊能力。重複直到聚落放完！"
+      },
+      "scoring": {
+        "title": "計分與勝利",
+        "description": "當所有玩家放完 40 個聚落後遊戲結束。分數由城堡相鄰、目標卡與額外板塊加成計算。分數最高者獲勝！"
+      },
+      "done": {
+        "title": "你已準備好開始！",
+        "description": "以上就是核心玩法。開始新遊戲並實際運用吧。祝你好運，王國建造者！你可隨時從遊戲設定頁重新開啟教學。"
+      }
+    }
+  },
+  "install": {
+    "aria": "安裝到主畫面",
+    "button": "📲 安裝到主畫面"
+  },
+  "saveLoad": {
+    "continue": "繼續遊戲",
+    "newGame": "新遊戲",
+    "clearSave": "清除存檔"
+  }
+}

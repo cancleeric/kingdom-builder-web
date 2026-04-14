@@ -57,7 +57,7 @@ describe('GameLog', () => {
 
   it('shows placeholder when history is empty', () => {
     render(<GameLog history={[]} players={players} />);
-    expect(screen.getByText(/尚無操作記錄/)).toBeTruthy();
+    expect(screen.getByText(/No actions yet/i)).toBeTruthy();
   });
 
   it('renders a log entry for a PLACE_SETTLEMENT action', () => {
@@ -65,7 +65,7 @@ describe('GameLog', () => {
     render(<GameLog history={history} players={players} />);
     // Should show player name and turn number
     expect(screen.getByText(/Alice/)).toBeTruthy();
-    expect(screen.getByText(/回合 2/)).toBeTruthy();
+    expect(screen.getByText(/Turn 2/i)).toBeTruthy();
     // Should include coordinates
     expect(screen.getByText(/Q1R-1/)).toBeTruthy();
   });
@@ -100,7 +100,7 @@ describe('GameLog', () => {
     ];
     render(<GameLog history={history} players={players} />);
     expect(screen.getByText(/Bob/)).toBeTruthy();
-    expect(screen.getByText(/回合 3/)).toBeTruthy();
+    expect(screen.getByText(/Turn 3/i)).toBeTruthy();
     expect(screen.getByText(/Q1R0/)).toBeTruthy();
     expect(screen.getByText(/Q2R1/)).toBeTruthy();
   });
@@ -121,8 +121,8 @@ describe('GameLog', () => {
     render(<GameLog history={history} players={players} />);
     const items = screen.getAllByRole('listitem');
     // Most recent (turn 2) is first
-    expect(items[0].textContent).toContain('回合 2');
-    expect(items[1].textContent).toContain('回合 1');
+    expect(items[0].textContent).toContain('Turn 2');
+    expect(items[1].textContent).toContain('Turn 1');
   });
 
   it('shows at most 20 entries when history is longer', () => {

@@ -1,4 +1,5 @@
 import React, { useRef, useCallback } from 'react';
+import { useTranslation } from 'react-i18next';
 import { GamePhase } from '../../types';
 import { Location } from '../../core/terrain';
 import { getTerrainName } from '../../core/terrain';
@@ -59,6 +60,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
   onActivateTile,
   onCancelTile,
 }) => {
+  const { t } = useTranslation();
   // Swipe-to-close/open
   const dragStartY = useRef<number | null>(null);
 
@@ -99,7 +101,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           ${isOpen ? 'translate-y-0' : 'translate-y-[calc(100%-3.5rem)]'}
         `}
         role="region"
-        aria-label="Game controls"
+        aria-label={t('mobile.gameControls')}
         aria-expanded={isOpen}
       >
         {/* Drag handle / toggle bar */}
@@ -108,7 +110,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           onClick={onToggle}
           onTouchStart={handleDragHandleTouchStart}
           onTouchEnd={handleDragHandleTouchEnd}
-          aria-label={isOpen ? 'Close game panel' : 'Open game panel'}
+          aria-label={isOpen ? t('mobile.closeGamePanel') : t('mobile.openGamePanel')}
           role="button"
           tabIndex={0}
           onKeyDown={e => e.key === 'Enter' && onToggle()}
@@ -128,13 +130,13 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
 
             {/* Phase badge */}
             <span className="text-xs text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
-              {phase}
+              {t(`phase.${phase}`)}
             </span>
 
             {/* Terrain card quick-view */}
             {currentTerrainCard && (
               <span className="text-sm font-bold">
-                {getTerrainName(currentTerrainCard.terrain)}
+                {t(`terrain.${getTerrainName(currentTerrainCard.terrain)}`)}
                 {remainingPlacements > 0 && (
                   <span className="ml-1 text-xs font-normal text-gray-500">
                     ×{remainingPlacements}
@@ -161,16 +163,16 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
               onClick={onDrawCard}
               className="w-full bg-blue-500 hover:bg-blue-600 active:bg-blue-700 text-white font-bold py-3 px-4 rounded-xl transition"
             >
-              Draw Terrain Card
+              {t('common.drawTerrainCard')}
             </button>
           )}
 
           {phase === GamePhase.PlaceSettlements && !activeTile && (
             <div className="p-3 bg-yellow-50 border border-yellow-300 rounded-xl text-sm text-center">
-              Tap a highlighted hex to place a settlement
+              {t('mobile.tapPlace')}
               <br />
               <span className="text-xs text-gray-500">
-                {remainingPlacements} placement{remainingPlacements !== 1 ? 's' : ''} left
+                {t('mobile.placementsLeft', { count: remainingPlacements })}
               </span>
             </div>
           )}
@@ -179,9 +181,9 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
             <div className="p-3 bg-orange-50 border border-orange-300 rounded-xl text-sm text-center">
               {activeTile === Location.Paddock || activeTile === Location.Barn
                 ? tileMoveFrom
-                  ? 'Tap a highlighted destination to move.'
-                  : 'Tap a highlighted settlement to move.'
-                : 'Tap a highlighted cell to place.'}
+                  ? t('mobile.tapMoveDest')
+                  : t('mobile.tapMoveSource')
+                : t('mobile.tapPlaceCell')}
             </div>
           )}
 
@@ -197,7 +199,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     : 'bg-gray-100 text-gray-400 border-gray-200 cursor-not-allowed'
                 }`}
               >
-                Undo
+                {t('common.undo')}
               </button>
             )}
 
@@ -206,7 +208,7 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                 onClick={onEndTurn}
                 className="flex-1 bg-green-500 hover:bg-green-600 active:bg-green-700 text-white font-bold py-3 rounded-xl transition"
               >
-                End Turn
+                {t('common.endTurn')}
               </button>
             )}
           </div>
@@ -214,14 +216,14 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           {/* Location tiles */}
           {currentPlayer && currentPlayer.tiles.length > 0 && (
             <div>
-              <h4 className="text-sm font-semibold text-gray-700 mb-2">Your Tiles</h4>
+               <h4 className="text-sm font-semibold text-gray-700 mb-2">{t('app.yourTiles')}</h4>
               <div className="flex flex-wrap gap-2">
                 {currentPlayer.tiles.map((tile: LocationTile, idx: number) => (
                   <div
                     key={`${tile.location}-${idx}`}
                     className="flex items-center gap-1 px-3 py-2 rounded-xl border bg-gray-50"
                   >
-                    <span>{LOCATION_EMOJI[tile.location]} {tile.location}</span>
+                     <span>{LOCATION_EMOJI[tile.location]} {t(`location.${tile.location}`)}</span>
                     {!tile.usedThisTurn &&
                       (phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
                         <button
@@ -236,14 +238,14 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                               : onActivateTile(tile.location)
                           }
                         >
-                          {activeTile === tile.location ? 'Cancel' : 'Use'}
-                        </button>
-                      )}
-                    {tile.usedThisTurn && (
-                      <span className="ml-2 text-xs text-gray-400 italic">Used</span>
-                    )}
-                  </div>
-                ))}
+                           {activeTile === tile.location ? t('common.cancel') : t('common.use')}
+                         </button>
+                       )}
+                     {tile.usedThisTurn && (
+                       <span className="ml-2 text-xs text-gray-400 italic">{t('common.used')}</span>
+                     )}
+                   </div>
+                 ))}
               </div>
             </div>
           )}
@@ -251,11 +253,11 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           {/* Last action summary */}
           {lastAction && (
             <p className="text-xs text-gray-400 text-center">
-              Last: {lastAction.type === 'PLACE_SETTLEMENT'
-                ? `Settlement at Q${lastAction.hex?.q}R${lastAction.hex?.r}`
+              {t('mobile.last')} {lastAction.type === 'PLACE_SETTLEMENT'
+                ? t('mobile.lastSettlement', { q: lastAction.hex?.q, r: lastAction.hex?.r })
                 : lastAction.type === 'TILE_MOVE'
-                  ? `Moved settlement`
-                  : `Used tile`}
+                  ? t('mobile.lastMoved')
+                  : t('mobile.lastUsedTile')}
             </p>
           )}
         </div>

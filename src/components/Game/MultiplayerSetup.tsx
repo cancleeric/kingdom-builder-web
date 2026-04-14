@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { BotDifficulty } from '../../types';
 import type { GameOptions, PlayerConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
@@ -17,6 +18,7 @@ const DEFAULT_OPTIONS: GameOptions = {
 };
 
 export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProps) {
+  const { t } = useTranslation();
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [serverUrl, setServerUrl] = useState(
@@ -92,12 +94,12 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">Kingdom Builder</h1>
-        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">Online Multiplayer</h2>
+        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">{t('appName')}</h1>
+        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">{t('multiplayer.title')}</h2>
 
         {!room && (
           <>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Server URL</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('multiplayer.serverUrl')}</label>
             <input
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
@@ -108,39 +110,39 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
               onClick={handleConnect}
               className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 rounded mb-4"
             >
-              {connectionStatus === 'connected' ? 'Connected' : 'Connect'}
-            </button>
+                {connectionStatus === 'connected' ? t('common.connected') : t('multiplayer.connect')}
+              </button>
 
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+            <label className="block text-sm font-medium text-gray-700 mb-1">{t('multiplayer.yourName')}</label>
             <input
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
               className="w-full border rounded px-3 py-2 text-sm mb-3"
-              placeholder="Player name"
-            />
+                placeholder={t('multiplayer.playerNamePlaceholder')}
+              />
 
             <button
               onClick={handleCreate}
               disabled={connectionStatus !== 'connected' || !playerName.trim()}
               className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 rounded mb-3"
             >
-              Create Room
-            </button>
+               {t('multiplayer.createRoom')}
+             </button>
 
             <div className="flex gap-2 mb-4">
               <input
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
                 className="flex-1 border rounded px-3 py-2 text-sm"
-                placeholder="Room code"
-              />
+                 placeholder={t('multiplayer.roomCodePlaceholder')}
+               />
               <button
                 onClick={handleJoin}
                 disabled={connectionStatus !== 'connected' || !playerName.trim() || !roomCode.trim()}
                 className="px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-bold rounded"
               >
-                Join
-              </button>
+                 {t('multiplayer.join')}
+               </button>
             </div>
           </>
         )}
@@ -149,10 +151,10 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
           <>
             <div className="mb-4 p-3 bg-gray-50 border rounded">
               <p className="text-sm">
-                Room: <span className="font-bold tracking-widest">{room.id}</span>
+                {t('multiplayer.roomLabel')}<span className="font-bold tracking-widest">{room.id}</span>
               </p>
               <p className="text-xs text-gray-500">
-                {connectionStatus === 'connected' ? 'Connected' : 'Reconnecting...'}
+                {connectionStatus === 'connected' ? t('common.connected') : `${t('common.reconnecting')}...`}
               </p>
             </div>
 
@@ -162,20 +164,20 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                   <div>
                     <span className="font-medium">{p.name}</span>
                     {p.id === room.hostPlayerId && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">Host</span>
-                    )}
-                    {p.id === localPlayerId && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">You</span>
-                    )}
+                       <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">{t('common.host')}</span>
+                     )}
+                     {p.id === localPlayerId && (
+                       <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">{t('common.you')}</span>
+                     )}
                   </div>
                   <div className="text-xs">
                     {!p.connected ? (
-                      <span className="text-red-600">Disconnected</span>
-                    ) : p.ready ? (
-                      <span className="text-green-700">Ready</span>
-                    ) : (
-                      <span className="text-gray-500">Not ready</span>
-                    )}
+                       <span className="text-red-600">{t('common.disconnected')}</span>
+                     ) : p.ready ? (
+                       <span className="text-green-700">{t('common.ready')}</span>
+                     ) : (
+                       <span className="text-gray-500">{t('common.notReady')}</span>
+                     )}
                   </div>
                 </div>
               ))}
@@ -188,14 +190,14 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                   me.ready ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'
                 }`}
               >
-                {me.ready ? 'Set Not Ready' : 'Set Ready'}
+                {me.ready ? t('multiplayer.setNotReady') : t('multiplayer.setReady')}
               </button>
             )}
 
             {isHost && (
               <>
                 <div className="mb-4 border rounded-lg p-3 bg-gray-50">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Game Options</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{t('gameSetup.gameOptions')}</h3>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {(['small', 'medium', 'large'] as const).map((size) => (
                       <button
@@ -205,9 +207,9 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                           options.boardSize === size ? 'bg-blue-600 text-white border-blue-600' : 'bg-white'
                         }`}
                       >
-                        {size}
-                      </button>
-                    ))}
+                         {t(`gameSetup.${size}`)}
+                       </button>
+                     ))}
                   </div>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {([1, 2, 3] as const).map((count) => (
@@ -218,9 +220,9 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                           options.objectiveCount === count ? 'bg-purple-600 text-white border-purple-600' : 'bg-white'
                         }`}
                       >
-                        {count} Obj
-                      </button>
-                    ))}
+                         {count} {t('multiplayer.objShort')}
+                       </button>
+                     ))}
                   </div>
                   <button
                     onClick={() => setOptions((prev) => ({ ...prev, enableUndo: !prev.enableUndo }))}
@@ -228,16 +230,16 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                       options.enableUndo ? 'bg-teal-600 text-white border-teal-600' : 'bg-white'
                     }`}
                   >
-                    Undo: {options.enableUndo ? 'Enabled' : 'Disabled'}
-                  </button>
-                </div>
+                     {t('multiplayer.undoOption', { status: options.enableUndo ? t('common.enabled') : t('common.disabled') })}
+                   </button>
+                 </div>
                 <button
                   onClick={handleStart}
                   disabled={!canHostStart}
                   className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 rounded mb-3"
                 >
-                  Start Multiplayer Game
-                </button>
+                   {t('multiplayer.startMultiplayerGame')}
+                 </button>
               </>
             )}
 
@@ -245,8 +247,8 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
               onClick={leaveRoom}
               className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded mb-2"
             >
-              Leave Room
-            </button>
+               {t('multiplayer.leaveRoom')}
+             </button>
           </>
         )}
 
@@ -256,7 +258,7 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
           onClick={onBack}
           className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded"
         >
-          Back
+          {t('common.back')}
         </button>
       </div>
     </div>
