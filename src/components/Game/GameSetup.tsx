@@ -7,7 +7,7 @@ interface GameSetupProps {
   onStart: (configs: PlayerConfig[], options: GameOptions) => void;
 }
 
-const DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
+const DIFFICULTY_TRANSLATION_KEYS: Record<BotDifficulty, string> = {
   [BotDifficulty.Easy]: 'difficulty.easyFull',
   [BotDifficulty.Medium]: 'difficulty.mediumFull',
   [BotDifficulty.Hard]: 'difficulty.hardFull',
@@ -19,7 +19,7 @@ const SELECTABLE_DIFFICULTIES: BotDifficulty[] = [
   BotDifficulty.Hard,
 ];
 
-const BOARD_SIZE_LABELS: Record<BoardSize, string> = {
+const BOARD_SIZE_TRANSLATION_KEYS: Record<BoardSize, string> = {
   small: 'gameSetup.small',
   medium: 'gameSetup.medium',
   large: 'gameSetup.large',
@@ -154,7 +154,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                   >
                     {SELECTABLE_DIFFICULTIES.map(d => (
                       <option key={d} value={d}>
-                         {t(DIFFICULTY_LABELS[d])}
+                         {t(DIFFICULTY_TRANSLATION_KEYS[d])}
                        </option>
                      ))}
                   </select>
@@ -180,7 +180,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                     : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
                 }`}
               >
-                {t(BOARD_SIZE_LABELS[size])}
+                {t(BOARD_SIZE_TRANSLATION_KEYS[size])}
               </button>
             ))}
           </div>

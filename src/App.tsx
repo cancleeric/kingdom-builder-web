@@ -33,7 +33,7 @@ const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Tavern]: '🍺',
 }
 
-const BOT_DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
+const BOT_DIFFICULTY_TRANSLATION_KEYS: Record<BotDifficulty, string> = {
   [BotDifficulty.Easy]: 'difficulty.easy',
   [BotDifficulty.Medium]: 'difficulty.medium',
   [BotDifficulty.Hard]: 'difficulty.hard',
@@ -413,7 +413,7 @@ function App() {
                 <span className="font-semibold">{currentPlayer.name}</span>
                 {currentPlayer.isBot && (
                   <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                    🤖 {t(BOT_DIFFICULTY_LABELS[currentPlayer.difficulty])}
+                    🤖 {t(BOT_DIFFICULTY_TRANSLATION_KEYS[currentPlayer.difficulty])}
                   </span>
                 )}
               </div>
