@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { useShallow } from 'zustand/react/shallow'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
 import { GameOver } from './components/Game/GameOver'
@@ -73,7 +74,35 @@ function App() {
     selectTileMoveSource,
     applyTileMove,
     undoLastAction,
-  } = useGameStore()
+  } = useGameStore(useShallow((s) => ({
+    board: s.board,
+    players: s.players,
+    currentPlayerIndex: s.currentPlayerIndex,
+    phase: s.phase,
+    currentTerrainCard: s.currentTerrainCard,
+    remainingPlacements: s.remainingPlacements,
+    validPlacements: s.validPlacements,
+    selectedCell: s.selectedCell,
+    objectiveCards: s.objectiveCards,
+    finalScores: s.finalScores,
+    activeTile: s.activeTile,
+    tileMoveSources: s.tileMoveSources,
+    tileMoveFrom: s.tileMoveFrom,
+    tileMoveDestinations: s.tileMoveDestinations,
+    history: s.history,
+    canUndo: s.canUndo,
+    initGame: s.initGame,
+    drawTerrainCard: s.drawTerrainCard,
+    placeSettlement: s.placeSettlement,
+    endTurn: s.endTurn,
+    selectCell: s.selectCell,
+    activateTile: s.activateTile,
+    cancelTile: s.cancelTile,
+    applyTilePlacement: s.applyTilePlacement,
+    selectTileMoveSource: s.selectTileMoveSource,
+    applyTileMove: s.applyTileMove,
+    undoLastAction: s.undoLastAction,
+  })))
 
   const multiplayerMode = useMultiplayerStore((s) => s.mode);
   const multiplayerRoom = useMultiplayerStore((s) => s.room);

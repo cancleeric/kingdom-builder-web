@@ -23,7 +23,7 @@ interface HexCellProps {
   cellRef?: (el: SVGGElement | null) => void;
 }
 
-export const HexCell: React.FC<HexCellProps> = ({
+export const HexCell: React.FC<HexCellProps> = React.memo(({
   cell,
   isValid,
   isSelected,
@@ -132,4 +132,6 @@ export const HexCell: React.FC<HexCellProps> = ({
       )}
     </g>
   );
-};
+});
+
+HexCell.displayName = 'HexCell';
