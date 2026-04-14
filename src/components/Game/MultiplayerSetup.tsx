@@ -104,8 +104,8 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
               className="w-full border rounded px-3 py-2 text-sm mb-2"
-               placeholder="ws://localhost:8787"
-            />
+               placeholder={t('multiplayer.serverUrlPlaceholder')}
+             />
             <button
               onClick={handleConnect}
               className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 rounded mb-4"

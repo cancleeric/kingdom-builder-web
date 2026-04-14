@@ -34,6 +34,7 @@ const resources = {
       multiplayer: {
         title: 'Online Multiplayer',
         serverUrl: 'Server URL',
+        serverUrlPlaceholder: 'ws://localhost:8787',
         connect: 'Connect',
         connected: 'Connected',
         yourName: 'Your Name',
@@ -283,6 +284,7 @@ const resources = {
       multiplayer: {
         title: '線上多人',
         serverUrl: '伺服器 URL',
+        serverUrlPlaceholder: 'ws://localhost:8787',
         connect: '連線',
         connected: '已連線',
         yourName: '你的名稱',
@@ -458,9 +460,6 @@ i18n
     fallbackLng: 'en',
     supportedLngs: ['en', 'zh-TW'],
     nonExplicitSupportedLngs: true,
-    interpolation: {
-      escapeValue: false,
-    },
     detection: {
       order: ['localStorage', 'navigator'],
       caches: ['localStorage'],
