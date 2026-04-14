@@ -15,6 +15,9 @@ export class SetupPage {
   /** Navigate to the app (optionally with a seed for deterministic randomness). */
   async goto(seed?: number): Promise<void> {
     const url = seed !== undefined ? `/?seed=${seed}` : '/';
+    await this.page.addInitScript(() => {
+      localStorage.setItem('i18nextLng', 'en');
+    });
     await this.page.goto(url);
   }
 

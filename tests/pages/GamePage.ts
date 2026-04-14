@@ -139,7 +139,7 @@ export class GamePage {
   async drawAndPlace(count = 3): Promise<void> {
     await this.clickDrawCard();
     // Wait until valid cells appear
-    await expect(this.liveRegion).toContainText('PlaceSettlements');
+    await expect(this.liveRegion).toContainText('Place settlements');
     for (let i = 0; i < count; i++) {
       await this.clickValidCell();
       if (i < count - 1) {

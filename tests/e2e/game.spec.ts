@@ -20,7 +20,7 @@ async function startTwoHumanGame(
   await setupPage.setPlayerType(1, 'human');
   await setupPage.startGame();
   await expect(gamePage.header).toBeVisible();
-  await expect(gamePage.liveRegion).toContainText('DrawCard');
+  await expect(gamePage.liveRegion).toContainText('Draw card');
 }
 
 // ─── Scenario 1: Setup flow and game start ───────────────────────────────────
@@ -45,7 +45,7 @@ test('setup: shows setup screen and starts a 2-player game', async ({ page }) =>
 
   // Game board is now visible and live region confirms DrawCard phase
   await expect(gamePage.header).toBeVisible();
-  await expect(gamePage.liveRegion).toContainText("DrawCard");
+  await expect(gamePage.liveRegion).toContainText("Draw card");
 });
 
 // ─── Scenario 2: Draw card and show valid placements ────────────────────────
@@ -56,13 +56,13 @@ test('draw card: shows terrain card and highlights valid cells', async ({ page }
 
   await startTwoHumanGame(setupPage, gamePage, 42);
 
-  await expect(gamePage.liveRegion).toContainText('DrawCard');
+  await expect(gamePage.liveRegion).toContainText('Draw card');
 
   // Draw card
   await gamePage.clickDrawCard();
 
   // Live region reports PlaceSettlements + terrain + 3 placements
-  await expect(gamePage.liveRegion).toContainText('PlaceSettlements');
+  await expect(gamePage.liveRegion).toContainText('Place settlements');
   await expect(gamePage.liveRegion).toContainText('terrain:');
   await expect(gamePage.liveRegion).toContainText('placements remaining: 3');
 
@@ -82,7 +82,7 @@ test('illegal placement: cannot place on Mountain or Water', async ({ page }) =>
 
   await startTwoHumanGame(setupPage, gamePage, 42);
   await gamePage.clickDrawCard();
-  await expect(gamePage.liveRegion).toContainText('PlaceSettlements');
+  await expect(gamePage.liveRegion).toContainText('Place settlements');
 
   // Q0 R5 is a Mountain cell (border, always Mountain per board layout)
   const mountainCell = gamePage.cellAt(0, 5);
@@ -109,11 +109,11 @@ test('turn switch: player changes after ending a turn', async ({ page }) => {
   await gamePage.drawAndPlace(3);
 
   // Phase must be EndTurn before clicking End Turn
-  await expect(gamePage.liveRegion).toContainText('EndTurn');
+  await expect(gamePage.liveRegion).toContainText('End turn');
   await gamePage.clickEndTurn();
 
   // Phase resets to DrawCard for the next player
-  await expect(gamePage.liveRegion).toContainText('DrawCard');
+  await expect(gamePage.liveRegion).toContainText('Draw card');
 
   const p2name = await gamePage.currentPlayerName();
   expect(p2name).not.toBe(p1name);
