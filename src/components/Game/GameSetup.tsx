@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { PlayerConfig, BotDifficulty, GameOptions, BoardSize } from '../../types';
 import { useTutorialStore } from '../../store/tutorialStore';
@@ -29,12 +29,15 @@ const DEFAULT_OPTIONS: GameOptions = {
 
 export function GameSetup({ onStart }: GameSetupProps) {
   const { t, i18n } = useTranslation();
-  const difficultyLabels: Record<BotDifficulty, string> = {
-    [BotDifficulty.Easy]: t('setup.difficultyEasy'),
-    [BotDifficulty.Medium]: t('setup.difficultyMedium'),
-    [BotDifficulty.Hard]: t('setup.difficultyHard'),
-    [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
-  };
+  const difficultyLabels: Record<BotDifficulty, string> = useMemo(
+    () => ({
+      [BotDifficulty.Easy]: t('setup.difficultyEasy'),
+      [BotDifficulty.Medium]: t('setup.difficultyMedium'),
+      [BotDifficulty.Hard]: t('setup.difficultyHard'),
+      [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
+    }),
+    [t],
+  );
   const [playerCount, setPlayerCount] = useState(2);
   const [configs, setConfigs] = useState<PlayerConfig[]>(
       DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({

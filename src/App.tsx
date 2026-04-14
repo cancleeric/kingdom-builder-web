@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useShallow } from 'zustand/react/shallow'
 import { useGameStore } from './store/gameStore'
@@ -125,12 +125,15 @@ function App() {
   };
 
   const currentPlayer = players[currentPlayerIndex]
-  const botDifficultyLabels: Record<BotDifficulty, string> = {
-    [BotDifficulty.Easy]: t('setup.difficultyEasy'),
-    [BotDifficulty.Medium]: t('setup.difficultyMedium'),
-    [BotDifficulty.Hard]: t('setup.difficultyHard'),
-    [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
-  }
+  const botDifficultyLabels: Record<BotDifficulty, string> = useMemo(
+    () => ({
+      [BotDifficulty.Easy]: t('setup.difficultyEasy'),
+      [BotDifficulty.Medium]: t('setup.difficultyMedium'),
+      [BotDifficulty.Hard]: t('setup.difficultyHard'),
+      [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
+    }),
+    [t],
+  )
   const isNetworkGame = multiplayerMode === 'in_game' && !!multiplayerRoom;
   const isHost = !!multiplayerRoom && multiplayerLocalPlayerId === multiplayerRoom.hostPlayerId;
   const isLocalTurn =
