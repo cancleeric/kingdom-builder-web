@@ -93,6 +93,10 @@ const resources = {
         allowUndo: 'Allow Undo (once per turn)',
         howToPlay: '📖 How to Play (Tutorial)',
         startGame: 'Start Game',
+        difficultyEasy: 'Easy (Random)',
+        difficultyMedium: 'Medium (Strategic)',
+        difficultyHard: 'Hard (Alpha-Beta)',
+        difficultyLegacy: 'Medium (Legacy)',
       },
       board: {
         gameBoardAria: 'Kingdom Builder game board',
@@ -222,6 +226,10 @@ const resources = {
         allowUndo: '允許復原（每回合一次）',
         howToPlay: '📖 教學',
         startGame: '開始遊戲',
+        difficultyEasy: '簡單（隨機）',
+        difficultyMedium: '中等（策略）',
+        difficultyHard: '困難（Alpha-Beta）',
+        difficultyLegacy: '中等（舊版）',
       },
       board: {
         gameBoardAria: '王國建造者遊戲棋盤',

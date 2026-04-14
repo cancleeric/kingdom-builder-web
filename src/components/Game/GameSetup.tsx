@@ -9,12 +9,6 @@ interface GameSetupProps {
 
 const DEFAULT_PLAYER_NAMES = ['Player 1', 'Player 2', 'Player 3', 'Player 4'];
 
-const DIFFICULTY_LABELS: Record<BotDifficulty, string> = {
-  [BotDifficulty.Easy]: 'Easy (Random)',
-  [BotDifficulty.Medium]: 'Medium (Strategic)',
-  [BotDifficulty.Hard]: 'Hard (Alpha-Beta)',
-  [BotDifficulty.Normal]: 'Medium (Legacy)',
-};
 const SELECTABLE_DIFFICULTIES: BotDifficulty[] = [
   BotDifficulty.Easy,
   BotDifficulty.Medium,
@@ -35,6 +29,12 @@ const DEFAULT_OPTIONS: GameOptions = {
 
 export function GameSetup({ onStart }: GameSetupProps) {
   const { t, i18n } = useTranslation();
+  const difficultyLabels: Record<BotDifficulty, string> = {
+    [BotDifficulty.Easy]: t('setup.difficultyEasy'),
+    [BotDifficulty.Medium]: t('setup.difficultyMedium'),
+    [BotDifficulty.Hard]: t('setup.difficultyHard'),
+    [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
+  };
   const [playerCount, setPlayerCount] = useState(2);
   const [configs, setConfigs] = useState<PlayerConfig[]>(
       DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
@@ -169,7 +169,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                   >
                     {SELECTABLE_DIFFICULTIES.map(d => (
                       <option key={d} value={d}>
-                        {DIFFICULTY_LABELS[d]}
+                         {difficultyLabels[d]}
                       </option>
                     ))}
                   </select>

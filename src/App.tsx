@@ -126,10 +126,10 @@ function App() {
 
   const currentPlayer = players[currentPlayerIndex]
   const botDifficultyLabels: Record<BotDifficulty, string> = {
-    [BotDifficulty.Easy]: 'Easy',
-    [BotDifficulty.Medium]: 'Medium',
-    [BotDifficulty.Hard]: 'Hard',
-    [BotDifficulty.Normal]: 'Medium',
+    [BotDifficulty.Easy]: t('setup.difficultyEasy'),
+    [BotDifficulty.Medium]: t('setup.difficultyMedium'),
+    [BotDifficulty.Hard]: t('setup.difficultyHard'),
+    [BotDifficulty.Normal]: t('setup.difficultyLegacy'),
   }
   const isNetworkGame = multiplayerMode === 'in_game' && !!multiplayerRoom;
   const isHost = !!multiplayerRoom && multiplayerLocalPlayerId === multiplayerRoom.hostPlayerId;
