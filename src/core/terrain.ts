@@ -2,6 +2,7 @@
  * Terrain types in Kingdom Builder
  */
 import { getRandom } from '../utils/seededRandom';
+import i18n from '../i18n';
 
 export enum Terrain {
   Grass = 'Grass',
@@ -63,7 +64,7 @@ export function getTerrainColor(terrain: Terrain): string {
  * Get display name for terrain
  */
 export function getTerrainName(terrain: Terrain): string {
-  return terrain;
+  return i18n.t(`terrain.${terrain}`);
 }
 
 /**

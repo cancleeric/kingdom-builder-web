@@ -1,4 +1,5 @@
 import React from 'react';
+import { useTranslation } from 'react-i18next';
 import { hexCorners, HEX_SIZE } from '../../core/hex';
 import { HexCell as HexCellType } from '../../types';
 import { getTerrainColor, getTerrainName } from '../../core/terrain';
@@ -40,6 +41,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   onKeyDown,
   cellRef,
 }) => {
+  const { t } = useTranslation();
   const corners = hexCorners(cell.coord, HEX_SIZE);
   const points = corners.map(c => `${c.x},${c.y}`).join(' ');
 
@@ -75,10 +77,10 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   const terrainName = getTerrainName(cell.terrain);
   let ariaLabel = `Q${cell.coord.q} R${cell.coord.r} — ${terrainName}`;
   if (cell.settlement !== undefined && playerName) {
-    ariaLabel += `, ${playerName} settlement`;
+    ariaLabel += `, ${t('board.settlement', { player: playerName })}`;
   }
   if (isValid) {
-    ariaLabel += ', valid placement';
+    ariaLabel += `, ${t('board.validPlacement')}`;
   }
 
   return (

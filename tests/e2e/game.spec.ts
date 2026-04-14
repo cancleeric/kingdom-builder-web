@@ -4,6 +4,12 @@ import { GamePage } from '../pages/GamePage';
 
 // ─── helpers ────────────────────────────────────────────────────────────────
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('i18nextLng', 'en');
+  });
+});
+
 /**
  * Start a 2-human-player game (optional deterministic seed) and wait for
  * the initial DrawCard phase.

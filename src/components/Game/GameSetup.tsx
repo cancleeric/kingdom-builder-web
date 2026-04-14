@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { useTranslation } from 'react-i18next';
 import { PlayerConfig, BotDifficulty, GameOptions, BoardSize } from '../../types';
 import { useTutorialStore } from '../../store/tutorialStore';
 
@@ -33,6 +34,7 @@ const DEFAULT_OPTIONS: GameOptions = {
 };
 
 export function GameSetup({ onStart }: GameSetupProps) {
+  const { t, i18n } = useTranslation();
   const [playerCount, setPlayerCount] = useState(2);
   const [configs, setConfigs] = useState<PlayerConfig[]>(
       DEFAULT_PLAYER_NAMES.slice(0, 2).map((name, i) => ({
@@ -74,16 +76,30 @@ export function GameSetup({ onStart }: GameSetupProps) {
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
         <h1 className="text-3xl font-bold text-center text-blue-700 mb-6">
-          Kingdom Builder
+          {t('app.title')}
         </h1>
         <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">
-          Game Setup
+          {t('app.gameSetup')}
         </h2>
+        <div className="flex justify-center gap-2 mb-4">
+          <button
+            onClick={() => i18n.changeLanguage('en')}
+            className={`px-3 py-1 rounded border text-sm ${i18n.language.startsWith('en') ? 'bg-blue-600 text-white' : 'bg-white'}`}
+          >
+            {t('language.en')}
+          </button>
+          <button
+            onClick={() => i18n.changeLanguage('zh-TW')}
+            className={`px-3 py-1 rounded border text-sm ${i18n.language.startsWith('zh') ? 'bg-blue-600 text-white' : 'bg-white'}`}
+          >
+            {t('language.zhTW')}
+          </button>
+        </div>
 
         {/* Player Count */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Number of Players
+            {t('setup.numberOfPlayers')}
           </label>
           <div className="flex gap-2">
             {[2, 3, 4].map(n => (
@@ -108,14 +124,14 @@ export function GameSetup({ onStart }: GameSetupProps) {
             <div key={i} className="border rounded-lg p-4 bg-gray-50">
               <div className="flex items-center gap-3 mb-3">
                 <span className="font-semibold text-gray-700 w-20">
-                  Player {i + 1}
+                  {t('setup.player', { index: i + 1 })}
                 </span>
                 <input
                   type="text"
                   value={cfg.name}
                   onChange={e => updateConfig(i, { name: e.target.value })}
                   className="flex-1 border rounded px-2 py-1 text-sm"
-                  placeholder={`Player ${i + 1}`}
+                  placeholder={t('setup.player', { index: i + 1 })}
                 />
               </div>
 
@@ -131,7 +147,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
                         : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
                     }`}
                   >
-                    {type === 'human' ? '🧑 Human' : '🤖 Computer'}
+                    {type === 'human' ? t('setup.human') : t('setup.computer')}
                   </button>
                 ))}
               </div>
@@ -140,7 +156,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
               {cfg.type === 'bot' && (
                 <div>
                   <label className="block text-xs text-gray-500 mb-1">
-                    AI Difficulty
+                    {t('setup.aiDifficulty')}
                   </label>
                   <select
                     value={cfg.difficulty}
@@ -166,7 +182,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
         {/* Board Size */}
         <div className="mb-6">
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Board Size
+            {t('setup.boardSize')}
           </label>
           <div className="flex gap-2">
             {(['small', 'medium', 'large'] as BoardSize[]).map(size => (
@@ -187,12 +203,12 @@ export function GameSetup({ onStart }: GameSetupProps) {
 
         {/* Game Options */}
         <div className="mb-8 border rounded-lg p-4 bg-gray-50">
-          <h3 className="text-sm font-semibold text-gray-700 mb-3">Game Options</h3>
+          <h3 className="text-sm font-semibold text-gray-700 mb-3">{t('setup.gameOptions')}</h3>
 
           {/* Objective count */}
           <div className="mb-4">
             <label className="block text-xs text-gray-500 mb-2">
-              Objective Cards
+               {t('setup.objectiveCards')}
             </label>
             <div className="flex gap-2">
               {([1, 2, 3] as const).map(n => (
@@ -213,7 +229,7 @@ export function GameSetup({ onStart }: GameSetupProps) {
 
           {/* Enable undo */}
           <div className="flex items-center justify-between">
-            <span className="text-xs text-gray-600">Allow Undo (once per turn)</span>
+             <span className="text-xs text-gray-600">{t('setup.allowUndo')}</span>
             <button
               role="switch"
               aria-checked={options.enableUndo}
@@ -235,13 +251,13 @@ export function GameSetup({ onStart }: GameSetupProps) {
           onClick={startTutorial}
           className="w-full mb-3 bg-amber-500 hover:bg-amber-600 text-white font-bold py-3 rounded-xl text-lg transition"
         >
-          📖 How to Play (Tutorial)
+           {t('setup.howToPlay')}
         </button>
         <button
           onClick={handleStart}
           className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded-xl text-lg transition"
         >
-          Start Game
+           {t('setup.startGame')}
         </button>
       </div>
     </div>
