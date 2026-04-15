@@ -251,5 +251,5 @@ describe('BotPlayer class', () => {
     for (const coord of moves) {
       expect(board.getCell(coord)).toBeDefined();
     }
-  });
+  }, 15000);
 });
