@@ -4,6 +4,7 @@ import { Player } from '../../types';
 import { Location } from '../../core/terrain';
 import { useTranslation } from 'react-i18next';
 import { tLocation } from '../../i18n/formatters';
+import type { TFunction } from 'i18next';
 
 const MAX_LOG_ENTRIES = 20;
 
@@ -12,7 +13,7 @@ interface GameLogProps {
   players: Player[];
 }
 
-function actionLabel(action: GameAction, t: (key: string, options?: Record<string, unknown>) => string): string {
+function actionLabel(action: GameAction, t: TFunction): string {
   switch (action.type) {
     case 'PLACE_SETTLEMENT':
       return action.hex

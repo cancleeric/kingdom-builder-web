@@ -12,8 +12,11 @@ function getInitialLanguage(): 'en' | 'zh-TW' {
     return stored;
   }
 
-  const browserLang = navigator.language;
-  return browserLang.toLowerCase().startsWith('zh') ? 'zh-TW' : 'en';
+  const browserLang = navigator.language.toLowerCase();
+  if (browserLang === 'zh-tw' || browserLang === 'zh-hk') {
+    return 'zh-TW';
+  }
+  return 'en';
 }
 
 i18n.use(initReactI18next).init({
