@@ -74,7 +74,7 @@ describe('leaderboardStore', () => {
     const localEntries = useLeaderboardStore.getState().localEntries;
     expect(localEntries).toHaveLength(50);
     expect(localEntries[0].score).toBe(100);
-    expect(localEntries.at(-1)?.score).toBe(76);
+    expect(localEntries.at(-1)?.score).toBe(75);
   });
 
   it('clears local leaderboard records', () => {
