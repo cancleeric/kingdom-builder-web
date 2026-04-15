@@ -20,6 +20,8 @@ import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
 import { useTranslation } from 'react-i18next'
 import { tLocation, tObjective, tPhase, tTerrain } from './i18n/formatters'
+import { LeaderboardModal } from './components/Game/LeaderboardModal'
+import { useLeaderboardStore } from './store/leaderboardStore'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -40,7 +42,9 @@ function App() {
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
   const [menuMode, setMenuMode] = useState<'local' | 'multiplayer'>('local');
+  const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const submittedGameKeyRef = useRef<string | null>(null);
 
   const {
     board,
@@ -107,6 +111,7 @@ function App() {
   const sendPlayerAction = useMultiplayerStore((s) => s.sendPlayerAction);
   const sendStateUpdate = useMultiplayerStore((s) => s.sendStateUpdate);
   const leaveRoom = useMultiplayerStore((s) => s.leaveRoom);
+  const submitGameScores = useLeaderboardStore((s) => s.submitGameScores);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -151,6 +156,23 @@ function App() {
       playSound(SoundType.GAME_OVER);
     }
   }, [phase]);
+
+  useEffect(() => {
+    if (phase !== GamePhase.GameOver || finalScores.length === 0 || players.length === 0) {
+      submittedGameKeyRef.current = null;
+      return;
+    }
+
+    const gameKey = [
+      players.length,
+      ...finalScores.map((score) => `${score.playerId}:${score.totalScore}`),
+      ...objectiveCards,
+    ].join('|');
+
+    if (submittedGameKeyRef.current === gameKey) return;
+    submitGameScores(finalScores, players, objectiveCards);
+    submittedGameKeyRef.current = gameKey;
+  }, [finalScores, objectiveCards, phase, players, submitGameScores]);
 
   useEffect(() => {
     if (!isNetworkGame || !isHost || !multiplayerRoom?.gameStarted) return;
@@ -354,6 +376,12 @@ function App() {
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 transition text-xl"
           >
             {muted ? '🔇' : '🔊'}
+          </button>
+          <button
+            onClick={() => setLeaderboardOpen(true)}
+            className="hidden sm:block text-xs bg-blue-500 hover:bg-blue-400 text-white px-2 py-1 rounded border border-blue-300"
+          >
+            {t('leaderboard.open')}
           </button>
         </div>
       </header>
@@ -679,8 +707,14 @@ function App() {
           players={players}
           objectiveCards={objectiveCards}
           onNewGame={handleRestart}
+          onOpenLeaderboard={() => setLeaderboardOpen(true)}
         />
       )}
+
+      <LeaderboardModal
+        isOpen={leaderboardOpen}
+        onClose={() => setLeaderboardOpen(false)}
+      />
 
       {/* Tutorial overlay – available from any screen */}
       <TutorialOverlay />
