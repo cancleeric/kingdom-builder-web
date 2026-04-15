@@ -1,5 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
+import { I18nextProvider } from 'react-i18next';
+import i18n from '../../i18n';
 import { HexGrid } from './HexGrid';
 import { createDefaultBoard } from '../../core/board';
 import { AxialCoord } from '../../core/hex';
@@ -46,26 +48,32 @@ function makeProps(overrides?: {
   };
 }
 
+function renderWithI18n(ui: Parameters<typeof render>[0]) {
+  return render(
+    <I18nextProvider i18n={i18n}>{ui}</I18nextProvider>,
+  );
+}
+
 describe('HexGrid – ARIA structure', () => {
   it('renders a container with role="grid"', () => {
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     expect(screen.getByRole('grid')).toBeInTheDocument();
   });
 
   it('renders hex cells with role="gridcell"', () => {
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     const cells = screen.getAllByRole('gridcell');
     expect(cells.length).toBeGreaterThan(0);
   });
 
   it('renders row groups with role="row"', () => {
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     const rows = screen.getAllByRole('row');
     expect(rows.length).toBeGreaterThan(0);
   });
 
   it('cells have descriptive aria-label', () => {
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     const cells = screen.getAllByRole('gridcell');
     // Each cell should have an aria-label mentioning Q/R coordinates
     cells.forEach(cell => {
@@ -78,7 +86,7 @@ describe('HexGrid – ARIA structure', () => {
     const board = createDefaultBoard();
     const cells = board.getAllCells();
     const validPlacements = [cells[0].coord];
-    render(<HexGrid {...makeProps({ validPlacements })} />);
+    renderWithI18n(<HexGrid {...makeProps({ validPlacements })} />);
     const validCells = screen
       .getAllByRole('gridcell')
       .filter(el => el.getAttribute('aria-disabled') === 'false');
@@ -86,7 +94,7 @@ describe('HexGrid – ARIA structure', () => {
   });
 
   it('invalid cells have aria-disabled="true"', () => {
-    render(<HexGrid {...makeProps({ validPlacements: [] })} />);
+    renderWithI18n(<HexGrid {...makeProps({ validPlacements: [] })} />);
     const disabledCells = screen
       .getAllByRole('gridcell')
       .filter(el => el.getAttribute('aria-disabled') === 'true');
@@ -96,7 +104,7 @@ describe('HexGrid – ARIA structure', () => {
   it('valid cells mention "valid placement" in their aria-label', () => {
     const board = createDefaultBoard();
     const firstCell = board.getAllCells()[0];
-    render(<HexGrid {...makeProps({ validPlacements: [firstCell.coord] })} />);
+    renderWithI18n(<HexGrid {...makeProps({ validPlacements: [firstCell.coord] })} />);
     const label = `Q${firstCell.coord.q} R${firstCell.coord.r}`;
     const el = screen.getAllByRole('gridcell').find(c =>
       c.getAttribute('aria-label')?.startsWith(label),
@@ -117,7 +125,7 @@ describe('HexGrid – keyboard navigation', () => {
     const board = createDefaultBoard();
     const target = board.getAllCells()[0].coord;
     const onCellClick = vi.fn();
-    render(
+    renderWithI18n(
       <HexGrid
         {...makeProps({ validPlacements: [target], onCellClick })}
       />,
@@ -136,7 +144,7 @@ describe('HexGrid – keyboard navigation', () => {
     const board = createDefaultBoard();
     const target = board.getAllCells()[0].coord;
     const onCellClick = vi.fn();
-    render(
+    renderWithI18n(
       <HexGrid
         {...makeProps({ validPlacements: [target], onCellClick })}
       />,
@@ -154,7 +162,7 @@ describe('HexGrid – keyboard navigation', () => {
     const board = createDefaultBoard();
     const target = board.getAllCells()[0].coord;
     const onCellClick = vi.fn();
-    render(
+    renderWithI18n(
       <HexGrid
         {...makeProps({ validPlacements: [], onCellClick })}
       />,
@@ -172,7 +180,7 @@ describe('HexGrid – keyboard navigation', () => {
     const onEscape = vi.fn();
     const board = createDefaultBoard();
     const firstCoord = board.getAllCells()[0].coord;
-    render(<HexGrid {...makeProps({ onEscape })} />);
+    renderWithI18n(<HexGrid {...makeProps({ onEscape })} />);
     const label = `Q${firstCoord.q} R${firstCoord.r}`;
     const cell = screen
       .getAllByRole('gridcell')
@@ -185,7 +193,7 @@ describe('HexGrid – keyboard navigation', () => {
   it('Escape key does not throw when onEscape is not provided', () => {
     const board = createDefaultBoard();
     const firstCoord = board.getAllCells()[0].coord;
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     const label = `Q${firstCoord.q} R${firstCoord.r}`;
     const cell = screen
       .getAllByRole('gridcell')
@@ -203,7 +211,7 @@ describe('HexGrid – keyboard navigation', () => {
 
     const focusSpy = vi.fn();
     // Spy on the neighbor element's focus once it is set via ref
-    render(<HexGrid {...makeProps()} />);
+    renderWithI18n(<HexGrid {...makeProps()} />);
     const originLabel = `Q${origin.q} R${origin.r}`;
     const originCell = screen
       .getAllByRole('gridcell')

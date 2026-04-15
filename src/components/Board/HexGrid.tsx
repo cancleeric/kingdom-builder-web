@@ -4,6 +4,7 @@ import { AxialCoord, hexEquals, HEX_SIZE } from '../../core/hex';
 import { HexCell } from './HexCell';
 import { Player } from '../../types';
 import { useBoardTransform } from '../../hooks/useBoardTransform';
+import { useTranslation } from 'react-i18next';
 
 interface HexGridProps {
   board: Board;
@@ -24,6 +25,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onCellSelect,
   onEscape,
 }) => {
+  const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
   const {
     transform,
@@ -142,7 +144,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
       className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden relative select-none"
       ref={containerRef}
       role="grid"
-      aria-label="Kingdom Builder game board"
+      aria-label={t('board.gridLabel')}
       onWheel={onWheel}
       onMouseDown={onMouseDown}
       onMouseMove={onMouseMove}
@@ -163,8 +165,8 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
       <button
         className="absolute top-2 right-2 z-10 bg-white/80 hover:bg-white border border-gray-300 rounded-full w-9 h-9 text-sm font-bold shadow flex items-center justify-center"
         onClick={reset}
-        title="Reset zoom"
-        aria-label="Reset board zoom"
+        title={t('board.resetZoomTitle')}
+        aria-label={t('board.resetZoomAria')}
       >
         ⌖
       </button>

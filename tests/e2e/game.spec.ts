@@ -2,6 +2,19 @@ import { test, expect } from '@playwright/test';
 import { SetupPage } from '../pages/SetupPage';
 import { GamePage } from '../pages/GamePage';
 
+test.beforeEach(async ({ page }) => {
+  await page.addInitScript(() => {
+    localStorage.setItem('i18nextLng', 'en');
+  });
+  await page.evaluate(() => {
+    try {
+      localStorage.setItem('i18nextLng', 'en');
+    } catch {
+      // ignore storage access errors before first navigation
+    }
+  });
+});
+
 // ─── helpers ────────────────────────────────────────────────────────────────
 
 /**
