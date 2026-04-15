@@ -124,6 +124,18 @@ export const zhTW = {
     objectiveCards: '目標卡',
     newGame: '新遊戲',
   },
+  leaderboard: {
+    open: '排行榜',
+    heading: '排行榜',
+    close: '關閉',
+    localTab: '本機',
+    globalTab: '全球',
+    empty: '目前沒有排行榜紀錄。',
+    clearLocal: '清除本機紀錄',
+    filterByObjective: '目標卡組合',
+    filterAll: '全部',
+    meta: '{{date}} · {{playerCount}} 位玩家',
+  },
   gameLog: {
     heading: '操作日誌',
     empty: '尚無操作記錄',

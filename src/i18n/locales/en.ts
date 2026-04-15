@@ -125,6 +125,18 @@ export const en = {
     objectiveCards: 'Objective Cards',
     newGame: 'New Game',
   },
+  leaderboard: {
+    open: 'Leaderboard',
+    heading: 'Leaderboard',
+    close: 'Close',
+    localTab: 'Local',
+    globalTab: 'Global',
+    empty: 'No leaderboard records yet.',
+    clearLocal: 'Clear Local Records',
+    filterByObjective: 'Objective Combo',
+    filterAll: 'All',
+    meta: '{{date}} · {{playerCount}} players',
+  },
   gameLog: {
     heading: 'Action Log',
     empty: 'No actions yet',
