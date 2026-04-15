@@ -1,7 +1,9 @@
 import { useEffect, useCallback } from 'react';
 import { useTutorialStore, TUTORIAL_STEPS } from '../../store/tutorialStore';
+import { useTranslation } from 'react-i18next';
 
 export function TutorialOverlay() {
+  const { t } = useTranslation();
   const { isActive, currentStepIndex, nextStep, prevStep, completeTutorial, dismissTutorial } =
     useTutorialStore();
 
@@ -31,13 +33,15 @@ export function TutorialOverlay() {
   if (!isActive || !step) return null;
 
   const progress = ((currentStepIndex + 1) / TUTORIAL_STEPS.length) * 100;
+  const translatedTitle = t(`tutorial.steps.${step.id}.title`, { defaultValue: step.title });
+  const translatedDescription = t(`tutorial.steps.${step.id}.description`, { defaultValue: step.description });
 
   return (
     /* Semi-transparent backdrop */
     <div
       role="dialog"
       aria-modal="true"
-      aria-label="Tutorial"
+      aria-label={t('tutorial.dialogLabel')}
       className="fixed inset-0 z-50 flex items-center justify-center"
       style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
       onClick={dismissTutorial}
@@ -50,7 +54,7 @@ export function TutorialOverlay() {
       >
         {/* Close button */}
         <button
-          aria-label="Close tutorial"
+          aria-label={t('tutorial.close')}
           onClick={dismissTutorial}
           className="absolute top-3 right-3 w-8 h-8 flex items-center justify-center rounded-full text-gray-400 hover:text-gray-700 hover:bg-gray-100 transition text-lg"
         >
@@ -64,11 +68,11 @@ export function TutorialOverlay() {
               {step.icon}
             </span>
           )}
-          <h2 className="text-xl font-bold text-gray-800">{step.title}</h2>
+          <h2 className="text-xl font-bold text-gray-800">{translatedTitle}</h2>
         </div>
 
         {/* Description */}
-        <p className="text-gray-600 leading-relaxed">{step.description}</p>
+        <p className="text-gray-600 leading-relaxed">{translatedDescription}</p>
 
         {/* Progress bar */}
         <div className="w-full bg-gray-200 rounded-full h-1.5" aria-hidden="true">
@@ -81,7 +85,7 @@ export function TutorialOverlay() {
         {/* Step counter + navigation */}
         <div className="flex items-center justify-between">
           <span className="text-xs text-gray-400">
-            Step {currentStepIndex + 1} of {TUTORIAL_STEPS.length}
+            {t('tutorial.stepCounter', { current: currentStepIndex + 1, total: TUTORIAL_STEPS.length })}
           </span>
 
           <div className="flex gap-2">
@@ -90,7 +94,7 @@ export function TutorialOverlay() {
                 onClick={prevStep}
                 className="px-4 py-2 rounded-lg border border-gray-300 text-sm font-medium text-gray-600 hover:bg-gray-50 transition"
               >
-                ← Back
+                {t('tutorial.back')}
               </button>
             )}
 
@@ -99,14 +103,14 @@ export function TutorialOverlay() {
                 onClick={completeTutorial}
                 className="px-5 py-2 rounded-lg bg-green-600 hover:bg-green-700 text-white text-sm font-semibold transition"
               >
-                Finish 🎉
+                {t('tutorial.finish')}
               </button>
             ) : (
               <button
                 onClick={nextStep}
                 className="px-5 py-2 rounded-lg bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold transition"
               >
-                Next →
+                {t('tutorial.next')}
               </button>
             )}
           </div>
@@ -114,7 +118,7 @@ export function TutorialOverlay() {
 
         {/* Keyboard hint */}
         <p className="text-xs text-gray-400 text-center">
-          Press left/right arrow keys to navigate · Esc to close
+          {t('tutorial.keyboardHint')}
         </p>
       </div>
     </div>

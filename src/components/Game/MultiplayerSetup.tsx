@@ -4,6 +4,7 @@ import type { GameOptions, PlayerConfig } from '../../types';
 import { useGameStore } from '../../store/gameStore';
 import { useMultiplayerStore } from '../../store/multiplayerStore';
 import { extractSerializableState } from '../../multiplayer/stateSerializer';
+import { useTranslation } from 'react-i18next';
 
 interface MultiplayerSetupProps {
   onBack: () => void;
@@ -17,6 +18,7 @@ const DEFAULT_OPTIONS: GameOptions = {
 };
 
 export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProps) {
+  const { t } = useTranslation();
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [serverUrl, setServerUrl] = useState(
@@ -92,8 +94,8 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
       <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">Kingdom Builder</h1>
-        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">Online Multiplayer</h2>
+        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">{t('common.appName')}</h1>
+        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">{t('app.playOnlineMultiplayer')}</h2>
 
         {!room && (
           <>
@@ -195,7 +197,7 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
             {isHost && (
               <>
                 <div className="mb-4 border rounded-lg p-3 bg-gray-50">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">Game Options</h3>
+                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{t('setup.gameOptions')}</h3>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {(['small', 'medium', 'large'] as const).map((size) => (
                       <button

@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { useTranslation } from 'react-i18next';
 
 interface BeforeInstallPromptEvent extends Event {
   prompt(): Promise<void>;
@@ -6,6 +7,7 @@ interface BeforeInstallPromptEvent extends Event {
 }
 
 export function InstallPrompt() {
+  const { t } = useTranslation();
   const [installEvent, setInstallEvent] = useState<BeforeInstallPromptEvent | null>(null);
 
   useEffect(() => {
@@ -33,9 +35,9 @@ export function InstallPrompt() {
       <button
         onClick={handleInstall}
         className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transition-colors"
-        aria-label="安裝到主畫面"
+        aria-label={t('installPrompt.ariaLabel')}
       >
-        📲 安裝到主畫面
+        {t('installPrompt.button')}
       </button>
     </div>
   );

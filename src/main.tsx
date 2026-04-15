@@ -1,9 +1,11 @@
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
+import { I18nextProvider } from 'react-i18next'
 import './index.css'
 import App from './App.tsx'
 import { registerSW } from './utils/registerSW'
 import { setGlobalSeed } from './utils/seededRandom'
+import i18n from './i18n'
 
 // Support ?seed=NUMBER URL parameter for deterministic board / deck (useful for E2E tests)
 const seedParam = new URLSearchParams(window.location.search).get('seed')
@@ -16,7 +18,9 @@ if (seedParam !== null) {
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <App />
+    <I18nextProvider i18n={i18n}>
+      <App />
+    </I18nextProvider>
   </StrictMode>,
 )
 
