@@ -22,6 +22,7 @@ import { useTranslation } from 'react-i18next'
 import { tLocation, tObjective, tPhase, tTerrain } from './i18n/formatters'
 import { LeaderboardModal } from './components/Game/LeaderboardModal'
 import { useLeaderboardStore } from './store/leaderboardStore'
+import { ReplayModal } from './components/Game/ReplayModal'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -43,6 +44,7 @@ function App() {
   const [gameStarted, setGameStarted] = useState(false);
   const [menuMode, setMenuMode] = useState<'local' | 'multiplayer'>('local');
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
+  const [replayOpen, setReplayOpen] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -383,6 +385,12 @@ function App() {
           >
             {t('leaderboard.open')}
           </button>
+          <button
+            onClick={() => setReplayOpen(true)}
+            className="hidden sm:block text-xs bg-purple-500 hover:bg-purple-400 text-white px-2 py-1 rounded border border-purple-300"
+          >
+            {t('replay.open')}
+          </button>
         </div>
       </header>
 
@@ -708,12 +716,18 @@ function App() {
           objectiveCards={objectiveCards}
           onNewGame={handleRestart}
           onOpenLeaderboard={() => setLeaderboardOpen(true)}
+          onOpenReplay={() => setReplayOpen(true)}
         />
       )}
 
       <LeaderboardModal
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
+      />
+
+      <ReplayModal
+        isOpen={replayOpen}
+        onClose={() => setReplayOpen(false)}
       />
 
       {/* Tutorial overlay – available from any screen */}

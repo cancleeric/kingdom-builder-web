@@ -416,6 +416,21 @@ export const gameStore = create<GameState>((set, get) => ({
         turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
+
+      // Save a replay record for the completed game.
+      // Import lazily to avoid circular dependency between stores.
+      import('./replayStore').then(({ useReplayStore }) => {
+        const { players, history, objectiveCards } = get();
+        const winner = [...finalScores].sort((a, b) => b.totalScore - a.totalScore)[0];
+        const winnerPlayer = players.find((p) => p.id === winner?.playerId);
+        useReplayStore.getState().saveReplay({
+          players: players.map(({ id, name, color }) => ({ id, name, color })),
+          history: [...history],
+          finalScores: [...finalScores],
+          objectiveCards: [...objectiveCards],
+          winnerName: winnerPlayer?.name ?? '',
+        });
+      });
     } else {
       set({
         currentPlayerIndex: nextPlayerIndex,

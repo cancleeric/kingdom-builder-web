@@ -89,6 +89,39 @@ export interface GameOptions {
 }
 
 // ────────────────────────────────────────────────────
+// Replay types
+// ────────────────────────────────────────────────────
+
+/**
+ * Lightweight player snapshot stored with each replay (no mutable runtime state).
+ */
+export interface ReplayPlayer {
+  id: number;
+  name: string;
+  color: string;
+}
+
+/**
+ * A completed game's replay record, persisted in localStorage.
+ */
+export interface ReplayRecord {
+  /** Unique identifier (uuid-like timestamp string) */
+  id: string;
+  /** ISO date string when the game ended */
+  date: string;
+  /** Snapshot of each player at game end */
+  players: ReplayPlayer[];
+  /** Full chronological list of game actions */
+  history: import('./history').GameAction[];
+  /** Final score breakdown per player */
+  finalScores: PlayerScore[];
+  /** Objective cards in play */
+  objectiveCards: ObjectiveCard[];
+  /** Name of the highest-scoring player */
+  winnerName: string;
+}
+
+// ────────────────────────────────────────────────────
 // Tutorial types
 // ────────────────────────────────────────────────────
 

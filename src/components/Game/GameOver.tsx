@@ -11,6 +11,7 @@ interface GameOverProps {
   objectiveCards: ObjectiveCard[];
   onNewGame: () => void;
   onOpenLeaderboard?: () => void;
+  onOpenReplay?: () => void;
 }
 
 export const GameOver = React.memo(function GameOver({
@@ -19,6 +20,7 @@ export const GameOver = React.memo(function GameOver({
   objectiveCards,
   onNewGame,
   onOpenLeaderboard,
+  onOpenReplay,
 }: GameOverProps) {
   const { t } = useTranslation();
   const sorted = [...finalScores].sort((a, b) => b.totalScore - a.totalScore);
@@ -81,7 +83,7 @@ export const GameOver = React.memo(function GameOver({
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
           <button
             onClick={onNewGame}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg transition"
@@ -93,6 +95,12 @@ export const GameOver = React.memo(function GameOver({
             className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 px-4 rounded-lg transition"
           >
             {t('leaderboard.open')}
+          </button>
+          <button
+            onClick={onOpenReplay}
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 px-4 rounded-lg transition"
+          >
+            {t('replay.watchReplay')}
           </button>
         </div>
       </div>
