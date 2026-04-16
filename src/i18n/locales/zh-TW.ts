@@ -160,6 +160,8 @@ export const zhTW = {
     actionUnknown: '操作',
     finalScores: '最終得分',
     replayOf: '回放 — {{date}}',
+    actionCount: '{{count}} 個操作',
+    actionCount_plural: '{{count}} 個操作',
   },
   gameLog: {
     heading: '操作日誌',

@@ -161,6 +161,8 @@ export const en = {
     actionUnknown: 'Action',
     finalScores: 'Final Scores',
     replayOf: 'Replay — {{date}}',
+    actionCount: '{{count}} action',
+    actionCount_plural: '{{count}} actions',
   },
   gameLog: {
     heading: 'Action Log',

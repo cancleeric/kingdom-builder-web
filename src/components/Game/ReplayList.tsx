@@ -69,7 +69,7 @@ export const ReplayList = React.memo(function ReplayList({
               </div>
             </div>
             <p className="text-xs text-gray-400">
-              {replay.history.length} {replay.history.length === 1 ? 'action' : 'actions'}
+              {t('replay.actionCount', { count: replay.history.length })}
             </p>
           </li>
         );
