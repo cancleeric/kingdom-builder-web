@@ -195,9 +195,6 @@ describe('ReplayViewer', () => {
     );
     // The third action describes a TILE_MOVE (Q4R-2 is the destination)
     // Click the third item in the timeline list (index 2)
-    const listItems = screen.getAllByRole('button').filter((btn) =>
-      btn.getAttribute('aria-current') !== null || btn.textContent?.includes('Turn 2')
-    );
     // Find the Turn 2 button in the list
     const turn2Btn = screen.getAllByText(/Turn 2/i)[0];
     fireEvent.click(turn2Btn.closest('button') ?? turn2Btn);
