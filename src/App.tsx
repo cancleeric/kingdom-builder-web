@@ -193,7 +193,8 @@ function App() {
     }, 0);
     const isWinner = humanPlayers.some((p) => p.id === winnerId);
     const winnerPlayer = players.find((p) => p.id === winnerId);
-    const tilesAtEnd = isWinner && winnerPlayer ? winnerPlayer.tiles.length : 0;
+    const tilesAtEnd =
+      isWinner && winnerPlayer && !winnerPlayer.isBot ? winnerPlayer.tiles.length : 0;
     const settlementsThisGame = humanPlayers.reduce(
       (sum, p) => sum + p.settlements.length,
       0
