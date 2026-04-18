@@ -206,6 +206,68 @@ export const zhTW = {
     newGame: '新遊戲',
     clearSave: '清除存檔',
   },
+  achievement: {
+    panelLabel: '成就',
+    heading: '🏅 成就',
+    close: '關閉成就',
+    progress: '已解鎖 {{unlocked}} / {{total}}',
+    unlocked: '成就解鎖！',
+    locked: '尚未解鎖',
+    unlockedOn: '解鎖於 {{date}}',
+    lockedAria: '{{title}} — 尚未解鎖',
+    unlockedAria: '{{title}} — 已解鎖',
+    open: '成就',
+    items: {
+      first_win: {
+        title: '初次勝利',
+        description: '贏得第一場遊戲。',
+      },
+      win_5: {
+        title: '老手',
+        description: '贏得 5 場遊戲。',
+      },
+      win_10: {
+        title: '冠軍',
+        description: '贏得 10 場遊戲。',
+      },
+      first_game: {
+        title: '初學者',
+        description: '完成第一場遊戲。',
+      },
+      play_5: {
+        title: '常客',
+        description: '完成 5 場遊戲。',
+      },
+      play_20: {
+        title: '忠實玩家',
+        description: '完成 20 場遊戲。',
+      },
+      score_50: {
+        title: '得分高手',
+        description: '單場得分達 50 分以上。',
+      },
+      score_100: {
+        title: '百分王',
+        description: '單場得分達 100 分以上。',
+      },
+      settlements_100: {
+        title: '建造者',
+        description: '累積放置 100 個聚落。',
+      },
+      settlements_500: {
+        title: '建築師',
+        description: '累積放置 500 個聚落。',
+      },
+      turns_50: {
+        title: '耐心策略家',
+        description: '累積進行 50 回合。',
+      },
+      tile_collector: {
+        title: '地點大師',
+        description: '終局時持有 3 張以上地點牌。',
+      },
+    },
+  },
   tutorial: {
     dialogLabel: '教學',
     close: '關閉教學',

@@ -208,6 +208,68 @@ export const en = {
     newGame: 'New Game',
     clearSave: 'Clear Save',
   },
+  achievement: {
+    panelLabel: 'Achievements',
+    heading: '🏅 Achievements',
+    close: 'Close achievements',
+    progress: '{{unlocked}} / {{total}} unlocked',
+    unlocked: 'Achievement Unlocked!',
+    locked: 'Locked',
+    unlockedOn: 'Unlocked {{date}}',
+    lockedAria: '{{title}} — locked',
+    unlockedAria: '{{title}} — unlocked',
+    open: 'Achievements',
+    items: {
+      first_win: {
+        title: 'First Victory',
+        description: 'Win your first game.',
+      },
+      win_5: {
+        title: 'Veteran',
+        description: 'Win 5 games.',
+      },
+      win_10: {
+        title: 'Champion',
+        description: 'Win 10 games.',
+      },
+      first_game: {
+        title: 'Newcomer',
+        description: 'Complete your first game.',
+      },
+      play_5: {
+        title: 'Regular',
+        description: 'Complete 5 games.',
+      },
+      play_20: {
+        title: 'Dedicated',
+        description: 'Complete 20 games.',
+      },
+      score_50: {
+        title: 'Sharp Scorer',
+        description: 'Score 50+ points in a single game.',
+      },
+      score_100: {
+        title: 'Century',
+        description: 'Score 100+ points in a single game.',
+      },
+      settlements_100: {
+        title: 'Builder',
+        description: 'Place 100 settlements across all games.',
+      },
+      settlements_500: {
+        title: 'Architect',
+        description: 'Place 500 settlements across all games.',
+      },
+      turns_50: {
+        title: 'Patient Strategist',
+        description: 'Play 50 turns across all games.',
+      },
+      tile_collector: {
+        title: 'Tile Master',
+        description: 'Own 3 or more location tiles at game end.',
+      },
+    },
+  },
   tutorial: {
     dialogLabel: 'Tutorial',
     close: 'Close tutorial',
