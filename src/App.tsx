@@ -18,10 +18,12 @@ import { SaveLoadUI } from './components/SaveLoadUI'
 import { useMultiplayerStore } from './store/multiplayerStore'
 import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
+import { useSeasonStore } from './store/seasonStore'
+import { SeasonPanel } from './components/Game/SeasonPanel'
 import { useTranslation } from 'react-i18next'
 import { tLocation, tObjective, tPhase, tTerrain } from './i18n/formatters'
-import { LeaderboardModal } from './components/Game/LeaderboardModal'
 import { useLeaderboardStore } from './store/leaderboardStore'
+import { LeaderboardModal } from './components/Game/LeaderboardModal'
 import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
@@ -49,6 +51,7 @@ function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
+  const [seasonOpen, setSeasonOpen] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -122,6 +125,8 @@ function App() {
   const submitGameScores = useLeaderboardStore((s) => s.submitGameScores);
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
+  const recordSeasonResult = useSeasonStore((s) => s.recordGameResult);
+  const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -206,7 +211,21 @@ function App() {
       tilesAtEnd,
       settlementsThisGame,
     });
-  }, [finalScores, objectiveCards, phase, players, submitGameScores, recordGameEnd, turnNumber]);
+
+    // Record season scores for each human player
+    humanPlayers.forEach((p) => {
+      const s = finalScores.find((fs) => fs.playerId === p.id);
+      if (s) {
+        recordSeasonResult(p.name, s.totalScore, p.id === winnerId);
+      }
+    });
+  }, [finalScores, objectiveCards, phase, players, submitGameScores, recordGameEnd, recordSeasonResult, turnNumber]);
+
+  // Check for season rotation on mount
+  useEffect(() => {
+    checkAndRotateSeason();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (!isNetworkGame || !isHost || !multiplayerRoom?.gameStarted) return;
@@ -367,7 +386,16 @@ function App() {
           🏅
           <span>{achievementUnlockedCount}</span>
         </button>
+        {/* Season badge / button on main menu */}
+        <button
+          onClick={() => setSeasonOpen(true)}
+          className="fixed top-4 right-20 z-50 bg-blue-500 hover:bg-blue-400 text-white font-bold px-3 py-2 rounded-xl shadow-md text-sm flex items-center gap-1"
+          aria-label={t('season.open')}
+        >
+          🏆
+        </button>
         {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
+        {seasonOpen && <SeasonPanel onClose={() => setSeasonOpen(false)} />}
         <TutorialOverlay />
       </div>
     );
@@ -439,6 +467,13 @@ function App() {
             aria-label={t('achievement.open')}
           >
             🏅 <span>{achievementUnlockedCount}</span>
+          </button>
+          <button
+            onClick={() => setSeasonOpen(true)}
+            className="hidden sm:block text-xs bg-blue-500 hover:bg-blue-400 text-white font-bold px-2 py-1 rounded border border-blue-300 flex items-center gap-1"
+            aria-label={t('season.open')}
+          >
+            🏆 {t('season.open')}
           </button>
         </div>
       </header>
@@ -780,6 +815,12 @@ function App() {
       />
 
       {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
+      {seasonOpen && (
+        <SeasonPanel
+          onClose={() => setSeasonOpen(false)}
+          playerName={players.find((p) => !p.isBot)?.name}
+        />
+      )}
 
       {/* Achievement unlock toast notification */}
       <AchievementToast />
