@@ -258,7 +258,9 @@ export const useSeasonStore = create<SeasonState>((set, get) => ({
 
     // Update myBestScore and myRank
     const newMyBest = Math.max(currentSeason.myBestScore, myScore);
-    const myRank = merged.findIndex((e) => e.score <= newMyBest) + 1 || null;
+    // Count entries with strictly higher scores; add 1 to get 1-based rank
+    const betterCount = merged.filter((e) => e.score > newMyBest).length;
+    const myRank = merged.length > 0 ? betterCount + 1 : null;
     const rewardTier = computeRewardTier(myRank, merged.length);
 
     const updated: Season = {
