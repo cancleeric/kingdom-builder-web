@@ -26,6 +26,8 @@ import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
+import { useSeasonStore } from './store/seasonStore'
+import { SeasonBanner } from './components/Game/SeasonBanner'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -122,6 +124,8 @@ function App() {
   const submitGameScores = useLeaderboardStore((s) => s.submitGameScores);
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
+  const recordSeasonScore = useSeasonStore((s) => s.recordSeasonScore);
+  const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -159,6 +163,12 @@ function App() {
     }
     localAction();
   };
+
+  // Check for season rotation on app startup
+  useEffect(() => {
+    checkAndRotateSeason();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   // Play game over sound when phase changes to GameOver
   useEffect(() => {
@@ -206,7 +216,18 @@ function App() {
       tilesAtEnd,
       settlementsThisGame,
     });
-  }, [finalScores, objectiveCards, phase, players, submitGameScores, recordGameEnd, turnNumber]);
+
+    // Record season score: myScore = best human player score; allEntries = all players
+    const playerById = new Map(players.map((p) => [p.id, p]));
+    const now = new Date().toISOString();
+    const allSeasonEntries = finalScores.map((score) => ({
+      playerName: playerById.get(score.playerId)?.name ?? `Player ${score.playerId}`,
+      score: score.totalScore,
+      date: now,
+      playerCount: players.length,
+    }));
+    recordSeasonScore(topHumanScore, allSeasonEntries);
+  }, [finalScores, objectiveCards, phase, players, submitGameScores, recordGameEnd, recordSeasonScore, turnNumber]);
 
   useEffect(() => {
     if (!isNetworkGame || !isHost || !multiplayerRoom?.gameStarted) return;
@@ -427,6 +448,9 @@ function App() {
           >
             {t('leaderboard.open')}
           </button>
+          <div className="hidden sm:block">
+            <SeasonBanner onOpenSeasonPanel={() => setLeaderboardOpen(true)} />
+          </div>
           <button
             onClick={() => setReplayOpen(true)}
             className="hidden sm:block text-xs bg-purple-500 hover:bg-purple-400 text-white px-2 py-1 rounded border border-purple-300"
