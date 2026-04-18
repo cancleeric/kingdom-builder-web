@@ -68,7 +68,7 @@ function LeaderboardTable({
           <th className="pb-1 pr-2 font-medium">#</th>
           <th className="pb-1 pr-2 font-medium">{t('leaderboard.heading')}</th>
           <th className="pb-1 pr-2 font-medium text-right">{t('common.pointsShort')}</th>
-          <th className="pb-1 font-medium text-right">{t('season.leaderboard')}</th>
+          <th className="pb-1 font-medium text-right">{t('season.rewardTitle')}</th>
         </tr>
       </thead>
       <tbody>
