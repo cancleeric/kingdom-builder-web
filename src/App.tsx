@@ -26,6 +26,9 @@ import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
+import { SeasonBanner } from './components/Game/SeasonBanner'
+import { SeasonHistory } from './components/Game/SeasonHistory'
+import { useSeasonStore } from './store/seasonStore'
 
 const LOCATION_EMOJI: Record<Location, string> = {
   [Location.Castle]: '🏰',
@@ -49,6 +52,7 @@ function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
+  const [seasonHistoryOpen, setSeasonHistoryOpen] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -122,6 +126,7 @@ function App() {
   const submitGameScores = useLeaderboardStore((s) => s.submitGameScores);
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
+  const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -159,6 +164,11 @@ function App() {
     }
     localAction();
   };
+
+  // Check and rotate season on startup
+  useEffect(() => {
+    checkAndRotateSeason();
+  }, [checkAndRotateSeason]);
 
   // Play game over sound when phase changes to GameOver
   useEffect(() => {
@@ -346,6 +356,7 @@ function App() {
 
     return (
       <div>
+        <SeasonBanner onOpenLeaderboard={() => setLeaderboardOpen(true)} />
         <GameSetup onStart={handleStart} />
         <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
           <button
@@ -361,13 +372,15 @@ function App() {
         {/* Achievement badge / button on main menu */}
         <button
           onClick={() => setAchievementOpen(true)}
-          className="fixed top-4 right-4 z-50 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-3 py-2 rounded-xl shadow-md text-sm flex items-center gap-1"
+          className="fixed top-14 right-4 z-50 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-3 py-2 rounded-xl shadow-md text-sm flex items-center gap-1"
           aria-label={t('achievement.open')}
         >
           🏅
           <span>{achievementUnlockedCount}</span>
         </button>
         {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
+        <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+        <SeasonHistory isOpen={seasonHistoryOpen} onClose={() => setSeasonHistoryOpen(false)} />
         <TutorialOverlay />
       </div>
     );
@@ -434,6 +447,12 @@ function App() {
             {t('replay.open')}
           </button>
           <button
+            onClick={() => setSeasonHistoryOpen(true)}
+            className="hidden sm:block text-xs bg-indigo-500 hover:bg-indigo-400 text-white px-2 py-1 rounded border border-indigo-300"
+          >
+            {t('season.open')}
+          </button>
+          <button
             onClick={() => setAchievementOpen(true)}
             className="hidden sm:block text-xs bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-2 py-1 rounded border border-yellow-300 flex items-center gap-1"
             aria-label={t('achievement.open')}
@@ -442,6 +461,9 @@ function App() {
           </button>
         </div>
       </header>
+
+      {/* Season banner */}
+      <SeasonBanner onOpenLeaderboard={() => setLeaderboardOpen(true)} />
 
       {/* Main Game Area */}
       <div className="flex-1 flex overflow-hidden">
@@ -777,6 +799,11 @@ function App() {
       <ReplayModal
         isOpen={replayOpen}
         onClose={() => setReplayOpen(false)}
+      />
+
+      <SeasonHistory
+        isOpen={seasonHistoryOpen}
+        onClose={() => setSeasonHistoryOpen(false)}
       />
 
       {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}

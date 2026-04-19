@@ -2,6 +2,7 @@ import React, { useMemo, useState } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { getTopEntries, getObjectiveComboKey, useLeaderboardStore } from '../../store/leaderboardStore';
+import { useSeasonStore } from '../../store/seasonStore';
 import { tObjective } from '../../i18n/formatters';
 import type { ObjectiveCard } from '../../core/scoring';
 
@@ -15,7 +16,7 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
   onClose,
 }: LeaderboardModalProps) {
   const { t, i18n } = useTranslation();
-  const [activeTab, setActiveTab] = useState<'local' | 'global'>('local');
+  const [activeTab, setActiveTab] = useState<'local' | 'global' | 'season'>('season');
   const [objectiveFilter, setObjectiveFilter] = useState('__all__');
   const { localEntries, globalEntries, clearLocalEntries } = useLeaderboardStore(
     useShallow((state) => ({
@@ -24,6 +25,7 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
       clearLocalEntries: state.clearLocalEntries,
     }))
   );
+  const currentSeason = useSeasonStore((s) => s.currentSeason);
 
   const objectiveOptions = useMemo(() => {
     const combos = new Set(localEntries.map((entry) => getObjectiveComboKey(entry.objectiveCards)));
@@ -31,11 +33,21 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
   }, [localEntries]);
 
   const displayedEntries = useMemo(() => {
+    if (activeTab === 'season') {
+      return (currentSeason?.rankings ?? []).slice(0, 10);
+    }
     const source = activeTab === 'local' ? localEntries : globalEntries;
     return getTopEntries(source, objectiveFilter);
-  }, [activeTab, globalEntries, localEntries, objectiveFilter]);
+  }, [activeTab, globalEntries, localEntries, objectiveFilter, currentSeason]);
 
   if (!isOpen) return null;
+
+  const tabClass = (tab: typeof activeTab) =>
+    `px-3 py-1.5 text-sm rounded-full font-semibold ${
+      activeTab === tab
+        ? 'bg-blue-600 text-white'
+        : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+    }`;
 
   return (
     <div className="fixed inset-0 z-[60] bg-black/70 flex items-center justify-center px-4">
@@ -51,54 +63,75 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
           </button>
         </div>
 
-        <div className="flex items-center gap-2 mb-4">
-          <button
-            onClick={() => setActiveTab('local')}
-            className={`px-3 py-1.5 text-sm rounded-full font-semibold ${
-              activeTab === 'local'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
+        <div className="flex items-center gap-2 mb-4 flex-wrap">
+          <button onClick={() => setActiveTab('season')} className={tabClass('season')}>
+            {t('season.seasonTab')}
+          </button>
+          <button onClick={() => setActiveTab('local')} className={tabClass('local')}>
             {t('leaderboard.localTab')}
           </button>
-          <button
-            onClick={() => setActiveTab('global')}
-            className={`px-3 py-1.5 text-sm rounded-full font-semibold ${
-              activeTab === 'global'
-                ? 'bg-blue-600 text-white'
-                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
-            }`}
-          >
+          <button onClick={() => setActiveTab('global')} className={tabClass('global')}>
             {t('leaderboard.globalTab')}
           </button>
         </div>
 
-        <div className="mb-4">
-          <label className="text-sm text-gray-600 mr-2" htmlFor="objective-filter">
-            {t('leaderboard.filterByObjective')}
-          </label>
-          <select
-            id="objective-filter"
-            value={objectiveFilter}
-            onChange={(event) => setObjectiveFilter(event.target.value)}
-            className="border rounded px-2 py-1 text-sm"
-          >
-            {objectiveOptions.map((combo) => (
-              <option key={combo} value={combo}>
-                {combo === '__all__'
-                  ? t('leaderboard.filterAll')
-                  : combo
-                      .split('|')
-                      .map((card) => tObjective(t, card as ObjectiveCard))
-                      .join(' · ')}
-              </option>
-            ))}
-          </select>
-        </div>
+        {/* Season header info */}
+        {activeTab === 'season' && currentSeason && (
+          <div className="mb-3 p-3 bg-indigo-50 rounded-lg text-sm text-indigo-800 flex flex-wrap gap-2 items-center">
+            <span className="font-semibold">{currentSeason.label}</span>
+            {currentSeason.myRank !== null && (
+              <>
+                <span className="text-indigo-400">·</span>
+                <span>{t('season.myRank', { rank: currentSeason.myRank })}</span>
+                <span className="text-indigo-400">·</span>
+                <span>{t('season.myBestScore', { score: currentSeason.myBestScore })}</span>
+              </>
+            )}
+            {currentSeason.rewardTier && (
+              <>
+                <span className="text-indigo-400">·</span>
+                <span className="font-semibold">
+                  {currentSeason.rewardTier === 'gold'
+                    ? t('season.rewardGold')
+                    : currentSeason.rewardTier === 'silver'
+                      ? t('season.rewardSilver')
+                      : t('season.rewardBronze')}
+                </span>
+              </>
+            )}
+          </div>
+        )}
+
+        {/* Objective filter (not shown for season tab) */}
+        {activeTab !== 'season' && (
+          <div className="mb-4">
+            <label className="text-sm text-gray-600 mr-2" htmlFor="objective-filter">
+              {t('leaderboard.filterByObjective')}
+            </label>
+            <select
+              id="objective-filter"
+              value={objectiveFilter}
+              onChange={(event) => setObjectiveFilter(event.target.value)}
+              className="border rounded px-2 py-1 text-sm"
+            >
+              {objectiveOptions.map((combo) => (
+                <option key={combo} value={combo}>
+                  {combo === '__all__'
+                    ? t('leaderboard.filterAll')
+                    : combo
+                        .split('|')
+                        .map((card) => tObjective(t, card as ObjectiveCard))
+                        .join(' · ')}
+                </option>
+              ))}
+            </select>
+          </div>
+        )}
 
         {displayedEntries.length === 0 ? (
-          <p className="text-gray-500 text-sm">{t('leaderboard.empty')}</p>
+          <p className="text-gray-500 text-sm">
+            {activeTab === 'season' ? t('season.empty') : t('leaderboard.empty')}
+          </p>
         ) : (
           <ol className="space-y-2 mb-4">
             {displayedEntries.map((entry, index) => (
@@ -127,14 +160,16 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
           </ol>
         )}
 
-        <div className="flex justify-end">
-          <button
-            onClick={clearLocalEntries}
-            className="text-sm font-semibold text-red-600 hover:text-red-700"
-          >
-            {t('leaderboard.clearLocal')}
-          </button>
-        </div>
+        {activeTab !== 'season' && (
+          <div className="flex justify-end">
+            <button
+              onClick={clearLocalEntries}
+              className="text-sm font-semibold text-red-600 hover:text-red-700"
+            >
+              {t('leaderboard.clearLocal')}
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );

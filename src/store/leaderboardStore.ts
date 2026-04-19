@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import type { ObjectiveCard } from '../core/scoring';
 import type { Player, PlayerScore } from '../types';
+import { useSeasonStore } from './seasonStore';
 
 const LOCAL_STORAGE_KEY = 'kingdom-builder-leaderboard';
 const GLOBAL_STORAGE_KEY = 'kingdom-builder-global-leaderboard';
@@ -132,6 +133,12 @@ export const useLeaderboardStore = create<LeaderboardState>((set) => ({
       playerCount: players.length,
       objectiveCards: [...objectiveCards],
     }));
+
+    // Feed each entry into the season store
+    const { recordScore } = useSeasonStore.getState();
+    for (const entry of newEntries) {
+      recordScore(entry);
+    }
 
     set((state) => {
       const localEntries = sortAndTrim([...state.localEntries, ...newEntries]);
