@@ -225,7 +225,8 @@ export const en = {
     rewardBronze: '🥉 Bronze',
     noReward: 'Unranked',
   },
-  achievement: {    panelLabel: 'Achievements',
+  achievement: {
+    panelLabel: 'Achievements',
     heading: '🏅 Achievements',
     close: 'Close achievements',
     progress: '{{unlocked}} / {{total}} unlocked',
