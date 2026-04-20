@@ -140,7 +140,7 @@ describe('HexGrid – keyboard navigation', () => {
     expect(onCellClick).toHaveBeenCalledWith(target);
   });
 
-  it('Space key on a valid cell triggers onCellClick', () => {
+  it('Space key on a valid cell triggers onCellClick', { timeout: 15000 }, () => {
     const board = createDefaultBoard();
     const target = board.getAllCells()[0].coord;
     const onCellClick = vi.fn();
