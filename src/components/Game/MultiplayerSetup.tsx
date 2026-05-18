@@ -92,56 +92,96 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-100 py-8">
-      <div className="bg-white rounded-2xl shadow-xl p-8 w-full max-w-lg">
-        <h1 className="text-3xl font-bold text-center text-blue-700 mb-2">{t('common.appName')}</h1>
-        <h2 className="text-xl font-semibold text-center text-gray-700 mb-6">{t('app.playOnlineMultiplayer')}</h2>
+    <div
+      className="min-h-screen flex items-center justify-center py-8 px-4"
+      style={{ background: 'var(--texture-parchment)', backgroundColor: 'var(--color-warm-cream-100)' }}
+    >
+      <div
+        className="rounded-20 w-full max-w-lg p-8"
+        style={{
+          backgroundColor: 'var(--card-bg)',
+          boxShadow: 'var(--shadow-lifted)',
+          border: '1px solid var(--card-border)',
+        }}
+      >
+        {/* Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={onBack}
+            className="text-body-sm font-body font-medium px-3 py-1.5 rounded-8 transition"
+            style={{ color: 'var(--color-stone-600)', backgroundColor: 'var(--color-warm-cream-200)' }}
+          >
+            {t('menu.back')}
+          </button>
+          <h1 className="font-display text-display-md flex-1 text-center" style={{ color: 'var(--color-wine-700)' }}>
+            {t('menu.onlineMultiplayer')}
+          </h1>
+          <div style={{ width: '56px' }} />
+        </div>
 
         {!room && (
           <>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Server URL</label>
+            <label className="block text-body-sm font-body font-medium mb-1" style={{ color: 'var(--color-stone-700)' }}>
+              {t('multiplayer.serverUrl')}
+            </label>
             <input
               value={serverUrl}
               onChange={(e) => setServerUrl(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm mb-2"
+              className="w-full rounded-8 px-3 py-2 text-body-sm mb-2"
+              style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)', color: 'var(--color-stone-800)' }}
               placeholder="ws://localhost:8787"
             />
             <button
               onClick={handleConnect}
-              className="w-full bg-gray-800 hover:bg-gray-900 text-white font-semibold py-2 rounded mb-4"
+              className="w-full font-body font-semibold py-2 rounded-12 mb-4 transition"
+              style={{ backgroundColor: 'var(--color-stone-700)', color: 'var(--button-text)' }}
             >
-              {connectionStatus === 'connected' ? 'Connected' : 'Connect'}
+              {connectionStatus === 'connected' ? t('multiplayer.connected') : t('multiplayer.connect')}
             </button>
 
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your Name</label>
+            <label className="block text-body-sm font-body font-medium mb-1" style={{ color: 'var(--color-stone-700)' }}>
+              {t('multiplayer.yourName')}
+            </label>
             <input
               value={playerName}
               onChange={(e) => setPlayerName(e.target.value)}
-              className="w-full border rounded px-3 py-2 text-sm mb-3"
-              placeholder="Player name"
+              className="w-full rounded-8 px-3 py-2 text-body-sm mb-3"
+              style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)', color: 'var(--color-stone-800)' }}
+              placeholder={t('multiplayer.playerNamePlaceholder')}
             />
 
             <button
               onClick={handleCreate}
               disabled={connectionStatus !== 'connected' || !playerName.trim()}
-              className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 rounded mb-3"
+              className="w-full font-body font-bold py-2 rounded-12 mb-3 transition"
+              style={
+                connectionStatus === 'connected' && playerName.trim()
+                  ? { backgroundColor: 'var(--button-primary-bg)', color: 'var(--button-text)' }
+                  : { backgroundColor: 'var(--color-warm-cream-300)', color: 'var(--color-stone-500)', cursor: 'not-allowed' }
+              }
             >
-              Create Room
+              {t('multiplayer.createRoom')}
             </button>
 
             <div className="flex gap-2 mb-4">
               <input
                 value={roomCode}
                 onChange={(e) => setRoomCode(e.target.value.toUpperCase())}
-                className="flex-1 border rounded px-3 py-2 text-sm"
-                placeholder="Room code"
+                className="flex-1 rounded-8 px-3 py-2 text-body-sm"
+                style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)', color: 'var(--color-stone-800)' }}
+                placeholder={t('multiplayer.roomCodePlaceholder')}
               />
               <button
                 onClick={handleJoin}
                 disabled={connectionStatus !== 'connected' || !playerName.trim() || !roomCode.trim()}
-                className="px-4 bg-green-600 hover:bg-green-700 disabled:bg-green-300 text-white font-bold rounded"
+                className="px-4 font-body font-bold rounded-12 transition"
+                style={
+                  connectionStatus === 'connected' && playerName.trim() && roomCode.trim()
+                    ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)' }
+                    : { backgroundColor: 'var(--color-warm-cream-300)', color: 'var(--color-stone-500)', cursor: 'not-allowed' }
+                }
               >
-                Join
+                {t('multiplayer.join')}
               </button>
             </div>
           </>
@@ -149,34 +189,51 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
 
         {room && (
           <>
-            <div className="mb-4 p-3 bg-gray-50 border rounded">
-              <p className="text-sm">
-                Room: <span className="font-bold tracking-widest">{room.id}</span>
+            <div
+              className="mb-4 p-3 rounded-12"
+              style={{ backgroundColor: 'var(--color-warm-cream-50)', border: '1px solid var(--card-border)' }}
+            >
+              <p className="text-body-sm font-body">
+                {t('multiplayer.room')}: <span className="font-bold tracking-widest">{room.id}</span>
               </p>
-              <p className="text-xs text-gray-500">
-                {connectionStatus === 'connected' ? 'Connected' : 'Reconnecting...'}
+              <p className="text-label" style={{ color: 'var(--color-stone-500)' }}>
+                {connectionStatus === 'connected' ? t('multiplayer.connected') : t('multiplayer.reconnecting')}
               </p>
             </div>
 
             <div className="space-y-2 mb-4">
               {sortedPlayers.map((p) => (
-                <div key={p.id} className="flex items-center justify-between p-2 border rounded">
+                <div
+                  key={p.id}
+                  className="flex items-center justify-between p-2 rounded-8"
+                  style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)' }}
+                >
                   <div>
-                    <span className="font-medium">{p.name}</span>
+                    <span className="font-body font-medium text-body-sm" style={{ color: 'var(--color-stone-800)' }}>{p.name}</span>
                     {p.id === room.hostPlayerId && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded bg-blue-100 text-blue-700">Host</span>
+                      <span
+                        className="ml-2 text-label px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'var(--color-wine-100)', color: 'var(--color-wine-700)' }}
+                      >
+                        {t('multiplayer.host')}
+                      </span>
                     )}
                     {p.id === localPlayerId && (
-                      <span className="ml-2 text-xs px-2 py-0.5 rounded bg-gray-100 text-gray-700">You</span>
+                      <span
+                        className="ml-2 text-label px-2 py-0.5 rounded-full"
+                        style={{ backgroundColor: 'var(--color-warm-cream-200)', color: 'var(--color-stone-600)' }}
+                      >
+                        {t('multiplayer.you')}
+                      </span>
                     )}
                   </div>
-                  <div className="text-xs">
+                  <div className="text-label font-body">
                     {!p.connected ? (
-                      <span className="text-red-600">Disconnected</span>
+                      <span style={{ color: 'var(--color-danger)' }}>{t('multiplayer.disconnected')}</span>
                     ) : p.ready ? (
-                      <span className="text-green-700">Ready</span>
+                      <span style={{ color: 'var(--color-success)' }}>{t('multiplayer.ready')}</span>
                     ) : (
-                      <span className="text-gray-500">Not ready</span>
+                      <span style={{ color: 'var(--color-stone-400)' }}>{t('multiplayer.notReady')}</span>
                     )}
                   </div>
                 </div>
@@ -186,26 +243,37 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
             {!isHost && me && (
               <button
                 onClick={() => setReady(!me.ready)}
-                className={`w-full mb-3 text-white font-bold py-2 rounded ${
-                  me.ready ? 'bg-orange-500 hover:bg-orange-600' : 'bg-green-600 hover:bg-green-700'
-                }`}
+                className="w-full mb-3 font-body font-bold py-2 rounded-12 transition"
+                style={
+                  me.ready
+                    ? { backgroundColor: 'var(--color-amber-500)', color: 'var(--button-text)' }
+                    : { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)' }
+                }
               >
-                {me.ready ? 'Set Not Ready' : 'Set Ready'}
+                {me.ready ? t('multiplayer.setNotReady') : t('multiplayer.setReady')}
               </button>
             )}
 
             {isHost && (
               <>
-                <div className="mb-4 border rounded-lg p-3 bg-gray-50">
-                  <h3 className="text-sm font-semibold text-gray-700 mb-2">{t('setup.gameOptions')}</h3>
+                <div
+                  className="mb-4 rounded-12 p-3"
+                  style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)' }}
+                >
+                  <h3 className="text-body-sm font-body font-semibold mb-2" style={{ color: 'var(--color-stone-700)' }}>
+                    {t('setup.gameOptions')}
+                  </h3>
                   <div className="grid grid-cols-3 gap-2 mb-2">
                     {(['small', 'medium', 'large'] as const).map((size) => (
                       <button
                         key={size}
                         onClick={() => setOptions((prev) => ({ ...prev, boardSize: size }))}
-                        className={`py-1 text-sm rounded border ${
-                          options.boardSize === size ? 'bg-blue-600 text-white border-blue-600' : 'bg-white'
-                        }`}
+                        className="py-1 text-body-sm font-body rounded-8 transition"
+                        style={
+                          options.boardSize === size
+                            ? { backgroundColor: 'var(--button-primary-bg)', color: 'var(--button-text)', border: '1px solid var(--button-primary-bg)' }
+                            : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '1px solid var(--card-border)' }
+                        }
                       >
                         {size}
                       </button>
@@ -216,49 +284,62 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
                       <button
                         key={count}
                         onClick={() => setOptions((prev) => ({ ...prev, objectiveCount: count }))}
-                        className={`py-1 text-sm rounded border ${
-                          options.objectiveCount === count ? 'bg-purple-600 text-white border-purple-600' : 'bg-white'
-                        }`}
+                        className="py-1 text-body-sm font-body rounded-8 transition"
+                        style={
+                          options.objectiveCount === count
+                            ? { backgroundColor: 'var(--color-wine-600)', color: 'var(--button-text)', border: '1px solid var(--color-wine-600)' }
+                            : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '1px solid var(--card-border)' }
+                        }
                       >
-                        {count} Obj
+                        {count} {t('multiplayer.obj')}
                       </button>
                     ))}
                   </div>
                   <button
                     onClick={() => setOptions((prev) => ({ ...prev, enableUndo: !prev.enableUndo }))}
-                    className={`w-full py-1 text-sm rounded border ${
-                      options.enableUndo ? 'bg-teal-600 text-white border-teal-600' : 'bg-white'
-                    }`}
+                    className="w-full py-1 text-body-sm font-body rounded-8 transition"
+                    style={
+                      options.enableUndo
+                        ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)', border: '1px solid var(--button-secondary-bg)' }
+                        : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '1px solid var(--card-border)' }
+                    }
                   >
-                    Undo: {options.enableUndo ? 'Enabled' : 'Disabled'}
+                    {t('multiplayer.undo')}: {options.enableUndo ? t('multiplayer.enabled') : t('multiplayer.disabled')}
                   </button>
                 </div>
                 <button
                   onClick={handleStart}
                   disabled={!canHostStart}
-                  className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-blue-300 text-white font-bold py-2 rounded mb-3"
+                  className="w-full font-body font-bold py-2 rounded-12 mb-3 transition"
+                  style={
+                    canHostStart
+                      ? { backgroundColor: 'var(--button-primary-bg)', color: 'var(--button-text)', boxShadow: 'var(--shadow-medium)' }
+                      : { backgroundColor: 'var(--color-warm-cream-300)', color: 'var(--color-stone-500)', cursor: 'not-allowed' }
+                  }
                 >
-                  Start Multiplayer Game
+                  {t('multiplayer.startGame')}
                 </button>
               </>
             )}
 
             <button
               onClick={leaveRoom}
-              className="w-full bg-red-600 hover:bg-red-700 text-white font-semibold py-2 rounded mb-2"
+              className="w-full font-body font-semibold py-2 rounded-12 mb-2 transition"
+              style={{ backgroundColor: 'var(--color-danger)', color: 'var(--button-text)' }}
             >
-              Leave Room
+              {t('multiplayer.leaveRoom')}
             </button>
           </>
         )}
 
-        {error && <p className="text-sm text-red-600 mb-2">{error}</p>}
+        {error && <p className="text-body-sm mb-2" style={{ color: 'var(--color-danger)' }}>{error}</p>}
 
         <button
           onClick={onBack}
-          className="w-full bg-gray-200 hover:bg-gray-300 text-gray-800 font-semibold py-2 rounded"
+          className="w-full font-body font-semibold py-2 rounded-12 transition"
+          style={{ backgroundColor: 'var(--color-warm-cream-200)', color: 'var(--color-stone-700)' }}
         >
-          Back
+          {t('menu.back')}
         </button>
       </div>
     </div>

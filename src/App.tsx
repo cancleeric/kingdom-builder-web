@@ -7,6 +7,7 @@ import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
 import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
+import { MainMenu } from './components/Menu/MainMenu'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { GamePhase, BotDifficulty } from './types'
@@ -15,7 +16,6 @@ import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
 import { InstallPrompt } from './components/InstallPrompt'
-import { SaveLoadUI } from './components/SaveLoadUI'
 import { useMultiplayerStore } from './store/multiplayerStore'
 import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
@@ -37,7 +37,6 @@ import {
   BarnIcon,
   OracleIcon,
   TavernIcon,
-  AchievementIcon,
   MutedIcon,
   UnmutedIcon,
   BotIcon,
@@ -48,6 +47,7 @@ import {
   DrawCardIcon,
   EndTurnIcon,
   UndoIcon,
+  AchievementIcon,
 } from './components/icons'
 import type { ComponentType, SVGProps } from 'react'
 
@@ -69,7 +69,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
-  const [menuMode, setMenuMode] = useState<'local' | 'multiplayer'>('local');
+  const [menuMode, setMenuMode] = useState<'home' | 'setup' | 'multiplayer'>('home');
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
@@ -310,6 +310,8 @@ function App() {
     if (isNetworkGame) {
       leaveRoom();
       setMenuMode('multiplayer');
+    } else {
+      setMenuMode('home');
     }
     setGameStarted(false);
   };
@@ -367,39 +369,40 @@ function App() {
   if (!gameStarted) {
     if (menuMode === 'multiplayer') {
       return (
-        <MultiplayerSetup
-          onBack={() => setMenuMode('local')}
-          onGameStarted={() => setGameStarted(true)}
-        />
+        <>
+          <MultiplayerSetup
+            onBack={() => setMenuMode('home')}
+            onGameStarted={() => setGameStarted(true)}
+          />
+          <TutorialOverlay />
+        </>
       );
     }
 
+    if (menuMode === 'setup') {
+      return (
+        <>
+          <GameSetup
+            onStart={handleStart}
+            onBack={() => setMenuMode('home')}
+          />
+          <TutorialOverlay />
+        </>
+      );
+    }
+
+    // Home / Main Menu
     return (
-      <div>
-        <GameSetup onStart={handleStart} />
-        <div className="fixed bottom-28 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
-          <button
-            onClick={() => setMenuMode('multiplayer')}
-            className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold py-3 rounded-xl text-lg transition"
-          >
-            {t('app.playOnlineMultiplayer')}
-          </button>
-        </div>
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 w-full max-w-xs px-4 z-50">
-          <SaveLoadUI onGameLoaded={() => setGameStarted(true)} />
-        </div>
-        {/* Achievement badge / button on main menu */}
-        <button
-          onClick={() => setAchievementOpen(true)}
-          className="fixed top-4 right-4 z-50 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-3 py-2 rounded-xl shadow-md text-sm flex items-center gap-1"
-          aria-label={t('achievement.open')}
-        >
-          <AchievementIcon size={16} />
-          <span>{achievementUnlockedCount}</span>
-        </button>
-        {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
+      <>
+        <MainMenu
+          muted={muted}
+          onToggleMute={handleToggleMute}
+          onSinglePlayer={() => setMenuMode('setup')}
+          onMultiplayer={() => setMenuMode('multiplayer')}
+          onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
+        />
         <TutorialOverlay />
-      </div>
+      </>
     );
   }
 
