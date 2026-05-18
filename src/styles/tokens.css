@@ -1,0 +1,164 @@
+@import url('https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@500;600;700&family=JetBrains+Mono:wght@400;500&family=Manrope:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Warm cream (base) */
+  --color-warm-cream-50: oklch(0.98 0.01 85);
+  --color-warm-cream-100: oklch(0.96 0.015 85);
+  --color-warm-cream-200: oklch(0.92 0.02 82);
+  --color-warm-cream-300: oklch(0.88 0.025 80);
+  --color-warm-cream-400: oklch(0.82 0.03 78);
+  --color-warm-cream-500: oklch(0.75 0.03 76);
+  --color-warm-cream-600: oklch(0.67 0.03 74);
+  --color-warm-cream-700: oklch(0.58 0.028 72);
+  --color-warm-cream-800: oklch(0.49 0.024 70);
+  --color-warm-cream-900: oklch(0.40 0.02 68);
+
+  /* Wine (primary brand) */
+  --color-wine-50: oklch(0.95 0.02 20);
+  --color-wine-100: oklch(0.90 0.03 20);
+  --color-wine-200: oklch(0.84 0.04 22);
+  --color-wine-300: oklch(0.76 0.05 24);
+  --color-wine-400: oklch(0.67 0.06 24);
+  --color-wine-500: oklch(0.57 0.07 25);
+  --color-wine-600: oklch(0.46 0.08 25);
+  --color-wine-700: oklch(0.39 0.075 24);
+  --color-wine-800: oklch(0.32 0.065 22);
+  --color-wine-900: oklch(0.25 0.055 20);
+
+  /* Ink green (secondary) */
+  --color-ink-green-50: oklch(0.96 0.015 165);
+  --color-ink-green-100: oklch(0.91 0.02 165);
+  --color-ink-green-200: oklch(0.84 0.03 164);
+  --color-ink-green-300: oklch(0.75 0.04 163);
+  --color-ink-green-400: oklch(0.65 0.05 162);
+  --color-ink-green-500: oklch(0.55 0.06 162);
+  --color-ink-green-600: oklch(0.45 0.06 161);
+  --color-ink-green-700: oklch(0.38 0.055 160);
+  --color-ink-green-800: oklch(0.31 0.05 158);
+  --color-ink-green-900: oklch(0.24 0.045 156);
+
+  /* Amber (accent) */
+  --color-amber-50: oklch(0.97 0.02 80);
+  --color-amber-100: oklch(0.93 0.03 78);
+  --color-amber-200: oklch(0.87 0.05 76);
+  --color-amber-300: oklch(0.80 0.07 74);
+  --color-amber-400: oklch(0.72 0.08 72);
+  --color-amber-500: oklch(0.63 0.09 70);
+  --color-amber-600: oklch(0.54 0.085 67);
+  --color-amber-700: oklch(0.45 0.075 64);
+  --color-amber-800: oklch(0.36 0.065 62);
+  --color-amber-900: oklch(0.28 0.055 58);
+
+  /* Stone (neutral) */
+  --color-stone-50: oklch(0.97 0.004 90);
+  --color-stone-100: oklch(0.93 0.005 90);
+  --color-stone-200: oklch(0.86 0.006 90);
+  --color-stone-300: oklch(0.77 0.008 90);
+  --color-stone-400: oklch(0.67 0.01 90);
+  --color-stone-500: oklch(0.56 0.012 90);
+  --color-stone-600: oklch(0.46 0.012 90);
+  --color-stone-700: oklch(0.37 0.01 90);
+  --color-stone-800: oklch(0.29 0.009 90);
+  --color-stone-900: oklch(0.21 0.008 90);
+
+  /* Player identity colors (low-chroma) */
+  --color-player-red: oklch(0.58 0.09 24);
+  --color-player-blue: oklch(0.58 0.08 252);
+  --color-player-green: oklch(0.58 0.08 152);
+  --color-player-yellow: oklch(0.74 0.08 92);
+
+  /* Semantic aliases */
+  --color-bg: var(--color-warm-cream-100);
+  --color-surface: var(--color-warm-cream-50);
+  --color-text: var(--color-stone-900);
+  --color-success: var(--color-ink-green-500);
+  --color-warning: var(--color-amber-500);
+  --color-danger: var(--color-wine-600);
+  --color-info: var(--color-player-blue);
+
+  /* Typography */
+  --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
+  --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
+  --font-mono: 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  --type-display-2xl: 3.5rem;
+  --type-display-xl: 3rem;
+  --type-display-lg: 2.5rem;
+  --type-display-md: 2rem;
+  --type-display-sm: 1.5rem;
+
+  --type-body-lg: 1.125rem;
+  --type-body-md: 1rem;
+  --type-body-sm: 0.875rem;
+
+  --type-label: 0.75rem;
+  --type-mono-num: 0.9375rem;
+
+  --line-height-display: 1.1;
+  --line-height-body: 1.5;
+  --line-height-label: 1.2;
+
+  /* Spacing */
+  --space-2: 0.125rem;
+  --space-4: 0.25rem;
+  --space-8: 0.5rem;
+  --space-12: 0.75rem;
+  --space-16: 1rem;
+  --space-20: 1.25rem;
+  --space-24: 1.5rem;
+  --space-32: 2rem;
+
+  /* Radius */
+  --radius-8: 0.5rem;
+  --radius-12: 0.75rem;
+  --radius-14: 0.875rem;
+  --radius-20: 1.25rem;
+  --radius-full: 9999px;
+
+  /* Elevation */
+  --shadow-soft: 0 1px 2px oklch(0.25 0.01 90 / 0.12), 0 6px 16px oklch(0.25 0.01 90 / 0.08);
+  --shadow-medium: 0 2px 4px oklch(0.25 0.01 90 / 0.16), 0 12px 24px oklch(0.25 0.01 90 / 0.12);
+  --shadow-lifted: 0 4px 10px oklch(0.25 0.01 90 / 0.2), 0 20px 40px oklch(0.25 0.01 90 / 0.16);
+
+  /* Parchment texture */
+  --texture-parchment: radial-gradient(circle at 15% 25%, oklch(1 0 0 / 0.28) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 70% 60%, oklch(0.88 0.03 75 / 0.2) 0 1px, transparent 1.2px),
+    radial-gradient(circle at 40% 80%, oklch(0.82 0.025 74 / 0.18) 0 1.1px, transparent 1.3px),
+    linear-gradient(135deg, oklch(0.95 0.02 82 / 0.8), oklch(0.90 0.025 76 / 0.85));
+
+  /* Component tokens */
+  --button-text: var(--color-warm-cream-50);
+  --button-primary-bg: var(--color-wine-600);
+  --button-primary-bg-hover: var(--color-wine-700);
+  --button-secondary-bg: var(--color-ink-green-600);
+  --button-secondary-bg-hover: var(--color-ink-green-700);
+  --button-ghost-bg: transparent;
+  --button-ghost-bg-hover: oklch(0.42 0.012 90 / 0.12);
+  --button-danger-bg: var(--color-danger);
+  --button-danger-bg-hover: var(--color-wine-700);
+  --button-border: oklch(0.28 0.01 90 / 0.22);
+  --button-ring: oklch(0.62 0.08 70);
+  --button-size-sm-y: 0.45rem;
+  --button-size-sm-x: 0.8rem;
+  --button-size-md-y: 0.6rem;
+  --button-size-md-x: 1rem;
+  --button-size-lg-y: 0.8rem;
+  --button-size-lg-x: 1.2rem;
+
+  --card-bg: var(--color-surface);
+  --card-border: oklch(0.42 0.012 90 / 0.22);
+  --card-elevated-shadow: var(--shadow-medium);
+  --card-outline-border: oklch(0.53 0.015 90 / 0.4);
+
+  --chip-bg: oklch(0.78 0.03 85 / 0.5);
+  --chip-text: var(--color-stone-800);
+  --badge-bg: var(--color-amber-500);
+  --badge-text: var(--color-stone-900);
+
+  --progress-track: oklch(0.86 0.015 84);
+  --progress-fill: var(--color-ink-green-500);
+
+  --toast-bg: var(--color-stone-900);
+  --toast-text: var(--color-warm-cream-50);
+  --toast-border: oklch(0.82 0.03 80 / 0.3);
+}
