@@ -14,6 +14,10 @@ describe('DesignSystemPage', () => {
     expect(screen.getByRole('heading', { name: 'Component tokens' })).toBeInTheDocument()
 
     expect(screen.getByRole('button', { name: 'primary sm' })).toBeInTheDocument()
+    expect(screen.getAllByRole('button')).toHaveLength(12)
+    expect(screen.getByRole('heading', { name: 'warm-cream' })).toBeInTheDocument()
+    expect(screen.getByRole('heading', { name: 'stone' })).toBeInTheDocument()
+    expect(screen.getAllByText('50')).toHaveLength(5)
     expect(screen.getByText('Card elevated')).toBeInTheDocument()
     expect(screen.getByText('Chip token')).toBeInTheDocument()
     expect(screen.getByText('Saved')).toBeInTheDocument()
