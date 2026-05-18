@@ -26,17 +26,33 @@ import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
+import {
+  CastleIcon,
+  FarmIcon,
+  HarborIcon,
+  OasisIcon,
+  TowerIcon,
+  PaddockIcon,
+  BarnIcon,
+  OracleIcon,
+  TavernIcon,
+  AchievementIcon,
+  MutedIcon,
+  UnmutedIcon,
+  BotIcon,
+} from './components/icons'
+import type { ComponentType, SVGProps } from 'react'
 
-const LOCATION_EMOJI: Record<Location, string> = {
-  [Location.Castle]: '🏰',
-  [Location.Farm]:   '🌾',
-  [Location.Harbor]: '⚓',
-  [Location.Oasis]:  '🌴',
-  [Location.Tower]:  '🗼',
-  [Location.Paddock]:'🐎',
-  [Location.Barn]:   '🏚',
-  [Location.Oracle]: '🔮',
-  [Location.Tavern]: '🍺',
+const LOCATION_ICON: Record<Location, ComponentType<{ size?: number } & SVGProps<SVGSVGElement>>> = {
+  [Location.Castle]: CastleIcon,
+  [Location.Farm]:   FarmIcon,
+  [Location.Harbor]: HarborIcon,
+  [Location.Oasis]:  OasisIcon,
+  [Location.Tower]:  TowerIcon,
+  [Location.Paddock]:PaddockIcon,
+  [Location.Barn]:   BarnIcon,
+  [Location.Oracle]: OracleIcon,
+  [Location.Tavern]: TavernIcon,
 }
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
@@ -364,7 +380,7 @@ function App() {
           className="fixed top-4 right-4 z-50 bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-3 py-2 rounded-xl shadow-md text-sm flex items-center gap-1"
           aria-label={t('achievement.open')}
         >
-          🏅
+          <AchievementIcon size={16} />
           <span>{achievementUnlockedCount}</span>
         </button>
         {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
@@ -419,7 +435,7 @@ function App() {
             title={muted ? t('app.unmute') : t('app.mute')}
             className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 transition text-xl"
           >
-            {muted ? '🔇' : '🔊'}
+            {muted ? <MutedIcon size={20} /> : <UnmutedIcon size={20} />}
           </button>
           <button
             onClick={() => setLeaderboardOpen(true)}
@@ -435,10 +451,10 @@ function App() {
           </button>
           <button
             onClick={() => setAchievementOpen(true)}
-            className="hidden sm:block text-xs bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-2 py-1 rounded border border-yellow-300 flex items-center gap-1"
+            className="hidden sm:flex text-xs bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-2 py-1 rounded border border-yellow-300 items-center gap-1"
             aria-label={t('achievement.open')}
           >
-            🏅 <span>{achievementUnlockedCount}</span>
+            <AchievementIcon size={14} /> <span>{achievementUnlockedCount}</span>
           </button>
         </div>
       </header>
@@ -482,8 +498,8 @@ function App() {
                 />
                 <span className="font-semibold">{currentPlayer.name}</span>
                 {currentPlayer.isBot && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full">
-                    🤖 {currentPlayer.difficulty === BotDifficulty.Easy
+                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1">
+                    <BotIcon size={12} /> {currentPlayer.difficulty === BotDifficulty.Easy
                       ? t('app.botDifficultyEasy')
                       : currentPlayer.difficulty === BotDifficulty.Hard
                         ? t('app.botDifficultyHard')
@@ -547,8 +563,9 @@ function App() {
                     key={`${tile.location}-${idx}`}
                     className="flex items-center justify-between p-2 rounded border"
                   >
-                    <span className="text-sm">
-                      {LOCATION_EMOJI[tile.location]} {tLocation(t, tile.location)}
+                    <span className="text-sm flex items-center gap-1">
+                      {(() => { const Ic = LOCATION_ICON[tile.location]; return <Ic size={16} />; })()}
+                      {tLocation(t, tile.location)}
                     </span>
                     <div className="flex gap-1">
                       {!tile.usedThisTurn &&
@@ -713,7 +730,7 @@ function App() {
                         )}
                     </span>
                     {player.isBot && (
-                      <span className="text-xs text-gray-500">🤖</span>
+                      <span className="text-xs text-gray-500"><BotIcon size={12} /></span>
                     )}
                   </div>
                   <p className="text-xs text-gray-600">
@@ -723,11 +740,13 @@ function App() {
                      })}
                    </p>
                    {player.tiles.length > 0 && (
-                     <p className="text-xs text-gray-500 mt-0.5">
-                       {t('app.tilesSummary', {
-                         tiles: player.tiles.map(tile => LOCATION_EMOJI[tile.location]).join(' '),
+                     <div className="flex items-center gap-1 mt-0.5">
+                       <span className="text-xs text-gray-500">{t('app.tilesLabel')}:</span>
+                       {player.tiles.map((tile, tileIdx) => {
+                         const TileIc = LOCATION_ICON[tile.location]
+                         return <TileIc key={`${tile.location}-${tileIdx}`} size={12} className="text-gray-500" />
                        })}
-                     </p>
+                     </div>
                    )}
                 </li>
               ))}

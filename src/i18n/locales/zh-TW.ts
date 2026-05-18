@@ -88,6 +88,7 @@ export const zhTW = {
     current: '目前',
     placedRemainingSummary: '已放置：{{placed}} | 剩餘：{{remaining}}',
     tilesSummary: '地點牌：{{tiles}}',
+    tilesLabel: '地點牌',
     playerListAria:
       '{{name}}：已放置 {{placed}}，剩餘 {{remaining}}{{isCurrent}}',
     playerListAriaCurrentSuffix: '，目前玩家',
