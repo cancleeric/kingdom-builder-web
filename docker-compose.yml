@@ -1,0 +1,24 @@
+services:
+  kingdom-frontend-dev:
+    build:
+      context: .
+      args:
+        VITE_WS_SERVER_URL: ws://localhost:8088
+    image: kingdom-builder-web:dev
+    container_name: kingdom-frontend-dev
+    command: ["npx", "vite", "preview", "--host", "0.0.0.0", "--port", "4173"]
+    ports:
+      - "8087:4173"
+    restart: unless-stopped
+
+  kingdom-ws-dev:
+    image: kingdom-builder-web:dev
+    container_name: kingdom-ws-dev
+    command: ["node", "server/index.js"]
+    environment:
+      PORT: "8787"
+    ports:
+      - "8088:8787"
+    depends_on:
+      - kingdom-frontend-dev
+    restart: unless-stopped
