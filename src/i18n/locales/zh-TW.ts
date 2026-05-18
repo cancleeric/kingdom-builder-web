@@ -181,6 +181,22 @@ export const zhTW = {
     lastMovedSettlement: '移動聚落',
     lastUsedTile: '使用地點牌',
   },
+  turnBanner: {
+    regionLabel: '{{player}}的回合 — {{phase}}',
+    playerTurn: '{{player}} 的回合',
+    phaseLabel: '階段',
+    placementsProgress: '已放置 {{placed}} / {{total}} 個聚落',
+    ofSettlements: '{{placed}} / {{total}}',
+  },
+  sidebar: {
+    terrainCard: '地形卡',
+    yourTiles: '你的地點板塊',
+    objectives: '目標卡',
+    liveScores: '即時計分',
+    players: '玩家',
+    collapseSidebar: '收合側欄',
+    expandSidebar: '展開側欄',
+  },
   bottomDrawer: {
     controlsRegion: '遊戲控制',
     closePanel: '收合遊戲面板',
@@ -190,6 +206,11 @@ export const zhTW = {
     tapHighlightedDestinationToMove: '點擊高亮目的地以移動。',
     tapHighlightedSettlementToMove: '點擊高亮聚落以移動。',
     tapHighlightedCellToPlace: '點擊高亮格子以放置。',
+    mobileFloating: {
+      draw: '抽牌',
+      endTurn: '結束回合',
+      undo: '復原',
+    },
   },
   board: {
     gridLabel: '王國建造者棋盤',

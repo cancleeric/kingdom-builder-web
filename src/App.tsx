@@ -8,6 +8,7 @@ import { BottomDrawer } from './components/Mobile/BottomDrawer'
 import { GameSetup } from './components/Game/GameSetup'
 import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
+import { TurnBanner } from './components/Game/TurnBanner'
 import { GamePhase, BotDifficulty } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import { Location } from './core/terrain'
@@ -40,6 +41,13 @@ import {
   MutedIcon,
   UnmutedIcon,
   BotIcon,
+  MoreIcon,
+  LeaderboardIcon,
+  ReplayIcon,
+  ChevronIcon,
+  DrawCardIcon,
+  EndTurnIcon,
+  UndoIcon,
 } from './components/icons'
 import type { ComponentType, SVGProps } from 'react'
 
@@ -141,6 +149,12 @@ function App() {
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
+
+  // Sidebar collapsed state (desktop)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+
+  // More menu (Header ⋯ button)
+  const [moreMenuOpen, setMoreMenuOpen] = useState(false)
 
   const handleStart = (configs: PlayerConfig[], options: GameOptions) => {
     initGame(configs, options);
@@ -389,8 +403,17 @@ function App() {
     );
   }
 
+  // Compute highest live score for gold highlight
+  const maxLiveScore = liveScores.reduce((max, ps) => {
+    const total = ps.castle + ps.objectives.reduce((s, o) => s + o.score, 0)
+    return Math.max(max, total)
+  }, 0)
+
   return (
-    <div className="w-screen h-screen flex flex-col bg-gray-50">
+    <div
+      className="w-screen h-screen flex flex-col"
+      style={{ backgroundColor: 'var(--color-bg)' }}
+    >
       <InstallPrompt />
       {/* Hidden ARIA live region for screen-reader turn announcements */}
       <div
@@ -401,357 +424,719 @@ function App() {
         {liveAnnouncement}
       </div>
 
-      {/* Header */}
-      <header className="bg-blue-600 text-white px-4 py-3 shadow-lg flex items-center justify-between">
-        <h1 className="text-xl sm:text-3xl font-bold">{t('common.appName')}</h1>
-        <div className="flex items-center gap-2">
+      {/* ── Header (精簡版) ── */}
+      <header
+        className="flex items-center justify-between px-4 py-2 shadow-md z-30 flex-shrink-0"
+        style={{ backgroundColor: 'var(--button-primary-bg)', color: 'var(--color-warm-cream-50)' }}
+      >
+        {/* App name */}
+        <h1
+          className="text-lg font-bold tracking-wide"
+          style={{ fontFamily: 'var(--font-display)' }}
+        >
+          {t('common.appName')}
+        </h1>
+
+        {/* Right controls */}
+        <div className="flex items-center gap-1">
           {isNetworkGame && multiplayerRoom && (
-            <span className="hidden sm:inline-block text-xs bg-blue-500 px-2 py-1 rounded">
+            <span className="hidden sm:inline-block text-xs px-2 py-1 rounded"
+              style={{ backgroundColor: 'oklch(0 0 0 / 0.2)' }}
+            >
               {t('app.roomStatus', { id: multiplayerRoom.id, status: multiplayerConnectionStatus })}
             </span>
           )}
-          {/* Mobile: show current player name in header */}
-          {currentPlayer && (
-            <div className="flex items-center gap-2 sm:hidden">
-              <div
-                className="w-5 h-5 rounded-full border-2 border-white"
-                style={{ backgroundColor: currentPlayer.color }}
-              />
-              <span className="text-sm font-semibold">{currentPlayer.name}</span>
-            </div>
-          )}
+
+          {/* Language selector */}
           <select
             value={i18n.language}
             onChange={(e) => void i18n.changeLanguage(e.target.value)}
             aria-label={t('common.language')}
-            className="hidden sm:block bg-blue-500 text-white text-xs rounded px-2 py-1 border border-blue-300"
+            className="text-xs rounded px-2 py-1 border"
+            style={{
+              backgroundColor: 'oklch(0 0 0 / 0.2)',
+              color: 'var(--color-warm-cream-50)',
+              borderColor: 'oklch(1 0 0 / 0.25)',
+            }}
           >
             <option value="en">{t('common.english')}</option>
             <option value="zh-TW">{t('common.traditionalChinese')}</option>
           </select>
+
+          {/* Mute toggle */}
           <button
             onClick={handleToggleMute}
             aria-label={muted ? t('app.unmute') : t('app.mute')}
             title={muted ? t('app.unmute') : t('app.mute')}
-            className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-blue-500 transition text-xl"
+            className="w-9 h-9 flex items-center justify-center rounded-full transition"
+            onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.2)')}
+            onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
           >
-            {muted ? <MutedIcon size={20} /> : <UnmutedIcon size={20} />}
+            {muted ? <MutedIcon size={18} /> : <UnmutedIcon size={18} />}
           </button>
-          <button
-            onClick={() => setLeaderboardOpen(true)}
-            className="hidden sm:block text-xs bg-blue-500 hover:bg-blue-400 text-white px-2 py-1 rounded border border-blue-300"
-          >
-            {t('leaderboard.open')}
-          </button>
-          <button
-            onClick={() => setReplayOpen(true)}
-            className="hidden sm:block text-xs bg-purple-500 hover:bg-purple-400 text-white px-2 py-1 rounded border border-purple-300"
-          >
-            {t('replay.open')}
-          </button>
-          <button
-            onClick={() => setAchievementOpen(true)}
-            className="hidden sm:flex text-xs bg-yellow-400 hover:bg-yellow-300 text-yellow-900 font-bold px-2 py-1 rounded border border-yellow-300 items-center gap-1"
-            aria-label={t('achievement.open')}
-          >
-            <AchievementIcon size={14} /> <span>{achievementUnlockedCount}</span>
-          </button>
+
+          {/* ⋯ More menu */}
+          <div className="relative">
+            <button
+              onClick={() => setMoreMenuOpen(o => !o)}
+              aria-label="More options"
+              aria-haspopup="menu"
+              aria-expanded={moreMenuOpen}
+              className="w-9 h-9 flex items-center justify-center rounded-full transition"
+              onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.2)')}
+              onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+            >
+              <MoreIcon size={18} />
+            </button>
+
+            {/* Dropdown menu */}
+            {moreMenuOpen && (
+              <>
+                <div
+                  className="fixed inset-0 z-40"
+                  onClick={() => setMoreMenuOpen(false)}
+                  aria-hidden="true"
+                />
+                <div
+                  className="absolute right-0 top-full mt-1 w-48 rounded-xl shadow-lg overflow-hidden z-50"
+                  role="menu"
+                  style={{
+                    backgroundColor: 'var(--color-surface)',
+                    border: '1px solid var(--card-border)',
+                    boxShadow: 'var(--shadow-medium)',
+                  }}
+                >
+                  <button
+                    role="menuitem"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    style={{ color: 'var(--color-text)' }}
+                    onClick={() => { setLeaderboardOpen(true); setMoreMenuOpen(false); }}
+                  >
+                    <LeaderboardIcon size={16} />
+                    {t('leaderboard.open')}
+                  </button>
+                  <button
+                    role="menuitem"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    style={{ color: 'var(--color-text)' }}
+                    onClick={() => { setReplayOpen(true); setMoreMenuOpen(false); }}
+                  >
+                    <ReplayIcon size={16} />
+                    {t('replay.open')}
+                  </button>
+                  <button
+                    role="menuitem"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    style={{ color: 'var(--color-text)' }}
+                    onClick={() => { setAchievementOpen(true); setMoreMenuOpen(false); }}
+                  >
+                    <AchievementIcon size={16} />
+                    {t('achievement.open')}
+                    {achievementUnlockedCount > 0 && (
+                      <span
+                        className="ml-auto text-xs font-bold px-1.5 py-0.5 rounded-full"
+                        style={{
+                          backgroundColor: 'var(--badge-bg)',
+                          color: 'var(--badge-text)',
+                        }}
+                      >
+                        {achievementUnlockedCount}
+                      </span>
+                    )}
+                  </button>
+                </div>
+              </>
+            )}
+          </div>
         </div>
       </header>
 
-      {/* Main Game Area */}
-      <div className="flex-1 flex overflow-hidden">
-        {/* Game Board – always visible, takes all space on mobile */}
-        <div className="flex-1 relative">
-          {players.length > 0 && (
-            <HexGrid
-              board={board}
-              validPlacements={
-                activeTile && (activeTile === Location.Paddock || activeTile === Location.Barn)
-                  ? (tileMoveFrom ? tileMoveDestinations : tileMoveSources)
-                  : validPlacements
-              }
-              selectedCell={selectedCell}
-              players={players}
-              onCellClick={handleCellClick}
-              onCellSelect={selectCell}
-              onEscape={handleEscape}
+      {/* ── Main Game Area ── */}
+      <div className="flex-1 flex overflow-hidden min-h-0">
+        {/* Game Board column */}
+        <div className="flex-1 flex flex-col overflow-hidden relative min-w-0">
+          {/* TurnBanner – sticky above the board */}
+          {phase !== GamePhase.GameOver && (
+            <TurnBanner
+              currentPlayer={currentPlayer}
+              phase={phase}
+              currentTerrainCard={currentTerrainCard}
+              remainingPlacements={remainingPlacements}
+              canControlActions={canControlActions}
+              onDrawCard={handleDrawTerrainCard}
+              onEndTurn={handleEndTurn}
             />
           )}
-        </div>
 
-        {/* Sidebar – hidden on mobile (< md), visible on md+ */}
-        <aside className="hidden md:flex w-80 bg-white shadow-lg p-6 overflow-y-auto flex-col gap-0" aria-label={t('app.gameInformation')}>
-          {/* Current Player Info */}
-          {currentPlayer && (
-            <section
-              aria-label={t('app.currentPlayerRegion', { name: currentPlayer.name })}
-              className="mb-4 p-4 rounded-lg border-2"
-              style={{ borderColor: currentPlayer.color }}
-            >
-              <h2 className="text-xl font-bold mb-2">{t('app.currentPlayer')}</h2>
-              <div className="flex items-center gap-2 mb-1">
-                <div
-                  className="w-6 h-6 rounded-full border-2 border-gray-800"
-                  style={{ backgroundColor: currentPlayer.color }}
-                  aria-hidden="true"
-                />
-                <span className="font-semibold">{currentPlayer.name}</span>
-                {currentPlayer.isBot && (
-                  <span className="text-xs bg-purple-100 text-purple-700 px-2 py-0.5 rounded-full flex items-center gap-1">
-                    <BotIcon size={12} /> {currentPlayer.difficulty === BotDifficulty.Easy
-                      ? t('app.botDifficultyEasy')
-                      : currentPlayer.difficulty === BotDifficulty.Hard
-                        ? t('app.botDifficultyHard')
-                        : t('app.botDifficultyMedium')}
-                  </span>
-                )}
-              </div>
-              <p className="text-sm text-gray-600">
-                {t('app.settlementsRemaining', { count: currentPlayer.remainingSettlements })}
-              </p>
-            </section>
-          )}
+          {/* HexGrid */}
+          <div className="flex-1 relative overflow-hidden">
+            {players.length > 0 && (
+              <HexGrid
+                board={board}
+                validPlacements={
+                  activeTile && (activeTile === Location.Paddock || activeTile === Location.Barn)
+                    ? (tileMoveFrom ? tileMoveDestinations : tileMoveSources)
+                    : validPlacements
+                }
+                selectedCell={selectedCell}
+                players={players}
+                onCellClick={handleCellClick}
+                onCellSelect={selectCell}
+                onEscape={handleEscape}
+              />
+            )}
+          </div>
 
-          {/* Game Phase */}
-          <section className="mb-4" aria-label={t('app.gamePhaseRegion')}>
-            <h3 className="text-lg font-semibold mb-2">{t('app.phase')}</h3>
-            <div className="p-3 bg-gray-100 rounded">
-              <p className="font-medium">{tPhase(t, phase)}</p>
-            </div>
-          </section>
-
-          {/* Terrain Card */}
-          {currentTerrainCard && (
-            <section className="mb-4" aria-label={t('app.currentTerrainCardRegion')} role="region">
-              <h3 className="text-lg font-semibold mb-2">{t('app.terrain')}</h3>
-              <div className="p-4 bg-gray-100 rounded text-center">
-                <p className="text-2xl font-bold">
-                  {tTerrain(t, currentTerrainCard.terrain)}
-                </p>
-                <p className="text-sm text-gray-600 mt-1">
-                  {t('app.placementsLeft', { count: remainingPlacements })}
-                </p>
-              </div>
-            </section>
-          )}
-
-          {/* Objective Cards */}
-          {objectiveCards.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">{t('app.objectives')}</h3>
-              <div className="flex flex-wrap gap-1">
-                {objectiveCards.map(card => (
-                  <span
-                    key={card}
-                    className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
-                  >
-                    {tObjective(t, card)}
-                  </span>
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Location Tiles (current player) */}
-          {currentPlayer && currentPlayer.tiles.length > 0 && (
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">{t('app.yourTiles')}</h3>
-              <div className="space-y-1">
-                {currentPlayer.tiles.map((tile, idx) => (
-                  <div
-                    key={`${tile.location}-${idx}`}
-                    className="flex items-center justify-between p-2 rounded border"
-                  >
-                    <span className="text-sm flex items-center gap-1">
-                      {(() => { const Ic = LOCATION_ICON[tile.location]; return <Ic size={16} />; })()}
-                      {tLocation(t, tile.location)}
-                    </span>
-                    <div className="flex gap-1">
-                      {!tile.usedThisTurn &&
-                        (phase === GamePhase.PlaceSettlements ||
-                          phase === GamePhase.EndTurn) && (
-                          <button
-                            className={`px-2 py-0.5 text-xs rounded font-semibold ${
-                              activeTile === tile.location
-                                ? 'bg-orange-500 text-white'
-                                : 'bg-green-500 text-white hover:bg-green-600'
-                            }`}
-                            disabled={!canControlActions}
-                            onClick={() =>
-                              activeTile === tile.location
-                                ? handleCancelTile()
-                                : handleActivateTile(tile.location)
-                            }
-                          >
-                            {activeTile === tile.location ? t('app.cancel') : t('app.use')}
-                          </button>
-                        )}
-                      {tile.usedThisTurn && (
-                        <span className="text-xs text-gray-400 italic">{t('app.used')}</span>
-                      )}
-                    </div>
-                  </div>
-                ))}
-              </div>
-              {activeTile && (
-                <div className="mt-2 p-2 bg-yellow-50 border border-yellow-300 rounded text-xs">
-                  {activeTile === Location.Paddock || activeTile === Location.Barn
-                    ? tileMoveFrom
-                      ? t('app.clickHighlightedDestinationToMove')
-                      : t('app.clickHighlightedSettlementToMove')
-                    : t('app.clickHighlightedCellToPlace')}
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Actions */}
-          <section className="mb-4" aria-label={t('app.actions')}>
-            <h3 className="text-lg font-semibold mb-2">{t('app.actions')}</h3>
-
+          {/* Mobile floating action bar (< md) — safe-area aware */}
+          <div
+            className="md:hidden flex items-center gap-2 px-4 py-3 flex-shrink-0"
+            style={{
+              backgroundColor: 'var(--color-surface)',
+              borderTop: '1px solid var(--card-border)',
+              paddingBottom: 'max(0.75rem, env(safe-area-inset-bottom))',
+            }}
+          >
             {phase === GamePhase.DrawCard && (
               <button
                 onClick={handleDrawTerrainCard}
                 disabled={!canControlActions}
                 aria-label={t('app.drawTerrainCardAria')}
-                className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-3 px-4 rounded transition focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700"
+                className="flex-1 flex items-center justify-center gap-1.5 font-bold py-2.5 rounded-xl transition disabled:opacity-50"
+                style={{
+                  backgroundColor: 'var(--button-primary-bg)',
+                  color: 'var(--button-text)',
+                }}
               >
-                {t('app.drawTerrainCard')}
+                <DrawCardIcon size={16} />
+                {t('bottomDrawer.mobileFloating.draw')}
               </button>
             )}
-
-            {phase === GamePhase.PlaceSettlements && !activeTile && (
-              <div
-                role="status"
-                className="p-3 bg-yellow-100 border border-yellow-400 rounded"
-              >
-                <p className="text-sm">
-                  {t('app.placementHelp')}
-                </p>
-                <p className="text-xs text-gray-600 mt-1">
-                  {t('app.placementsRemaining', { count: remainingPlacements })}
-                </p>
-              </div>
-            )}
-
             {(phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
               <button
                 onClick={handleUndo}
                 disabled={!canUndo || !canControlActions}
-                className={`w-full mt-2 font-bold py-2 px-4 rounded transition border ${
-                  canUndo && canControlActions
-                    ? 'bg-orange-500 hover:bg-orange-600 text-white border-orange-600'
-                    : 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                }`}
+                aria-label={t('app.undo')}
+                className="flex items-center justify-center gap-1 px-4 py-2.5 rounded-xl font-semibold transition disabled:opacity-40"
+                style={{
+                  backgroundColor: 'var(--color-warning)',
+                  color: 'var(--color-warm-cream-50)',
+                }}
               >
-              {t('app.undo')}
+                <UndoIcon size={16} />
+                {t('bottomDrawer.mobileFloating.undo')}
               </button>
             )}
-
             {phase === GamePhase.EndTurn && (
               <button
                 onClick={handleEndTurn}
                 disabled={!canControlActions}
                 aria-label={t('app.endTurnAria')}
-                className="w-full bg-green-500 hover:bg-green-600 text-white font-bold py-3 px-4 rounded transition mt-2 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-700"
+                className="flex-1 flex items-center justify-center gap-1.5 font-bold py-2.5 rounded-xl transition disabled:opacity-50"
+                style={{
+                  backgroundColor: 'var(--color-success)',
+                  color: 'var(--button-text)',
+                }}
               >
-                {t('app.endTurn')}
+                <EndTurnIcon size={16} />
+                {t('bottomDrawer.mobileFloating.endTurn')}
               </button>
             )}
-          </section>
+            {/* Drawer toggle button */}
+            <button
+              onClick={() => setDrawerOpen(o => !o)}
+              aria-label={drawerOpen ? t('bottomDrawer.closePanel') : t('bottomDrawer.openPanel')}
+              className="w-11 h-11 flex items-center justify-center rounded-xl transition flex-shrink-0"
+              style={{
+                backgroundColor: 'var(--color-warm-cream-200)',
+                color: 'var(--color-text)',
+              }}
+            >
+              <ChevronIcon size={18} style={{ transform: drawerOpen ? 'rotate(0deg)' : 'rotate(180deg)', transition: 'transform 0.3s' }} />
+            </button>
+          </div>
+        </div>
 
-          {/* Operation Log */}
-          <GameLog history={history} players={players} />
+        {/* ── Sidebar – hidden on mobile, visible on md+ ── */}
+        <aside
+          className={`hidden md:flex flex-col overflow-hidden transition-all duration-300 flex-shrink-0 ${
+            sidebarCollapsed ? 'w-12' : 'w-96'
+          }`}
+          style={{
+            backgroundColor: 'var(--color-surface)',
+            borderLeft: '1px solid var(--card-border)',
+            boxShadow: '-2px 0 8px oklch(0.25 0.01 90 / 0.08)',
+          }}
+          aria-label={t('app.gameInformation')}
+        >
+          {/* Sidebar collapse toggle */}
+          <button
+            onClick={() => setSidebarCollapsed(c => !c)}
+            aria-label={sidebarCollapsed ? t('sidebar.expandSidebar') : t('sidebar.collapseSidebar')}
+            className="flex items-center justify-center py-2 border-b transition hover:opacity-70 flex-shrink-0"
+            style={{
+              borderColor: 'var(--card-border)',
+              color: 'var(--color-stone-600)',
+            }}
+          >
+            <ChevronIcon
+              size={16}
+              style={{
+                transform: sidebarCollapsed ? 'rotate(-90deg)' : 'rotate(90deg)',
+                transition: 'transform 0.3s',
+              }}
+            />
+          </button>
 
-          {/* Live Scores */}
-          {players.length > 0 && phase !== GamePhase.Setup && (
-            <div className="mb-4">
-              <h3 className="text-lg font-semibold mb-2">{t('app.liveScores')}</h3>
-              <div className="space-y-2">
-                {liveScores.map(ps => {
-                  const p = players.find(pl => pl.id === ps.playerId)
-                  const total =
-                    ps.castle + ps.objectives.reduce((s, o) => s + o.score, 0)
-                  return (
-                    <div
-                      key={ps.playerId}
-                      className="p-2 rounded border"
-                      style={{ borderColor: p?.color ?? '#ccc' }}
-                    >
-                      <div className="flex justify-between text-sm font-medium">
-                        <span>{p?.name}</span>
-                        <span>{total} {t('common.pointsShort')}</span>
-                      </div>
-                      <p className="text-xs text-gray-500">
-                        {t('app.castleScoreSummary', {
-                          castle: ps.castle,
-                          objectives: ps.objectives
-                            .map(o => t('app.objectiveScoreItem', { card: tObjective(t, o.card), score: o.score }))
-                            .join(' | '),
-                        })}
-                      </p>
-                    </div>
-                  )
-                })}
-              </div>
-            </div>
-          )}
+          {!sidebarCollapsed && (
+            <div className="flex-1 overflow-y-auto px-4 py-4 space-y-4">
 
-          {/* Players list */}
-          <section aria-label={t('app.players')}>
-            <h3 className="text-lg font-semibold mb-2">{t('app.players')}</h3>
-            <ul role="list" className="space-y-2">
-              {players.map((player, index) => (
-                <li
-                  key={player.id}
-                  role="listitem"
-                  aria-label={t('app.playerListAria', {
-                    name: player.name,
-                    placed: player.settlements.length,
-                    remaining: player.remainingSettlements,
-                    isCurrent: index === currentPlayerIndex ? t('app.playerListAriaCurrentSuffix') : '',
-                  })}
-                  className={`p-3 rounded border-2 ${
-                    index === currentPlayerIndex ? 'bg-blue-50' : 'bg-gray-50'
-                  }`}
-                  style={{ borderColor: player.color }}
+              {/* ── Group A: Current Terrain Card ── */}
+              {(currentTerrainCard || phase === GamePhase.DrawCard) && (
+                <section
+                  aria-label={t('app.currentTerrainCardRegion')}
+                  className="rounded-xl overflow-hidden"
+                  style={{
+                    border: '1px solid var(--card-border)',
+                    boxShadow: 'var(--shadow-soft)',
+                  }}
                 >
-                  <div className="flex items-center gap-2 mb-1">
+                  <div
+                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: 'var(--color-warm-cream-100)',
+                      color: 'var(--color-stone-600)',
+                      borderBottom: '1px solid var(--card-border)',
+                    }}
+                  >
+                    {t('sidebar.terrainCard')}
+                  </div>
+                  {currentTerrainCard ? (
                     <div
-                      className="w-4 h-4 rounded-full border border-gray-800"
-                      style={{ backgroundColor: player.color }}
-                      aria-hidden="true"
-                    />
-                    <span className="font-medium">
-                      {player.name}
-                      {index === currentPlayerIndex && (
-                          <span className="ml-2 text-xs font-normal text-blue-600">({t('app.current')})</span>
-                        )}
-                    </span>
-                    {player.isBot && (
-                      <span className="text-xs text-gray-500"><BotIcon size={12} /></span>
+                      className="p-4 flex items-center gap-3"
+                      style={{ backgroundColor: 'var(--color-surface)' }}
+                    >
+                      {/* Terrain icon */}
+                      <div
+                        className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
+                        style={{ backgroundColor: 'var(--color-warm-cream-100)' }}
+                      >
+                        {(() => {
+                          const terrainEmoji: Record<string, string> = {
+                            Grass: '🌿', Forest: '🌲', Desert: '🏜️',
+                            Flower: '🌸', Canyon: '🪨', Water: '💧', Mountain: '⛰️'
+                          }
+                          return terrainEmoji[currentTerrainCard.terrain] ?? '🗺️'
+                        })()}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p
+                          className="text-2xl font-bold truncate"
+                          style={{ fontFamily: 'var(--font-display)', color: 'var(--color-text)' }}
+                        >
+                          {tTerrain(t, currentTerrainCard.terrain)}
+                        </p>
+                        {/* Progress bar */}
+                        <div className="mt-2">
+                          <div
+                            className="h-2 rounded-full overflow-hidden"
+                            style={{ backgroundColor: 'var(--progress-track)' }}
+                            role="progressbar"
+                            aria-valuenow={3 - remainingPlacements}
+                            aria-valuemin={0}
+                            aria-valuemax={3}
+                          >
+                            <div
+                              className="h-full rounded-full transition-all duration-300"
+                              style={{
+                                width: `${Math.min(100, ((3 - remainingPlacements) / 3) * 100)}%`,
+                                backgroundColor: 'var(--progress-fill)',
+                              }}
+                            />
+                          </div>
+                          <p
+                            className="text-xs mt-1"
+                            style={{ color: 'var(--color-stone-500)' }}
+                          >
+                            {t('app.placementsLeft', { count: remainingPlacements })}
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  ) : (
+                    <div
+                      className="p-4 text-center text-sm"
+                      style={{ color: 'var(--color-stone-400)', backgroundColor: 'var(--color-surface)' }}
+                    >
+                      {t('app.drawTerrainCard')}
+                    </div>
+                  )}
+                </section>
+              )}
+
+              {/* ── Group B: Location Tiles (current player) ── */}
+              {currentPlayer && (
+                <section
+                  aria-label={t('sidebar.yourTiles')}
+                  className="rounded-xl overflow-hidden"
+                  style={{
+                    border: '1px solid var(--card-border)',
+                    boxShadow: 'var(--shadow-soft)',
+                  }}
+                >
+                  <div
+                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: 'var(--color-warm-cream-100)',
+                      color: 'var(--color-stone-600)',
+                      borderBottom: '1px solid var(--card-border)',
+                    }}
+                  >
+                    {t('sidebar.yourTiles')}
+                  </div>
+                  <div
+                    className="p-3"
+                    style={{ backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {currentPlayer.tiles.length === 0 ? (
+                      <p className="text-xs text-center py-2" style={{ color: 'var(--color-stone-400)' }}>—</p>
+                    ) : (
+                      <div className="flex flex-wrap gap-2">
+                        {currentPlayer.tiles.map((tile, idx) => {
+                          const Ic = LOCATION_ICON[tile.location]
+                          const isActive = activeTile === tile.location
+                          const canUse = !tile.usedThisTurn &&
+                            (phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn)
+                          return (
+                            <div
+                              key={`${tile.location}-${idx}`}
+                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition"
+                              style={{
+                                border: `2px solid ${isActive ? 'var(--color-warning)' : tile.usedThisTurn ? 'var(--card-border)' : 'var(--color-ink-green-300)'}`,
+                                backgroundColor: tile.usedThisTurn
+                                  ? 'var(--color-warm-cream-100)'
+                                  : isActive
+                                    ? 'oklch(0.97 0.03 70)'
+                                    : 'var(--color-ink-green-50)',
+                                opacity: tile.usedThisTurn ? 0.55 : 1,
+                              }}
+                            >
+                              <Ic size={16} />
+                              <span style={{ color: 'var(--color-text)' }}>{tLocation(t, tile.location)}</span>
+                              {canUse && (
+                                <button
+                                  className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded transition"
+                                  disabled={!canControlActions}
+                                  style={{
+                                    backgroundColor: isActive ? 'var(--color-warning)' : 'var(--color-success)',
+                                    color: 'var(--button-text)',
+                                  }}
+                                  onClick={() =>
+                                    isActive ? handleCancelTile() : handleActivateTile(tile.location)
+                                  }
+                                >
+                                  {isActive ? t('app.cancel') : t('app.use')}
+                                </button>
+                              )}
+                              {tile.usedThisTurn && (
+                                <span className="ml-1 text-xs italic" style={{ color: 'var(--color-stone-400)' }}>
+                                  {t('app.used')}
+                                </span>
+                              )}
+                            </div>
+                          )
+                        })}
+                      </div>
+                    )}
+                    {activeTile && (
+                      <div
+                        className="mt-2 p-2 rounded-lg text-xs"
+                        style={{
+                          backgroundColor: 'oklch(0.97 0.03 70)',
+                          border: '1px solid var(--color-warning)',
+                          color: 'var(--color-stone-700)',
+                        }}
+                      >
+                        {activeTile === Location.Paddock || activeTile === Location.Barn
+                          ? tileMoveFrom
+                            ? t('app.clickHighlightedDestinationToMove')
+                            : t('app.clickHighlightedSettlementToMove')
+                          : t('app.clickHighlightedCellToPlace')}
+                      </div>
                     )}
                   </div>
-                  <p className="text-xs text-gray-600">
-                     {t('app.placedRemainingSummary', {
-                       placed: player.settlements.length,
-                       remaining: player.remainingSettlements,
-                     })}
-                   </p>
-                   {player.tiles.length > 0 && (
-                     <div className="flex items-center gap-1 mt-0.5">
-                       <span className="text-xs text-gray-500">{t('app.tilesLabel')}:</span>
-                       {player.tiles.map((tile, tileIdx) => {
-                         const TileIc = LOCATION_ICON[tile.location]
-                         return <TileIc key={`${tile.location}-${tileIdx}`} size={12} className="text-gray-500" />
-                       })}
-                     </div>
-                   )}
-                </li>
-              ))}
-            </ul>
-          </section>
+                </section>
+              )}
+
+              {/* ── Group C: Objective Cards ── */}
+              {objectiveCards.length > 0 && (
+                <section
+                  aria-label={t('sidebar.objectives')}
+                  className="rounded-xl overflow-hidden"
+                  style={{
+                    border: '1px solid var(--card-border)',
+                    boxShadow: 'var(--shadow-soft)',
+                  }}
+                >
+                  <div
+                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: 'var(--color-warm-cream-100)',
+                      color: 'var(--color-stone-600)',
+                      borderBottom: '1px solid var(--card-border)',
+                    }}
+                  >
+                    {t('sidebar.objectives')}
+                  </div>
+                  <div
+                    className="p-3 flex flex-wrap gap-2"
+                    style={{ backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {objectiveCards.map(card => (
+                      <span
+                        key={card}
+                        className="px-3 py-1.5 text-xs font-semibold rounded-lg"
+                        style={{
+                          backgroundColor: 'var(--color-player-blue)',
+                          color: 'var(--color-warm-cream-50)',
+                        }}
+                      >
+                        {tObjective(t, card)}
+                      </span>
+                    ))}
+                  </div>
+                </section>
+              )}
+
+              {/* ── Group D: Live Scores ── */}
+              {players.length > 0 && phase !== GamePhase.Setup && (
+                <section
+                  aria-label={t('sidebar.liveScores')}
+                  className="rounded-xl overflow-hidden"
+                  style={{
+                    border: '1px solid var(--card-border)',
+                    boxShadow: 'var(--shadow-soft)',
+                  }}
+                >
+                  <div
+                    className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                    style={{
+                      backgroundColor: 'var(--color-warm-cream-100)',
+                      color: 'var(--color-stone-600)',
+                      borderBottom: '1px solid var(--card-border)',
+                    }}
+                  >
+                    {t('sidebar.liveScores')}
+                  </div>
+                  <div
+                    className="p-3 space-y-2"
+                    style={{ backgroundColor: 'var(--color-surface)' }}
+                  >
+                    {liveScores.map(ps => {
+                      const p = players.find(pl => pl.id === ps.playerId)
+                      const total = ps.castle + ps.objectives.reduce((s, o) => s + o.score, 0)
+                      const isLeader = total === maxLiveScore && total > 0
+                      return (
+                        <div
+                          key={ps.playerId}
+                          className="rounded-lg p-2"
+                          style={{
+                            border: `2px solid ${isLeader ? 'var(--color-amber-400)' : 'var(--card-border)'}`,
+                            backgroundColor: isLeader ? 'oklch(0.97 0.02 80)' : 'var(--color-warm-cream-50)',
+                          }}
+                        >
+                          <div className="flex justify-between items-center text-sm font-medium">
+                            <div className="flex items-center gap-1.5">
+                              <div
+                                className="w-3 h-3 rounded-full"
+                                style={{ backgroundColor: p?.color ?? '#ccc' }}
+                                aria-hidden="true"
+                              />
+                              <span style={{ color: 'var(--color-text)' }}>{p?.name}</span>
+                              {isLeader && (
+                                <span className="text-xs" title="Leading">★</span>
+                              )}
+                            </div>
+                            <span
+                              className="font-bold"
+                              style={{ color: isLeader ? 'var(--color-amber-700)' : 'var(--color-text)' }}
+                            >
+                              {total} {t('common.pointsShort')}
+                            </span>
+                          </div>
+                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
+                            {t('app.castleScoreSummary', {
+                              castle: ps.castle,
+                              objectives: ps.objectives
+                                .map(o => t('app.objectiveScoreItem', { card: tObjective(t, o.card), score: o.score }))
+                                .join(' | '),
+                            })}
+                          </p>
+                        </div>
+                      )
+                    })}
+                  </div>
+                </section>
+              )}
+
+              {/* ── Group E: Players List ── */}
+              <section
+                aria-label={t('sidebar.players')}
+                className="rounded-xl overflow-hidden"
+                style={{
+                  border: '1px solid var(--card-border)',
+                  boxShadow: 'var(--shadow-soft)',
+                }}
+              >
+                <div
+                  className="px-3 py-2 text-xs font-semibold uppercase tracking-wider"
+                  style={{
+                    backgroundColor: 'var(--color-warm-cream-100)',
+                    color: 'var(--color-stone-600)',
+                    borderBottom: '1px solid var(--card-border)',
+                  }}
+                >
+                  {t('sidebar.players')}
+                </div>
+                <ul
+                  role="list"
+                  className="divide-y"
+                  style={{
+                    backgroundColor: 'var(--color-surface)',
+                    borderColor: 'var(--card-border)',
+                  }}
+                >
+                  {players.map((player, index) => (
+                    <li
+                      key={player.id}
+                      role="listitem"
+                      aria-label={t('app.playerListAria', {
+                        name: player.name,
+                        placed: player.settlements.length,
+                        remaining: player.remainingSettlements,
+                        isCurrent: index === currentPlayerIndex ? t('app.playerListAriaCurrentSuffix') : '',
+                      })}
+                      className="flex items-center gap-3 px-3 py-2.5"
+                      style={{
+                        backgroundColor: index === currentPlayerIndex
+                          ? 'var(--color-warm-cream-100)'
+                          : 'transparent',
+                      }}
+                    >
+                      {/* Color dot */}
+                      <div
+                        className="w-4 h-4 rounded-full flex-shrink-0 border-2"
+                        style={{
+                          backgroundColor: player.color,
+                          borderColor: index === currentPlayerIndex ? 'var(--color-stone-700)' : 'transparent',
+                        }}
+                        aria-hidden="true"
+                      />
+                      {/* Name + bot tag */}
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className="text-sm font-medium truncate"
+                            style={{ color: 'var(--color-text)' }}
+                          >
+                            {player.name}
+                          </span>
+                          {player.isBot && <BotIcon size={12} />}
+                          {index === currentPlayerIndex && (
+                            <span
+                              className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
+                              style={{
+                                backgroundColor: 'var(--color-info)',
+                                color: 'var(--color-warm-cream-50)',
+                              }}
+                            >
+                              {t('app.current')}
+                            </span>
+                          )}
+                        </div>
+                        <div className="flex items-center gap-1 mt-0.5">
+                          {/* Remaining settlements count */}
+                          <span className="text-xs" style={{ color: 'var(--color-stone-400)' }}>
+                            {player.remainingSettlements}
+                          </span>
+                          {/* Progress bar */}
+                          <div
+                            className="flex-1 h-1 rounded-full overflow-hidden max-w-16"
+                            style={{ backgroundColor: 'var(--progress-track)' }}
+                          >
+                            <div
+                              className="h-full rounded-full"
+                              style={{
+                                width: `${((40 - player.remainingSettlements) / 40) * 100}%`,
+                                backgroundColor: player.color,
+                              }}
+                            />
+                          </div>
+                          {/* Tile icons */}
+                          {player.tiles.map((tile, tileIdx) => {
+                            const TileIc = LOCATION_ICON[tile.location]
+                            return <TileIc key={`${tile.location}-${tileIdx}`} size={12} style={{ color: 'var(--color-stone-500)' }} />
+                          })}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+
+              {/* Game Log (compact) */}
+              <GameLog history={history} players={players} />
+
+              {/* Sidebar action buttons (desktop fallback) */}
+              <section aria-label={t('app.actions')} className="space-y-2 pb-4">
+                {phase === GamePhase.DrawCard && (
+                  <button
+                    onClick={handleDrawTerrainCard}
+                    disabled={!canControlActions}
+                    aria-label={t('app.drawTerrainCardAria')}
+                    className="w-full font-bold py-2.5 px-4 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'var(--button-primary-bg)',
+                      color: 'var(--button-text)',
+                    }}
+                  >
+                    <DrawCardIcon size={16} />
+                    {t('app.drawTerrainCard')}
+                  </button>
+                )}
+
+                {(phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn) && (
+                  <button
+                    onClick={handleUndo}
+                    disabled={!canUndo || !canControlActions}
+                    className="w-full font-bold py-2 px-4 rounded-xl transition disabled:opacity-40 flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'var(--color-warning)',
+                      color: 'var(--button-text)',
+                    }}
+                  >
+                    <UndoIcon size={16} />
+                    {t('app.undo')}
+                  </button>
+                )}
+
+                {phase === GamePhase.EndTurn && (
+                  <button
+                    onClick={handleEndTurn}
+                    disabled={!canControlActions}
+                    aria-label={t('app.endTurnAria')}
+                    className="w-full font-bold py-2.5 px-4 rounded-xl transition disabled:opacity-50 flex items-center justify-center gap-2"
+                    style={{
+                      backgroundColor: 'var(--color-success)',
+                      color: 'var(--button-text)',
+                    }}
+                  >
+                    <EndTurnIcon size={16} />
+                    {t('app.endTurn')}
+                  </button>
+                )}
+              </section>
+            </div>
+          )}
         </aside>
       </div>
 
