@@ -1,3 +1,5 @@
+@import "./styles/tokens.css";
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
@@ -32,4 +34,3 @@ button:focus-visible,
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }
-
