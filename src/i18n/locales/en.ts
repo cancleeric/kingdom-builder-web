@@ -220,6 +220,22 @@ export const en = {
     lastMovedSettlement: 'Moved settlement',
     lastUsedTile: 'Used tile',
   },
+  turnBanner: {
+    regionLabel: "{{player}}'s turn — {{phase}}",
+    playerTurn: "{{player}}'s Turn",
+    phaseLabel: 'Phase',
+    placementsProgress: '{{placed}} of {{total}} settlements placed',
+    ofSettlements: '{{placed}} of {{total}}',
+  },
+  sidebar: {
+    terrainCard: 'Terrain Card',
+    yourTiles: 'Your Location Tiles',
+    objectives: 'Objectives',
+    liveScores: 'Live Scores',
+    players: 'Players',
+    collapseSidebar: 'Collapse sidebar',
+    expandSidebar: 'Expand sidebar',
+  },
   bottomDrawer: {
     controlsRegion: 'Game controls',
     closePanel: 'Close game panel',
@@ -230,6 +246,11 @@ export const en = {
     tapHighlightedDestinationToMove: 'Tap a highlighted destination to move.',
     tapHighlightedSettlementToMove: 'Tap a highlighted settlement to move.',
     tapHighlightedCellToPlace: 'Tap a highlighted cell to place.',
+    mobileFloating: {
+      draw: 'Draw',
+      endTurn: 'End Turn',
+      undo: 'Undo',
+    },
   },
   board: {
     gridLabel: 'Kingdom Builder game board',
