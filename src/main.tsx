@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client'
 import { I18nextProvider } from 'react-i18next'
 import './index.css'
 import App from './App.tsx'
+import { IconGallery } from './components/icons/IconGallery.tsx'
 import { DesignSystemPage } from './design-system/DesignSystemPage'
 import { registerSW } from './utils/registerSW'
 import { setGlobalSeed } from './utils/seededRandom'
@@ -18,7 +19,12 @@ if (seedParam !== null) {
 }
 
 const currentPath = window.location.pathname.replace(/\/$/, '') || '/'
-const RootPage = currentPath === '/design-system' ? DesignSystemPage : App
+const RootPage =
+  currentPath === '/design-system/icons'
+    ? IconGallery
+    : currentPath === '/design-system'
+      ? DesignSystemPage
+      : App
 
 createRoot(document.getElementById('root')!).render(
   <StrictMode>

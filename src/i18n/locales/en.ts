@@ -89,6 +89,7 @@ export const en = {
     current: 'current',
     placedRemainingSummary: 'Placed: {{placed}} | Remaining: {{remaining}}',
     tilesSummary: 'Tiles: {{tiles}}',
+    tilesLabel: 'Tiles',
     playerListAria:
       '{{name}}: {{placed}} placed, {{remaining}} remaining{{isCurrent}}',
     playerListAriaCurrentSuffix: ', current player',
