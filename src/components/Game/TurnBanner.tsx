@@ -2,6 +2,7 @@ import React from 'react';
 import { useTranslation } from 'react-i18next';
 import { GamePhase } from '../../types';
 import type { Player } from '../../types';
+import type { AxialCoord } from '../../core/hex';
 import { tPhase, tTerrain } from '../../i18n/formatters';
 import { DrawCardIcon, EndTurnIcon } from '../icons';
 
@@ -10,6 +11,7 @@ interface TurnBannerProps {
   phase: GamePhase;
   currentTerrainCard: { terrain: import('../../core/terrain').Terrain } | null;
   remainingPlacements: number;
+  validPlacements: AxialCoord[];
   canControlActions: boolean;
   onDrawCard: () => void;
   onEndTurn: () => void;
@@ -27,6 +29,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
   phase,
   currentTerrainCard,
   remainingPlacements,
+  validPlacements,
   canControlActions,
   onDrawCard,
   onEndTurn,
@@ -38,6 +41,10 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
   const totalPlacements = 3;
   const placedCount = totalPlacements - remainingPlacements;
   const progressPct = Math.min(100, (placedCount / totalPlacements) * 100);
+
+  const shouldShowEndTurnButton =
+    phase === GamePhase.EndTurn ||
+    (phase === GamePhase.PlaceSettlements && validPlacements.length === 0);
 
   const phaseLabel = tPhase(t, phase);
   const terrainLabel = currentTerrainCard ? tTerrain(t, currentTerrainCard.terrain) : null;
@@ -69,6 +76,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
         >
           {phaseLabel}
           {terrainLabel && ` · ${terrainLabel}`}
+          {phase === GamePhase.PlaceSettlements && validPlacements.length === 0 && ` · 無可放置位置`}
         </span>
 
         {/* Progress bar (only during PlaceSettlements) */}
@@ -116,7 +124,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
           </button>
         )}
 
-        {phase === GamePhase.EndTurn && (
+        {shouldShowEndTurnButton && (
           <button
             onClick={onEndTurn}
             disabled={!canControlActions}
@@ -130,7 +138,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
           </button>
         )}
 
-        {phase === GamePhase.PlaceSettlements && (
+        {phase === GamePhase.PlaceSettlements && validPlacements.length > 0 && (
           <span className="text-xs text-white/80">
             {t('turnBanner.ofSettlements', {
               placed: placedCount,

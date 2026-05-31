@@ -1,4 +1,4 @@
-import { Board } from '../core/board';
+import { Board, serializeBoard, deserializeBoard } from '../core/board';
 import { TerrainCard } from '../core/terrain';
 import { Player, GamePhase, PlayerScore } from '../types';
 import { AxialCoord } from '../core/hex';
@@ -47,7 +47,14 @@ export interface SaveSchema {
 // ────────────────────────────────────────────────────
 
 export function saveGame(state: SerializableGameState): void {
-  const payload: SaveSchema = { saveVersion: SAVE_VERSION, state };
+  const payload: SaveSchema = {
+    saveVersion: SAVE_VERSION,
+    state: {
+      ...state,
+      // Serialize Board instance to plain object
+      board: serializeBoard(state.board) as unknown as Board,
+    },
+  };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
 }
 
@@ -61,7 +68,15 @@ export function loadGame(): SerializableGameState | null {
       clearSave();
       return null;
     }
-    return parsed.state;
+
+    // Deserialize Board from plain object
+    const boardData = parsed.state.board as unknown as ReturnType<typeof serializeBoard>;
+    const board = deserializeBoard(boardData);
+
+    return {
+      ...parsed.state,
+      board,
+    };
   } catch {
     clearSave();
     return null;

@@ -49,9 +49,13 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   const cells = board.getAllCells();
 
   // Calculate SVG dimensions
+  // For axial coords, max x = HEX_SIZE * (√3 * (width-1) + √3/2 * (height-1))
+  // Add hex radius + padding on both sides
   const padding = HEX_SIZE * 2;
-  const width = board.width * HEX_SIZE * Math.sqrt(3) + padding * 2;
-  const height = board.height * HEX_SIZE * 1.5 + padding * 2;
+  const maxX = HEX_SIZE * Math.sqrt(3) * ((board.width - 1) + 0.5 * (board.height - 1));
+  const maxY = HEX_SIZE * 1.5 * (board.height - 1);
+  const width = maxX + HEX_SIZE * 2 + padding * 2;
+  const height = maxY + HEX_SIZE * 2 + padding * 2;
   const viewBoxWidth = width;
   const viewBoxHeight = height;
 
@@ -181,12 +185,15 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           transform: `translate(${transform.translateX}px, ${transform.translateY}px) scale(${transform.scale})`,
           transformOrigin: '0 0',
           willChange: 'transform',
+          width: '100%',
+          height: '100%',
         }}
       >
         <svg
-          width={viewBoxWidth}
-          height={viewBoxHeight}
+          width="100%"
+          height="100%"
           viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
+          preserveAspectRatio="xMidYMid meet"
           role="none"
         >
           <g transform={`translate(${padding + width / 2 - board.width * HEX_SIZE}, ${padding + height / 2 - board.height * HEX_SIZE})`}>

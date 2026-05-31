@@ -16,6 +16,18 @@ export class SetupPage {
   async goto(seed?: number): Promise<void> {
     const url = seed !== undefined ? `/?seed=${seed}` : '/';
     await this.page.goto(url);
+
+    // App now shows MainMenu by default; click "Single Player" to reach Game Setup
+    const singlePlayerButton = this.page.getByRole('button', { name: /single.*player/i });
+    try {
+      await singlePlayerButton.waitFor({ state: 'visible', timeout: 5000 });
+      await singlePlayerButton.click();
+      // Wait for Game Setup page to load
+      await this.setupHeading.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      // If Single Player button not found, assume we're already on Setup page
+      // (e.g., direct navigation via URL parameter in the future)
+    }
   }
 
   /** The main heading on the setup screen. */

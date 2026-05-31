@@ -39,6 +39,8 @@ interface GameState {
   finalScores: PlayerScore[];
   selectedCell: AxialCoord | null;
   validPlacements: AxialCoord[];
+  /** Tracks settlements placed in the current turn (for adjacency rule) */
+  placementsThisTurn: AxialCoord[];
   activeTile: Location | null;
   tileMoveSources: AxialCoord[];
   tileMoveFrom: AxialCoord | null;
@@ -183,6 +185,7 @@ export const gameStore = create<GameState>((set, get) => ({
   finalScores: [],
   selectedCell: null,
   validPlacements: [],
+  placementsThisTurn: [],
   activeTile: null,
   tileMoveSources: [],
   tileMoveFrom: null,
@@ -277,18 +280,35 @@ export const gameStore = create<GameState>((set, get) => ({
       ({ card, remainingDeck } = drawCard(fresh));
     }
 
+    const validPlacements = card
+      ? getValidPlacements(
+        state.board,
+        card.terrain,
+        state.players[state.currentPlayerIndex].id,
+        []
+      )
+      : [];
+
+    // If no valid placements available, skip directly to EndTurn phase
+    if (validPlacements.length === 0) {
+      set({
+        currentTerrainCard: card,
+        deck: remainingDeck,
+        phase: GamePhase.EndTurn,
+        remainingPlacements: SETTLEMENTS_PER_TURN,
+        placementsThisTurn: [],
+        validPlacements: [],
+      });
+      return;
+    }
+
     set({
       currentTerrainCard: card,
       deck: remainingDeck,
       phase: GamePhase.PlaceSettlements,
       remainingPlacements: SETTLEMENTS_PER_TURN,
-      validPlacements: card
-        ? getValidPlacements(
-            state.board,
-            card.terrain,
-            state.players[state.currentPlayerIndex].id
-          )
-        : [],
+      placementsThisTurn: [],
+      validPlacements,
     });
   },
 
@@ -323,6 +343,7 @@ export const gameStore = create<GameState>((set, get) => ({
       applyTileAcquisition(state.board, coord, currentPlayer, state.acquiredLocations);
 
     const newRemaining = state.remainingPlacements - 1;
+    const updatedPlacementsThisTurn = [...state.placementsThisTurn, coord];
 
     // Record the action in history
     const action: GameAction = {
@@ -349,6 +370,7 @@ export const gameStore = create<GameState>((set, get) => ({
         remainingPlacements: 0,
         phase: GamePhase.EndTurn,
         validPlacements: [],
+        placementsThisTurn: updatedPlacementsThisTurn,
         selectedCell: null,
         acquiredLocations: updatedAcquiredLocations,
         history: [...state.history, action],
@@ -357,19 +379,39 @@ export const gameStore = create<GameState>((set, get) => ({
         ...resetTileState(),
       });
     } else {
-      set({
-        remainingPlacements: newRemaining,
-        validPlacements: getValidPlacements(
-          state.board,
-          state.currentTerrainCard.terrain,
-          currentPlayer.id
-        ),
-        selectedCell: null,
-        acquiredLocations: updatedAcquiredLocations,
-        history: [...state.history, action],
-        undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-        canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
-      });
+      const nextValidPlacements = getValidPlacements(
+        state.board,
+        state.currentTerrainCard.terrain,
+        currentPlayer.id,
+        updatedPlacementsThisTurn
+      );
+
+      // If no more valid placements available, skip to EndTurn phase
+      if (nextValidPlacements.length === 0) {
+        set({
+          remainingPlacements: newRemaining,
+          placementsThisTurn: updatedPlacementsThisTurn,
+          phase: GamePhase.EndTurn,
+          validPlacements: [],
+          selectedCell: null,
+          acquiredLocations: updatedAcquiredLocations,
+          history: [...state.history, action],
+          undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+          canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+          ...resetTileState(),
+        });
+      } else {
+        set({
+          remainingPlacements: newRemaining,
+          placementsThisTurn: updatedPlacementsThisTurn,
+          validPlacements: nextValidPlacements,
+          selectedCell: null,
+          acquiredLocations: updatedAcquiredLocations,
+          history: [...state.history, action],
+          undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
+          canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+        });
+      }
     }
   },
 
@@ -560,10 +602,10 @@ export const gameStore = create<GameState>((set, get) => ({
     const restored =
       state.phase === GamePhase.PlaceSettlements && state.currentTerrainCard
         ? getValidPlacements(
-            state.board,
-            state.currentTerrainCard.terrain,
-            state.players[state.currentPlayerIndex].id
-          )
+          state.board,
+          state.currentTerrainCard.terrain,
+          state.players[state.currentPlayerIndex].id
+        )
         : state.validPlacements;
 
     set({ ...resetTileState(), validPlacements: restored });
@@ -591,10 +633,10 @@ export const gameStore = create<GameState>((set, get) => ({
     const restoredValid =
       state.phase === GamePhase.PlaceSettlements && state.currentTerrainCard
         ? getValidPlacements(
-            state.board,
-            state.currentTerrainCard.terrain,
-            currentPlayer.id
-          )
+          state.board,
+          state.currentTerrainCard.terrain,
+          currentPlayer.id
+        )
         : [];
 
     const action: GameAction = {
@@ -670,10 +712,10 @@ export const gameStore = create<GameState>((set, get) => ({
     const restoredValid =
       state.phase === GamePhase.PlaceSettlements && state.currentTerrainCard
         ? getValidPlacements(
-            state.board,
-            state.currentTerrainCard.terrain,
-            currentPlayer.id
-          )
+          state.board,
+          state.currentTerrainCard.terrain,
+          currentPlayer.id
+        )
         : [];
 
     const action: GameAction = {
@@ -744,10 +786,10 @@ export const gameStore = create<GameState>((set, get) => ({
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
-              state.board,
-              state.currentTerrainCard.terrain,
-              currentPlayer.id
-            )
+            state.board,
+            state.currentTerrainCard.terrain,
+            currentPlayer.id
+          )
           : [];
 
       set({
@@ -794,10 +836,10 @@ export const gameStore = create<GameState>((set, get) => ({
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
-              state.board,
-              state.currentTerrainCard.terrain,
-              currentPlayer.id
-            )
+            state.board,
+            state.currentTerrainCard.terrain,
+            currentPlayer.id
+          )
           : [];
 
       set({
@@ -836,10 +878,10 @@ export const gameStore = create<GameState>((set, get) => ({
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
-              state.board,
-              state.currentTerrainCard.terrain,
-              currentPlayer.id
-            )
+            state.board,
+            state.currentTerrainCard.terrain,
+            currentPlayer.id
+          )
           : [];
 
       set({
@@ -860,6 +902,16 @@ export const gameStore = create<GameState>((set, get) => ({
     const saved = loadGame();
     if (saved) {
       set(saved);
+
+      // Fix phase if hydrated state is inconsistent:
+      // If phase=PlaceSettlements but no valid placements, should be EndTurn
+      const state = get();
+      if (
+        state.phase === GamePhase.PlaceSettlements &&
+        state.validPlacements.length === 0
+      ) {
+        set({ phase: GamePhase.EndTurn });
+      }
     }
   },
 }));

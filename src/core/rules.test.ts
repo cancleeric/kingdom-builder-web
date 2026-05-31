@@ -41,7 +41,7 @@ describe('Game Rules', () => {
     it('should allow any matching terrain if no adjacent terrain available', () => {
       // Player has settlements on grass
       board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
-      
+
       // Forest cells are far away
       board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Forest, settlement: undefined });
       board.setCell({ coord: { q: 6, r: 5 }, terrain: Terrain.Forest, settlement: undefined });
@@ -77,14 +77,15 @@ describe('Game Rules', () => {
     });
 
     it('adjacent rule: player with settlement next to grass must place adjacent (not on distant grass)', () => {
-      // Settlement A at (0,0) on grass
+      // Settlement A at (0,0) on grass (placed this turn)
       board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
       // Adjacent grass at (1,0)
       board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
       // Distant grass at (5,5) - not adjacent to A
       board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: undefined });
 
-      const validPlacements = getValidPlacements(board, Terrain.Grass, 1);
+      // Second settlement this turn: must be adjacent to (0,0)
+      const validPlacements = getValidPlacements(board, Terrain.Grass, 1, [{ q: 0, r: 0 }]);
 
       // Must only allow the adjacent cell (1,0), not the distant (5,5)
       expect(validPlacements).toHaveLength(1);
@@ -180,11 +181,11 @@ describe('Game Rules', () => {
     it('should count settlements adjacent to castles', () => {
       // Place a castle
       board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, location: Location.Castle, settlement: undefined });
-      
+
       // Place player settlements adjacent to castle
       board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
       board.setCell({ coord: { q: 0, r: 1 }, terrain: Terrain.Grass, settlement: 1 });
-      
+
       // Place a settlement not adjacent to castle
       board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Grass, settlement: 1 });
 
@@ -213,6 +214,86 @@ describe('Game Rules', () => {
 
       // (1,0) should be included since it's grass and unoccupied
       expect(valid.some(p => p.q === 1 && p.r === 0)).toBe(true);
+    });
+  });
+
+  describe('placementsThisTurn parameter (per-turn adjacency rule)', () => {
+    it('first settlement (placementsThisTurn=[]) can be placed on any matching terrain', () => {
+      // Player has existing settlements from previous turns
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
+      // Forest cells scattered across the board
+      board.setCell({ coord: { q: 2, r: 2 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 5, r: 5 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 8, r: 3 }, terrain: Terrain.Forest, settlement: undefined });
+
+      // First settlement this turn: should allow ANY forest cell (not restricted by previous settlements)
+      const validPlacements = getValidPlacements(board, Terrain.Forest, 1, []);
+
+      expect(validPlacements).toHaveLength(3);
+      expect(validPlacements.some(p => p.q === 2 && p.r === 2)).toBe(true);
+      expect(validPlacements.some(p => p.q === 5 && p.r === 5)).toBe(true);
+      expect(validPlacements.some(p => p.q === 8 && p.r === 3)).toBe(true);
+    });
+
+    it('second settlement must be adjacent to first placement THIS TURN', () => {
+      // First settlement placed this turn at (2,2)
+      board.setCell({ coord: { q: 2, r: 2 }, terrain: Terrain.Forest, settlement: 1 });
+      // Adjacent forest at (3,2)
+      board.setCell({ coord: { q: 3, r: 2 }, terrain: Terrain.Forest, settlement: undefined });
+      // Distant forest (not adjacent to first placement)
+      board.setCell({ coord: { q: 8, r: 8 }, terrain: Terrain.Forest, settlement: undefined });
+
+      // Second settlement: must be adjacent to (2,2)
+      const validPlacements = getValidPlacements(board, Terrain.Forest, 1, [{ q: 2, r: 2 }]);
+
+      expect(validPlacements).toHaveLength(1);
+      expect(validPlacements[0]).toEqual({ q: 3, r: 2 });
+    });
+
+    it('fallback: when no adjacent cells available after first placement, can place anywhere', () => {
+      // First settlement placed this turn at (2,2), all adjacent forest occupied
+      board.setCell({ coord: { q: 2, r: 2 }, terrain: Terrain.Forest, settlement: 1 });
+      // All neighbors of (2,2) are either non-forest or occupied
+      board.setCell({ coord: { q: 3, r: 2 }, terrain: Terrain.Forest, settlement: 2 });
+      board.setCell({ coord: { q: 3, r: 1 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 2, r: 1 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 1, r: 2 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 1, r: 3 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 2, r: 3 }, terrain: Terrain.Grass, settlement: undefined });
+      // Distant forest available
+      board.setCell({ coord: { q: 8, r: 8 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 9, r: 8 }, terrain: Terrain.Forest, settlement: undefined });
+
+      // Second settlement: no adjacent forest → fallback to any forest
+      const validPlacements = getValidPlacements(board, Terrain.Forest, 1, [{ q: 2, r: 2 }]);
+
+      expect(validPlacements).toHaveLength(2);
+      expect(validPlacements.some(p => p.q === 8 && p.r === 8)).toBe(true);
+      expect(validPlacements.some(p => p.q === 9 && p.r === 8)).toBe(true);
+    });
+
+    it('empty board with matching terrain: valid placements = all matching cells', () => {
+      // Five forest cells scattered
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 2, r: 2 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 4, r: 1 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 6, r: 3 }, terrain: Terrain.Forest, settlement: undefined });
+      board.setCell({ coord: { q: 8, r: 5 }, terrain: Terrain.Forest, settlement: undefined });
+
+      // First settlement (no placementsThisTurn)
+      const validPlacements = getValidPlacements(board, Terrain.Forest, 1, []);
+
+      expect(validPlacements).toHaveLength(5);
+    });
+
+    it('no matching terrain available: returns empty array', () => {
+      board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+      board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
+
+      // Draw a Forest card but no forest on board
+      const validPlacements = getValidPlacements(board, Terrain.Forest, 1, []);
+
+      expect(validPlacements).toHaveLength(0);
     });
   });
 });

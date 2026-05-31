@@ -6,17 +6,19 @@ import { HexCell } from '../types';
 /**
  * Get all valid placement positions for a player based on the current terrain card
  * 
- * Rules:
+ * Rules (Kingdom Builder official rules):
  * 1. Can only place on cells matching the terrain card
  * 2. Cannot place on mountain or water
  * 3. Cannot place on cells that already have settlements
- * 4. If player has settlements adjacent to the terrain type, must place adjacent to existing settlements
- * 5. If no adjacent terrain, can place on any matching terrain cell
+ * 4. First settlement this turn: can place on ANY matching terrain cell
+ * 5. Second/third settlement this turn: MUST place adjacent to settlements placed THIS TURN
+ * 6. If no adjacent cells available (fallback): can place on any matching terrain cell
  */
 export function getValidPlacements(
   board: Board,
   terrainCard: Terrain,
-  playerId: number
+  _playerId: number, // Parameter kept for API compatibility; placement rules now depend on placementsThisTurn
+  placementsThisTurn: AxialCoord[] = []
 ): AxialCoord[] {
   // Get all buildable cells of the terrain type
   const matchingCells = board
@@ -27,19 +29,16 @@ export function getValidPlacements(
     return [];
   }
 
-  // Get all player's current settlements
-  const playerSettlements = board.getPlayerSettlements(playerId);
-  
-  // If player has no settlements yet, can place anywhere on matching terrain
-  if (playerSettlements.length === 0) {
+  // First settlement this turn: can place anywhere on matching terrain (unrestricted)
+  if (placementsThisTurn.length === 0) {
     return matchingCells.map(cell => cell.coord);
   }
 
-  // Find cells adjacent to player's settlements
+  // Second/third settlement: must be adjacent to placements THIS TURN
   const adjacentCells = new Set<string>();
-  
-  playerSettlements.forEach(settlement => {
-    const neighbors = hexNeighbors(settlement.coord);
+
+  placementsThisTurn.forEach(placement => {
+    const neighbors = hexNeighbors(placement);
     neighbors.forEach(neighbor => {
       const neighborCell = board.getCell(neighbor);
       if (neighborCell && neighborCell.terrain === terrainCard && neighborCell.settlement === undefined) {
@@ -56,7 +55,7 @@ export function getValidPlacements(
     });
   }
 
-  // Otherwise, can place on any matching terrain cell
+  // Fallback: no adjacent cells available → can place anywhere on matching terrain
   return matchingCells.map(cell => cell.coord);
 }
 
@@ -79,7 +78,7 @@ export function isValidPlacement(
 export function getSettlementNeighbors(board: Board, playerId: number): HexCell[] {
   const playerSettlements = board.getPlayerSettlements(playerId);
   const neighbors = new Set<string>();
-  
+
   playerSettlements.forEach(settlement => {
     const neighborCoords = hexNeighbors(settlement.coord);
     neighborCoords.forEach(coord => {
@@ -89,7 +88,7 @@ export function getSettlementNeighbors(board: Board, playerId: number): HexCell[
       }
     });
   });
-  
+
   return Array.from(neighbors)
     .map(key => {
       const [q, r] = key.split(',').map(Number);
@@ -107,7 +106,7 @@ export function isAdjacentToLocation(
   locationName: string
 ): boolean {
   const playerSettlements = board.getPlayerSettlements(playerId);
-  
+
   return playerSettlements.some(settlement => {
     const neighbors = hexNeighbors(settlement.coord);
     return neighbors.some(neighbor => {
@@ -123,18 +122,18 @@ export function isAdjacentToLocation(
 export function countSettlementsAdjacentToCastles(board: Board, playerId: number): number {
   const playerSettlements = board.getPlayerSettlements(playerId);
   let count = 0;
-  
+
   playerSettlements.forEach(settlement => {
     const neighbors = hexNeighbors(settlement.coord);
     const adjacentToCastle = neighbors.some(neighbor => {
       const cell = board.getCell(neighbor);
       return cell?.location === 'Castle';
     });
-    
+
     if (adjacentToCastle) {
       count++;
     }
   });
-  
+
   return count;
 }
