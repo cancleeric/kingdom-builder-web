@@ -58,6 +58,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   const height = maxY + HEX_SIZE * 2 + padding * 2;
   const viewBoxWidth = width;
   const viewBoxHeight = height;
+  const gridOffset = padding + HEX_SIZE;
 
   /** Detects whether the touch has moved significantly (pan vs tap). */
   const handleTouchStartCapture = (e: React.TouchEvent<HTMLDivElement>) => {
@@ -196,7 +197,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           preserveAspectRatio="xMidYMid meet"
           role="none"
         >
-          <g transform={`translate(${padding + width / 2 - board.width * HEX_SIZE}, ${padding + height / 2 - board.height * HEX_SIZE})`}>
+          <g transform={`translate(${gridOffset}, ${gridOffset})`}>
             {sortedRows.map(([, rowCells]) => (
               <g key={`row-${rowCells[0]?.coord.r}`} role="row">
                 {rowCells.map(cell => {
