@@ -237,6 +237,7 @@ export const en = {
     phaseLabel: 'Phase',
     placementsProgress: '{{placed}} of {{total}} settlements placed',
     ofSettlements: '{{placed}} of {{total}}',
+    noValidPlacements: 'No valid placements',
   },
   sidebar: {
     terrainCard: 'Terrain Card',
@@ -257,6 +258,7 @@ export const en = {
     tapHighlightedDestinationToMove: 'Tap a highlighted destination to move.',
     tapHighlightedSettlementToMove: 'Tap a highlighted settlement to move.',
     tapHighlightedCellToPlace: 'Tap a highlighted cell to place.',
+    leading: 'Leading',
     mobileFloating: {
       draw: 'Draw',
       endTurn: 'End Turn',

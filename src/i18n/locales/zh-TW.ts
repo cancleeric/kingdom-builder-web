@@ -236,6 +236,7 @@ export const zhTW = {
     phaseLabel: '階段',
     placementsProgress: '已放置 {{placed}} / {{total}} 個聚落',
     ofSettlements: '{{placed}} / {{total}}',
+    noValidPlacements: '無可放置位置',
   },
   sidebar: {
     terrainCard: '地形卡',
@@ -255,6 +256,7 @@ export const zhTW = {
     tapHighlightedDestinationToMove: '點擊高亮目的地以移動。',
     tapHighlightedSettlementToMove: '點擊高亮聚落以移動。',
     tapHighlightedCellToPlace: '點擊高亮格子以放置。',
+    leading: '領先',
     mobileFloating: {
       draw: '抽牌',
       endTurn: '結束回合',

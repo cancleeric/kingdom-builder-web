@@ -1,5 +1,10 @@
 import { defineConfig, devices } from '@playwright/test';
 
+const baseURL = process.env.PLAYWRIGHT_BASE_URL ?? 'http://localhost:5173';
+const devServerUrl = new URL(baseURL);
+const devServerPort = devServerUrl.port || (devServerUrl.protocol === 'https:' ? '443' : '80');
+const devServerHost = devServerUrl.hostname;
+
 /**
  * Playwright configuration for Kingdom Builder E2E tests.
  * Targets Chromium, Firefox, and WebKit; starts the Vite dev server
@@ -28,7 +33,7 @@ export default defineConfig({
 
   use: {
     /* Base URL to use in actions such as `await page.goto('/')`. */
-    baseURL: 'http://localhost:5173',
+    baseURL,
 
     /* Collect trace when retrying the failed test. */
     trace: 'on-first-retry',
@@ -58,9 +63,9 @@ export default defineConfig({
 
   /* Automatically start the Vite dev server before tests */
   webServer: {
-    command: 'npm run dev',
-    url: 'http://localhost:5173',
-    reuseExistingServer: !process.env.CI,
+    command: `npm run dev -- --host ${devServerHost} --port ${devServerPort} --strictPort`,
+    url: baseURL,
+    reuseExistingServer: process.env.PLAYWRIGHT_REUSE_EXISTING === '1',
     timeout: 30_000,
   },
 });
