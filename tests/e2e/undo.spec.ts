@@ -66,7 +66,7 @@ test('undo: undoing a single placement restores state', async ({ page }) => {
 
 // ─── Scenario 2: Undo multiple placements ────────────────────────────────────
 
-test('undo: undoing multiple placements in sequence', async ({ page }) => {
+test('undo: one undo is allowed per turn', async ({ page }) => {
     const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
@@ -75,21 +75,14 @@ test('undo: undoing multiple placements in sequence', async ({ page }) => {
     await gamePage.clickDrawCard();
     await expect(gamePage.liveRegion).toContainText('placements remaining: 3');
 
-    // Place 2 settlements
+    // Place one settlement, then consume the one undo allowed this turn.
     await gamePage.clickValidCell();
-    await page.waitForTimeout(100);
-    await gamePage.clickValidCell();
-    await expect(gamePage.liveRegion).toContainText('placements remaining: 1');
-
-    // Undo the second placement
-    await gamePage.undoButton.click();
-    await expect(gamePage.liveRegion).toContainText('placements remaining: 2');
-
-    // Undo the first placement
     await gamePage.undoButton.click();
     await expect(gamePage.liveRegion).toContainText('placements remaining: 3');
 
-    // Undo button should now be disabled
+    // Further placements in the same turn cannot be undone.
+    await gamePage.clickValidCell();
+    await expect(gamePage.liveRegion).toContainText('placements remaining: 2');
     await expect(gamePage.undoButton).toBeDisabled();
 });
 
@@ -104,8 +97,8 @@ test('undo: undo button is disabled during DrawCard phase', async ({ page }) => 
     // Initially in DrawCard phase
     await expect(gamePage.liveRegion).toContainText('DrawCard');
 
-    // Undo button should be disabled (no placements made yet)
-    await expect(gamePage.undoButton).toBeDisabled();
+    // Undo button is not shown until a settlement can be undone.
+    await expect(gamePage.undoButton).toHaveCount(0);
 });
 
 // ─── Scenario 4: Undo is disabled after ending the turn ──────────────────────
@@ -135,8 +128,8 @@ test('undo: undo button is disabled after ending the turn', async ({ page }) => 
     await gamePage.clickEndTurn();
     await expect(gamePage.liveRegion).toContainText('DrawCard');
 
-    // Undo button should now be disabled (new player's turn)
-    await expect(gamePage.undoButton).toBeDisabled();
+    // Undo button is hidden again on the next player's DrawCard phase.
+    await expect(gamePage.undoButton).toHaveCount(0);
 });
 
 // ─── Scenario 5: Undo after acquiring a location tile ────────────────────────

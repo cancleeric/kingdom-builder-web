@@ -33,13 +33,14 @@ export const GameOver = React.memo(function GameOver({
         <p className="text-gray-600 text-center mb-6">{t('gameOver.finalRankings')}</p>
 
         {/* Ranking list */}
-        <div className="space-y-3 mb-6">
+        <div className="space-y-3 mb-6" role="list" aria-label={t('gameOver.finalRankings')}>
           {sorted.map((score, index) => {
             const player = getPlayer(score.playerId);
             const medal = ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`;
             return (
               <div
                 key={score.playerId}
+                role="listitem"
                 className="flex items-center gap-3 p-3 rounded-lg border-2"
                 style={{ borderColor: player?.color ?? '#ccc' }}
               >
@@ -71,10 +72,11 @@ export const GameOver = React.memo(function GameOver({
         {/* Objective cards used */}
         <div className="mb-6 p-3 bg-gray-50 rounded-lg">
           <p className="text-sm font-semibold text-gray-700 mb-1">{t('gameOver.objectiveCards')}</p>
-          <div className="flex flex-wrap gap-2">
+          <div className="flex flex-wrap gap-2" role="list" aria-label={t('gameOver.objectiveCards')}>
             {objectiveCards.map(card => (
               <span
                 key={card}
+                role="listitem"
                 className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full"
               >
                 {tObjective(t, card)}

@@ -316,7 +316,7 @@ function App() {
       leaveRoom();
       setMenuMode('multiplayer');
     } else {
-      setMenuMode('home');
+      setMenuMode('setup');
     }
     setGameStarted(false);
   };
@@ -403,6 +403,7 @@ function App() {
           muted={muted}
           onToggleMute={handleToggleMute}
           onSinglePlayer={() => setMenuMode('setup')}
+          onContinueGame={() => setGameStarted(true)}
           onMultiplayer={() => setMenuMode('multiplayer')}
           onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
         />

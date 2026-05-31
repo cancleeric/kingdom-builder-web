@@ -24,6 +24,7 @@ interface MainMenuProps {
   muted: boolean;
   onToggleMute: () => void;
   onSinglePlayer: () => void;
+  onContinueGame: () => void;
   onMultiplayer: () => void;
   onLanguageChange: (lang: string) => void;
 }
@@ -32,6 +33,7 @@ export function MainMenu({
   muted,
   onToggleMute,
   onSinglePlayer,
+  onContinueGame,
   onMultiplayer,
   onLanguageChange,
 }: MainMenuProps) {
@@ -45,7 +47,7 @@ export function MainMenu({
 
   const handleContinue = () => {
     gameStore.getState().loadSavedGame();
-    onSinglePlayer();
+    onContinueGame();
   };
 
   const handleClearSave = () => {

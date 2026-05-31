@@ -130,6 +130,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
               <button
                 key={n}
                 onClick={() => handlePlayerCountChange(n)}
+                aria-pressed={playerCount === n}
                 className="flex-1 py-2 rounded-12 font-body font-semibold transition"
                 style={
                   playerCount === n
@@ -176,6 +177,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                   <button
                     key={type}
                     onClick={() => updateConfig(i, { type })}
+                    aria-pressed={cfg.type === type}
                     className="px-3 py-1 rounded-8 text-body-sm font-body font-medium transition"
                     style={
                       cfg.type === type
@@ -225,6 +227,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
               <button
                 key={size}
                 onClick={() => updateOption('boardSize', size)}
+                aria-pressed={options.boardSize === size}
                 className="flex-1 py-2 rounded-12 text-body-sm font-body font-semibold transition"
                 style={
                   options.boardSize === size
@@ -257,6 +260,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                 <button
                   key={n}
                   onClick={() => updateOption('objectiveCount', n)}
+                  aria-pressed={options.objectiveCount === n}
                   className="flex-1 py-1 rounded-8 text-body-sm font-body font-semibold transition"
                   style={
                     options.objectiveCount === n

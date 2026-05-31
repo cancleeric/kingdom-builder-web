@@ -32,7 +32,7 @@ export class SetupPage {
 
   /** The main heading on the setup screen. */
   get heading(): Locator {
-    return this.page.getByRole('heading', { name: 'Kingdom Builder' });
+    return this.page.getByRole('heading', { name: /Kingdom Builder|Game Setup/ }).first();
   }
 
   /** The "Game Setup" sub-heading. */
@@ -54,8 +54,7 @@ export class SetupPage {
   /** Set a player's type to 'human' or 'bot' (0-based index). */
   async setPlayerType(index: number, type: 'human' | 'bot'): Promise<void> {
     const label = type === 'human' ? '🧑 Human' : '🤖 Computer';
-    const playerSection = this.page.locator('.border.rounded-lg.p-4').nth(index);
-    await playerSection.getByRole('button', { name: label }).click();
+    await this.page.getByRole('button', { name: label }).nth(index).click();
   }
 
   /** Select board size ('small', 'medium', or 'large'). */

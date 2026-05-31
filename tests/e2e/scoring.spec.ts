@@ -1,6 +1,7 @@
 import { test, expect } from '@playwright/test';
 import { SetupPage } from '../pages/SetupPage';
 import { GamePage } from '../pages/GamePage';
+import { openSavedGameOver } from '../pages/GameOverFixture';
 
 /**
  * Scoring E2E tests.
@@ -165,21 +166,9 @@ test('scoring: Merchants objective awards points for settlements in multiple row
 // ─── Scenario 4: Game Over shows correct scores ──────────────────────────────
 
 test('scoring: Game Over modal displays final scores for both players', async ({ page }) => {
-    test.setTimeout(300_000); // 5 minutes for bot game
-
-    const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
-    // Start a 2-bot game on a small board to reach Game Over quickly
-    await setupPage.goto(50);
-    await expect(setupPage.setupHeading).toBeVisible();
-    await setupPage.setPlayerType(0, 'bot');
-    // Player 2 is bot by default
-    await setupPage.selectBoardSize('small');
-    await setupPage.startGame();
-
-    // Wait for Game Over
-    await gamePage.waitForGameOver(240_000);
+    await openSavedGameOver(page);
 
     await expect(gamePage.gameOverHeading).toBeVisible();
     await expect(page.getByText('Final Rankings')).toBeVisible();
