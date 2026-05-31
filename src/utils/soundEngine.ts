@@ -7,6 +7,7 @@ export enum SoundType {
 }
 
 const MUTE_STORAGE_KEY = 'kingdom-builder-muted';
+const VOLUME_STORAGE_KEY = 'kingdom-builder-volume';
 
 let audioCtx: AudioContext | null = null;
 
@@ -25,6 +26,19 @@ export function isMuted(): boolean {
 
 export function setMuted(muted: boolean): void {
   localStorage.setItem(MUTE_STORAGE_KEY, String(muted));
+}
+
+export function getVolume(): number {
+  const raw = localStorage.getItem(VOLUME_STORAGE_KEY);
+  if (raw === null) return 1;
+  const parsed = Number(raw);
+  if (!Number.isFinite(parsed)) return 1;
+  return Math.min(1, Math.max(0, parsed));
+}
+
+export function setVolume(volume: number): void {
+  const clamped = Math.min(1, Math.max(0, volume));
+  localStorage.setItem(VOLUME_STORAGE_KEY, String(clamped));
 }
 
 function getContext(): AudioContext | null {
@@ -49,7 +63,7 @@ function playTone(
   osc.type = type;
   osc.frequency.setValueAtTime(frequency, startTime);
 
-  gain.gain.setValueAtTime(gainValue, startTime);
+  gain.gain.setValueAtTime(gainValue * getVolume(), startTime);
   gain.gain.exponentialRampToValueAtTime(0.001, startTime + duration);
 
   osc.connect(gain);
@@ -99,7 +113,7 @@ export function playSound(type: SoundType): void {
         osc.frequency.setValueAtTime(440, now);
         osc.frequency.linearRampToValueAtTime(220, now + 0.2);
 
-        gain.gain.setValueAtTime(0.3, now);
+        gain.gain.setValueAtTime(0.3 * getVolume(), now);
         gain.gain.exponentialRampToValueAtTime(0.001, now + 0.2);
 
         osc.connect(gain);

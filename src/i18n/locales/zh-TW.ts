@@ -59,6 +59,17 @@ export const zhTW = {
     settings: '設定',
     back: '返回',
   },
+  settings: {
+    heading: '設定',
+    close: '關閉設定',
+    audio: '音訊',
+    mute: '靜音',
+    muted: '已靜音',
+    unmuted: '開啟',
+    volume: '音量',
+    volumeValue: '{{value}}%',
+    language: '語言',
+  },
   multiplayer: {
     serverUrl: '伺服器網址',
     yourName: '你的名稱',
