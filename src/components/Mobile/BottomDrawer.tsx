@@ -3,8 +3,9 @@ import { GamePhase } from '../../types';
 import { Location } from '../../core/terrain';
 import { Player, LocationTile } from '../../types';
 import { GameAction } from '../../types/history';
+import type { ObjectiveCard } from '../../core/scoring';
 import { useTranslation } from 'react-i18next';
-import { tLocation, tPhase, tTerrain } from '../../i18n/formatters';
+import { tLocation, tObjective, tPhase, tTerrain } from '../../i18n/formatters';
 import {
   CastleIcon,
   FarmIcon,
@@ -36,7 +37,15 @@ interface BottomDrawerProps {
   /** Game state props */
   phase: GamePhase;
   currentPlayer: Player | undefined;
+  players: Player[];
   currentTerrainCard: { terrain: import('../../core/terrain').Terrain } | null;
+  objectiveCards: ObjectiveCard[];
+  liveScores: Array<{
+    playerId: number;
+    castle: number;
+    objectives: Array<{ card: ObjectiveCard; score: number }>;
+  }>;
+  maxLiveScore: number;
   remainingPlacements: number;
   activeTile: Location | null;
   tileMoveFrom: import('../../core/hex').AxialCoord | null;
@@ -55,8 +64,8 @@ interface BottomDrawerProps {
  * Groups content to mirror the desktop Sidebar structure:
  *   A) Current terrain card
  *   B) Location tiles
- *   C) Objectives (not passed via props — omitted in drawer)
- *   D) Live scores (not passed via props — omitted in drawer)
+ *   C) Objectives
+ *   D) Live scores
  *   E) Players summary
  */
 export const BottomDrawer: React.FC<BottomDrawerProps> = ({
@@ -64,7 +73,11 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
   onToggle,
   phase,
   currentPlayer,
+  players,
   currentTerrainCard,
+  objectiveCards,
+  liveScores,
+  maxLiveScore,
   remainingPlacements,
   activeTile,
   tileMoveFrom,
@@ -323,6 +336,109 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                     : t('bottomDrawer.tapHighlightedCellToPlace')}
                 </div>
               )}
+            </section>
+          )}
+
+          {/* ── Group C: Objective Cards ── */}
+          {objectiveCards.length > 0 && (
+            <section
+              aria-label={t('sidebar.objectives')}
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid var(--card-border)' }}
+            >
+              <div
+                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider"
+                style={{
+                  backgroundColor: 'var(--color-warm-cream-100)',
+                  color: 'var(--color-stone-600)',
+                  borderBottom: '1px solid var(--card-border)',
+                }}
+              >
+                {t('sidebar.objectives')}
+              </div>
+              <div className="p-3 flex flex-wrap gap-2" style={{ backgroundColor: 'var(--color-surface)' }}>
+                {objectiveCards.map(card => (
+                  <span
+                    key={card}
+                    className="px-3 py-1.5 text-xs font-semibold rounded-lg"
+                    style={{
+                      backgroundColor: 'var(--color-player-blue)',
+                      color: 'var(--color-warm-cream-50)',
+                    }}
+                  >
+                    {tObjective(t, card)}
+                  </span>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {/* ── Group D: Live Scores ── */}
+          {liveScores.length > 0 && phase !== GamePhase.Setup && (
+            <section
+              aria-label={t('sidebar.liveScores')}
+              className="rounded-xl overflow-hidden"
+              style={{ border: '1px solid var(--card-border)' }}
+            >
+              <div
+                className="px-3 py-1.5 text-xs font-semibold uppercase tracking-wider"
+                style={{
+                  backgroundColor: 'var(--color-warm-cream-100)',
+                  color: 'var(--color-stone-600)',
+                  borderBottom: '1px solid var(--card-border)',
+                }}
+              >
+                {t('sidebar.liveScores')}
+              </div>
+              <div className="p-3 space-y-2" style={{ backgroundColor: 'var(--color-surface)' }}>
+                {liveScores.map(playerScore => {
+                  const player = players.find(p => p.id === playerScore.playerId);
+                  const total = playerScore.castle + playerScore.objectives.reduce((sum, objective) => sum + objective.score, 0);
+                  const isLeader = total === maxLiveScore && total > 0;
+
+                  return (
+                    <div
+                      key={playerScore.playerId}
+                      className="rounded-lg p-2"
+                      style={{
+                        border: `2px solid ${isLeader ? 'var(--color-amber-400)' : 'var(--card-border)'}`,
+                        backgroundColor: isLeader ? 'oklch(0.97 0.02 80)' : 'var(--color-warm-cream-50)',
+                      }}
+                    >
+                      <div className="flex justify-between items-center text-sm font-medium">
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <div
+                            className="w-3 h-3 rounded-full flex-shrink-0"
+                            style={{ backgroundColor: player?.color ?? '#ccc' }}
+                            aria-hidden="true"
+                          />
+                          <span className="truncate" style={{ color: 'var(--color-text)' }}>{player?.name}</span>
+                          {isLeader && (
+                            <span className="text-xs" title={t('bottomDrawer.leading')}>★</span>
+                          )}
+                        </div>
+                        <span
+                          className="font-bold flex-shrink-0"
+                          style={{ color: isLeader ? 'var(--color-amber-700)' : 'var(--color-text)' }}
+                        >
+                          {total} {t('common.pointsShort')}
+                        </span>
+                      </div>
+                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
+                        {t('app.castleScoreSummary', {
+                          castle: playerScore.castle,
+                          objectives: playerScore.objectives
+                            .map(objective => t('app.objectiveScoreItem', {
+                              card: tObjective(t, objective.card),
+                              score: objective.score,
+                            }))
+                            .join(' | '),
+                        })}
+                      </p>
+                    </div>
+                  );
+                })}
+              </div>
             </section>
           )}
 

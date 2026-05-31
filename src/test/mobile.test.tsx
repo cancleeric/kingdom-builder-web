@@ -9,7 +9,7 @@
 
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act } from '@testing-library/react';
-import { render, screen, fireEvent } from '@testing-library/react';
+import { render, screen, fireEvent, within } from '@testing-library/react';
 import React from 'react';
 
 import { useBoardTransform } from '../hooks/useBoardTransform';
@@ -17,6 +17,7 @@ import { BottomDrawer } from '../components/Mobile/BottomDrawer';
 import { GamePhase, BotDifficulty } from '../types';
 import type { Player } from '../types';
 import type { GameAction } from '../types/history';
+import { ObjectiveCard } from '../core/scoring';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
 
@@ -37,12 +38,38 @@ function makePlayer(overrides?: Partial<Player>): Player {
 
 /** Build a minimal BottomDrawer props set. */
 function makeDrawerProps(overrides?: Record<string, unknown>) {
+  const players = [
+    makePlayer({ id: 1, name: 'Alice', color: '#ff0000' }),
+    makePlayer({ id: 2, name: 'Bob', color: '#0000ff' }),
+  ];
+
   return {
     isOpen: false,
     onToggle: vi.fn(),
     phase: GamePhase.DrawCard,
-    currentPlayer: makePlayer(),
+    currentPlayer: players[0],
+    players,
     currentTerrainCard: null,
+    objectiveCards: [ObjectiveCard.Hermits, ObjectiveCard.Farmers],
+    liveScores: [
+      {
+        playerId: 1,
+        castle: 3,
+        objectives: [
+          { card: ObjectiveCard.Hermits, score: 5 },
+          { card: ObjectiveCard.Farmers, score: 2 },
+        ],
+      },
+      {
+        playerId: 2,
+        castle: 1,
+        objectives: [
+          { card: ObjectiveCard.Hermits, score: 0 },
+          { card: ObjectiveCard.Farmers, score: 1 },
+        ],
+      },
+    ],
+    maxLiveScore: 10,
     remainingPlacements: 0,
     activeTile: null,
     tileMoveFrom: null,
@@ -216,45 +243,32 @@ describe('BottomDrawer', () => {
     expect(onToggle).toHaveBeenCalledOnce();
   });
 
-  // NOTE: Draw/Undo/EndTurn buttons are in App.tsx mobileFloating section, not in BottomDrawer component
-  it.skip('shows Draw Terrain Card button when phase is DrawCard', () => {
-    const props = makeDrawerProps({ isOpen: true, phase: GamePhase.DrawCard });
+  it('shows objective cards in the expanded drawer', () => {
+    const props = makeDrawerProps({ isOpen: true });
     render(React.createElement(BottomDrawer, props));
-    expect(screen.getByRole('button', { name: /draw terrain card/i })).toBeTruthy();
+
+    expect(screen.getByRole('region', { name: 'Objectives' })).toBeTruthy();
+    expect(screen.getByText('Hermits')).toBeTruthy();
+    expect(screen.getByText('Farmers')).toBeTruthy();
   });
 
-  it.skip('calls onDrawCard when Draw Terrain Card is clicked', () => {
-    const onDrawCard = vi.fn();
-    const props = makeDrawerProps({
-      isOpen: true,
-      phase: GamePhase.DrawCard,
-      onDrawCard,
-    });
+  it('shows live scores with the leading player marked', () => {
+    const props = makeDrawerProps({ isOpen: true, phase: GamePhase.PlaceSettlements });
     render(React.createElement(BottomDrawer, props));
-    fireEvent.click(screen.getByRole('button', { name: /draw terrain card/i }));
-    expect(onDrawCard).toHaveBeenCalledOnce();
+
+    const liveScores = screen.getByRole('region', { name: 'Live Scores' });
+    expect(liveScores).toBeTruthy();
+    expect(within(liveScores).getByText('Alice')).toBeTruthy();
+    expect(within(liveScores).getByText(/10\s+pts/)).toBeTruthy();
+    expect(within(liveScores).getByTitle('Leading')).toBeTruthy();
+    expect(within(liveScores).getByText('🏰 3 | Hermits: 5 | Farmers: 2')).toBeTruthy();
   });
 
-  it.skip('shows End Turn and Undo buttons in EndTurn phase', () => {
-    const props = makeDrawerProps({
-      isOpen: true,
-      phase: GamePhase.EndTurn,
-      canUndo: true,
-    });
+  it('does not show live scores during setup phase', () => {
+    const props = makeDrawerProps({ isOpen: true, phase: GamePhase.Setup });
     render(React.createElement(BottomDrawer, props));
-    expect(screen.getByRole('button', { name: /end turn/i })).toBeTruthy();
-    expect(screen.getByRole('button', { name: /undo/i })).toBeTruthy();
-  });
 
-  it.skip('Undo button is disabled when canUndo is false', () => {
-    const props = makeDrawerProps({
-      isOpen: true,
-      phase: GamePhase.EndTurn,
-      canUndo: false,
-    });
-    render(React.createElement(BottomDrawer, props));
-    const undoBtn = screen.getByRole('button', { name: /undo/i });
-    expect(undoBtn).toBeDisabled();
+    expect(screen.queryByRole('region', { name: 'Live Scores' })).toBeNull();
   });
 
   it('swipe up opens the drawer (calls onToggle)', () => {

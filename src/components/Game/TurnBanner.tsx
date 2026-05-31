@@ -76,7 +76,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
         >
           {phaseLabel}
           {terrainLabel && ` · ${terrainLabel}`}
-          {phase === GamePhase.PlaceSettlements && validPlacements.length === 0 && ` · 無可放置位置`}
+          {phase === GamePhase.PlaceSettlements && validPlacements.length === 0 && ` · ${t('turnBanner.noValidPlacements')}`}
         </span>
 
         {/* Progress bar (only during PlaceSettlements) */}

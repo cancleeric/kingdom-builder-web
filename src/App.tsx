@@ -1156,7 +1156,11 @@ function App() {
           onToggle={() => setDrawerOpen(o => !o)}
           phase={phase}
           currentPlayer={currentPlayer}
+          players={players}
           currentTerrainCard={currentTerrainCard}
+          objectiveCards={objectiveCards}
+          liveScores={liveScores}
+          maxLiveScore={maxLiveScore}
           remainingPlacements={remainingPlacements}
           activeTile={activeTile}
           tileMoveFrom={tileMoveFrom}
