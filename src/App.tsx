@@ -53,12 +53,12 @@ import type { ComponentType, SVGProps } from 'react'
 
 const LOCATION_ICON: Record<Location, ComponentType<{ size?: number } & SVGProps<SVGSVGElement>>> = {
   [Location.Castle]: CastleIcon,
-  [Location.Farm]:   FarmIcon,
+  [Location.Farm]: FarmIcon,
   [Location.Harbor]: HarborIcon,
-  [Location.Oasis]:  OasisIcon,
-  [Location.Tower]:  TowerIcon,
-  [Location.Paddock]:PaddockIcon,
-  [Location.Barn]:   BarnIcon,
+  [Location.Oasis]: OasisIcon,
+  [Location.Tower]: TowerIcon,
+  [Location.Paddock]: PaddockIcon,
+  [Location.Barn]: BarnIcon,
   [Location.Oracle]: OracleIcon,
   [Location.Tavern]: TavernIcon,
 }
@@ -176,6 +176,11 @@ function App() {
     !isNetworkGame || (!!currentPlayer && multiplayerLocalPlayerId === currentPlayer.id);
   const canControlActions =
     !isNetworkGame || (isLocalTurn && multiplayerConnectionStatus === 'connected');
+
+  // Show "End Turn" button when in EndTurn phase OR when PlaceSettlements with no valid moves
+  const shouldShowEndTurnButton =
+    phase === GamePhase.EndTurn ||
+    (phase === GamePhase.PlaceSettlements && validPlacements.length === 0);
 
   const runNetworkedAction = (localAction: () => void, networkAction: MultiplayerAction) => {
     if (isNetworkGame) {
@@ -311,7 +316,7 @@ function App() {
       leaveRoom();
       setMenuMode('multiplayer');
     } else {
-      setMenuMode('home');
+      setMenuMode('setup');
     }
     setGameStarted(false);
   };
@@ -355,15 +360,15 @@ function App() {
   const liveAnnouncement = currentPlayer
     ? currentTerrainCard
       ? t('app.liveAnnouncementWithTerrain', {
-          player: currentPlayer.name,
-          phase: tPhase(t, phase),
-          terrain: tTerrain(t, currentTerrainCard.terrain),
-          count: remainingPlacements,
-        })
+        player: currentPlayer.name,
+        phase: tPhase(t, phase),
+        terrain: tTerrain(t, currentTerrainCard.terrain),
+        count: remainingPlacements,
+      })
       : t('app.liveAnnouncement', {
-          player: currentPlayer.name,
-          phase: tPhase(t, phase),
-        })
+        player: currentPlayer.name,
+        phase: tPhase(t, phase),
+      })
     : '';
 
   if (!gameStarted) {
@@ -398,6 +403,7 @@ function App() {
           muted={muted}
           onToggleMute={handleToggleMute}
           onSinglePlayer={() => setMenuMode('setup')}
+          onContinueGame={() => setGameStarted(true)}
           onMultiplayer={() => setMenuMode('multiplayer')}
           onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
         />
@@ -565,6 +571,7 @@ function App() {
               phase={phase}
               currentTerrainCard={currentTerrainCard}
               remainingPlacements={remainingPlacements}
+              validPlacements={validPlacements}
               canControlActions={canControlActions}
               onDrawCard={handleDrawTerrainCard}
               onEndTurn={handleEndTurn}
@@ -592,7 +599,7 @@ function App() {
 
           {/* Mobile floating action bar (< md) — safe-area aware */}
           <div
-            className="md:hidden flex items-center gap-2 px-4 py-3 flex-shrink-0"
+            className="lg:hidden flex items-center gap-2 px-4 py-3 flex-shrink-0"
             style={{
               backgroundColor: 'var(--color-surface)',
               borderTop: '1px solid var(--card-border)',
@@ -629,7 +636,7 @@ function App() {
                 {t('bottomDrawer.mobileFloating.undo')}
               </button>
             )}
-            {phase === GamePhase.EndTurn && (
+            {shouldShowEndTurnButton && (
               <button
                 onClick={handleEndTurn}
                 disabled={!canControlActions}
@@ -661,9 +668,8 @@ function App() {
 
         {/* ── Sidebar – hidden on mobile, visible on md+ ── */}
         <aside
-          className={`hidden md:flex flex-col overflow-hidden transition-all duration-300 flex-shrink-0 ${
-            sidebarCollapsed ? 'w-12' : 'w-96'
-          }`}
+          className={`hidden lg:flex flex-col overflow-hidden transition-all duration-300 flex-shrink-0 ${sidebarCollapsed ? 'w-12' : 'w-96'
+            }`}
           style={{
             backgroundColor: 'var(--color-surface)',
             borderLeft: '1px solid var(--card-border)',
@@ -1122,7 +1128,7 @@ function App() {
                   </button>
                 )}
 
-                {phase === GamePhase.EndTurn && (
+                {shouldShowEndTurnButton && (
                   <button
                     onClick={handleEndTurn}
                     disabled={!canControlActions}
@@ -1143,8 +1149,8 @@ function App() {
         </aside>
       </div>
 
-      {/* Mobile Bottom Drawer – visible on < md only */}
-      <div className="md:hidden">
+      {/* Compact Bottom Drawer – visible on < lg only */}
+      <div className="lg:hidden">
         <BottomDrawer
           isOpen={drawerOpen}
           onToggle={() => setDrawerOpen(o => !o)}

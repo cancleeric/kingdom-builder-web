@@ -6,7 +6,7 @@ import { HexCell, BoardSize } from '../types';
  * Board class managing the hex grid
  */
 export class Board {
-  private cells: Map<string, HexCell>;
+  public cells: Map<string, HexCell>;
   public readonly width: number;
   public readonly height: number;
 
@@ -55,7 +55,7 @@ export class Board {
     if (!cell || cell.settlement !== undefined) {
       return false;
     }
-    
+
     cell.settlement = playerId;
     return true;
   }
@@ -91,21 +91,41 @@ export class Board {
 }
 
 /**
+ * Serialize a board to a plain object (for JSON persistence)
+ */
+export function serializeBoard(board: Board): { width: number; height: number; cells: [string, HexCell][] } {
+  return {
+    width: board.width,
+    height: board.height,
+    cells: Array.from(board.cells.entries()),
+  };
+}
+
+/**
+ * Deserialize a board from a plain object
+ */
+export function deserializeBoard(data: { width: number; height: number; cells: [string, HexCell][] }): Board {
+  const board = new Board(data.width, data.height);
+  board.cells = new Map(data.cells);
+  return board;
+}
+
+/**
  * Create a default board with a simple configuration
  * This creates a basic quadrant-based layout
  */
 export function createDefaultBoard(): Board {
   const board = new Board(20, 20);
-  
+
   // Create a simple pattern for testing
   // Using offset coordinates that work well for display
   for (let q = 0; q < 20; q++) {
     for (let r = 0; r < 20; r++) {
       const coord: AxialCoord = { q, r };
-      
+
       // Determine terrain based on position
       let terrain: Terrain;
-      
+
       // Border mountains
       if (q === 0 || r === 0 || q === 19 || r === 19) {
         terrain = Terrain.Mountain;
@@ -131,32 +151,32 @@ export function createDefaultBoard(): Board {
         // Southeast quadrant - mixed
         terrain = [Terrain.Grass, Terrain.Forest, Terrain.Desert, Terrain.Flower, Terrain.Canyon][(q + r) % 5];
       }
-      
+
       const cell: HexCell = {
         coord,
         terrain,
         settlement: undefined,
       };
-      
+
       // Add location tiles at strategic positions
       // Castles at the four quadrant corners
       if ((q === 3 && r === 3) || (q === 16 && r === 3) || (q === 3 && r === 16) || (q === 16 && r === 16)) {
         cell.location = Location.Castle;
       }
       // Location tiles spread across the board
-      else if (q === 7 && r === 7)  cell.location = Location.Farm;
-      else if (q === 6 && r === 6)  cell.location = Location.Harbor;
+      else if (q === 7 && r === 7) cell.location = Location.Farm;
+      else if (q === 6 && r === 6) cell.location = Location.Harbor;
       else if (q === 14 && r === 5) cell.location = Location.Oasis;
-      else if (q === 9 && r === 4)  cell.location = Location.Tower;
+      else if (q === 9 && r === 4) cell.location = Location.Tower;
       else if (q === 8 && r === 12) cell.location = Location.Paddock;
       else if (q === 13 && r === 13) cell.location = Location.Barn;
       else if (q === 4 && r === 13) cell.location = Location.Oracle;
       else if (q === 15 && r === 8) cell.location = Location.Tavern;
-      
+
       board.setCell(cell);
     }
   }
-  
+
   return board;
 }
 
@@ -171,31 +191,31 @@ export function createBoardFromQuadrants(
   se: Terrain[][]
 ): Board {
   const board = new Board(20, 20);
-  
+
   const quadrants = [
     { data: nw, offsetQ: 0, offsetR: 0 },
     { data: ne, offsetQ: 10, offsetR: 0 },
     { data: sw, offsetQ: 0, offsetR: 10 },
     { data: se, offsetQ: 10, offsetR: 10 },
   ];
-  
+
   quadrants.forEach(({ data, offsetQ, offsetR }) => {
     for (let q = 0; q < 10; q++) {
       for (let r = 0; r < 10; r++) {
         const coord: AxialCoord = { q: q + offsetQ, r: r + offsetR };
         const terrain = data[r]?.[q] || Terrain.Grass;
-        
+
         const cell: HexCell = {
           coord,
           terrain,
           settlement: undefined,
         };
-        
+
         board.setCell(cell);
       }
     }
   });
-  
+
   return board;
 }
 

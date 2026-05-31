@@ -62,7 +62,7 @@ export const GameLog = React.memo(function GameLog({ history, players }: GameLog
   }
 
   return (
-    <div className="mb-4">
+    <div className="mb-4" role="log" aria-live="polite">
       <h3 className="text-lg font-semibold mb-2">{t('gameLog.heading')}</h3>
       <ul className="space-y-1 max-h-48 overflow-y-auto pr-1">
         {recent.map((action, idx) => {

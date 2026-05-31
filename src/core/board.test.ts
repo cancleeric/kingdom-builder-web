@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { Board, createDefaultBoard } from './board';
+import { Board, createDefaultBoard, createBoardForSize } from './board';
 import { Terrain } from './terrain';
 
 describe('Board', () => {
@@ -18,10 +18,10 @@ describe('Board', () => {
         terrain: Terrain.Grass,
         settlement: undefined,
       };
-      
+
       board.setCell(cell);
       const retrieved = board.getCell({ q: 0, r: 0 });
-      
+
       expect(retrieved).toEqual(cell);
     });
 
@@ -32,10 +32,10 @@ describe('Board', () => {
         terrain: Terrain.Grass,
         settlement: undefined,
       };
-      
+
       board.setCell(cell);
       const placed = board.placeSettlement({ q: 0, r: 0 }, 1);
-      
+
       expect(placed).toBe(true);
       expect(board.getSettlement({ q: 0, r: 0 })).toBe(1);
     });
@@ -47,35 +47,35 @@ describe('Board', () => {
         terrain: Terrain.Grass,
         settlement: 1,
       };
-      
+
       board.setCell(cell);
       const placed = board.placeSettlement({ q: 0, r: 0 }, 2);
-      
+
       expect(placed).toBe(false);
       expect(board.getSettlement({ q: 0, r: 0 })).toBe(1);
     });
 
     it('should get cells by terrain', () => {
       const board = new Board(10, 10);
-      
+
       board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
       board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Forest, settlement: undefined });
       board.setCell({ coord: { q: 2, r: 0 }, terrain: Terrain.Grass, settlement: undefined });
-      
+
       const grassCells = board.getCellsByTerrain(Terrain.Grass);
       expect(grassCells).toHaveLength(2);
     });
 
     it('should get player settlements', () => {
       const board = new Board(10, 10);
-      
+
       board.setCell({ coord: { q: 0, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
       board.setCell({ coord: { q: 1, r: 0 }, terrain: Terrain.Forest, settlement: 2 });
       board.setCell({ coord: { q: 2, r: 0 }, terrain: Terrain.Grass, settlement: 1 });
-      
+
       const player1Settlements = board.getPlayerSettlements(1);
       expect(player1Settlements).toHaveLength(2);
-      
+
       const player2Settlements = board.getPlayerSettlements(2);
       expect(player2Settlements).toHaveLength(1);
     });
@@ -156,7 +156,7 @@ describe('Board', () => {
     it('should have different terrain types', () => {
       const board = createDefaultBoard();
       const cells = board.getAllCells();
-      
+
       const terrains = new Set(cells.map(cell => cell.terrain));
       expect(terrains.size).toBeGreaterThan(1);
     });
@@ -164,7 +164,7 @@ describe('Board', () => {
     it('should have no settlements initially', () => {
       const board = createDefaultBoard();
       const cells = board.getAllCells();
-      
+
       const occupied = cells.filter(cell => cell.settlement !== undefined);
       expect(occupied).toHaveLength(0);
     });
@@ -215,6 +215,120 @@ describe('Board', () => {
       // SW quadrant: q < 10, r >= 10 (excluding borders)
       const cell = board.getCell({ q: 1, r: 11 });
       expect([Terrain.Flower, Terrain.Grass]).toContain(cell?.terrain);
+    });
+  });
+
+  describe('createBoardForSize', () => {
+    it('should create small board with 144 cells (12×12)', () => {
+      const board = createBoardForSize('small');
+      expect(board.width).toBe(12);
+      expect(board.height).toBe(12);
+      expect(board.getAllCells()).toHaveLength(144);
+    });
+
+    it('should create medium board with 256 cells (16×16)', () => {
+      const board = createBoardForSize('medium');
+      expect(board.width).toBe(16);
+      expect(board.height).toBe(16);
+      expect(board.getAllCells()).toHaveLength(256);
+    });
+
+    it('should create large board with 400 cells (20×20)', () => {
+      const board = createBoardForSize('large');
+      expect(board.width).toBe(20);
+      expect(board.height).toBe(20);
+      expect(board.getAllCells()).toHaveLength(400);
+    });
+
+    it('should have complete NW quadrant in small board (q<6, r<6)', () => {
+      const board = createBoardForSize('small');
+      const mid = 6;
+
+      // Verify all cells in NW quadrant exist (excluding border)
+      for (let q = 1; q < mid; q++) {
+        for (let r = 1; r < mid; r++) {
+          const cell = board.getCell({ q, r });
+          expect(cell).toBeDefined();
+          // Water can appear in quadrants due to scaled water bodies
+          expect([Terrain.Forest, Terrain.Grass, Terrain.Water]).toContain(cell!.terrain);
+        }
+      }
+    });
+
+    it('should have complete NE quadrant in small board (q>=6, r<6)', () => {
+      const board = createBoardForSize('small');
+      const mid = 6;
+
+      // Verify all cells in NE quadrant exist (excluding border)
+      for (let q = mid; q < 11; q++) {
+        for (let r = 1; r < mid; r++) {
+          const cell = board.getCell({ q, r });
+          expect(cell).toBeDefined();
+          expect([Terrain.Canyon, Terrain.Desert, Terrain.Water]).toContain(cell!.terrain);
+        }
+      }
+    });
+
+    it('should have complete SW quadrant in small board (q<6, r>=6)', () => {
+      const board = createBoardForSize('small');
+      const mid = 6;
+
+      // Verify all cells in SW quadrant exist (excluding border)
+      for (let q = 1; q < mid; q++) {
+        for (let r = mid; r < 11; r++) {
+          const cell = board.getCell({ q, r });
+          expect(cell).toBeDefined();
+          expect([Terrain.Flower, Terrain.Grass, Terrain.Water]).toContain(cell!.terrain);
+        }
+      }
+    });
+
+    it('should have complete SE quadrant in small board (q>=6, r>=6)', () => {
+      const board = createBoardForSize('small');
+      const mid = 6;
+
+      // Verify all cells in SE quadrant exist (excluding border)
+      for (let q = mid; q < 11; q++) {
+        for (let r = mid; r < 11; r++) {
+          const cell = board.getCell({ q, r });
+          expect(cell).toBeDefined();
+          // SE quadrant uses 5-terrain rotation
+          expect([
+            Terrain.Grass,
+            Terrain.Forest,
+            Terrain.Desert,
+            Terrain.Flower,
+            Terrain.Canyon,
+            Terrain.Water,
+          ]).toContain(cell!.terrain);
+        }
+      }
+    });
+
+    it('should have all four corner cells in small board', () => {
+      const board = createBoardForSize('small');
+
+      // All four corners should be mountains (border)
+      expect(board.getCell({ q: 0, r: 0 })?.terrain).toBe(Terrain.Mountain);
+      expect(board.getCell({ q: 11, r: 0 })?.terrain).toBe(Terrain.Mountain);
+      expect(board.getCell({ q: 0, r: 11 })?.terrain).toBe(Terrain.Mountain);
+      expect(board.getCell({ q: 11, r: 11 })?.terrain).toBe(Terrain.Mountain);
+    });
+
+    it('should have symmetric quadrant sizes in small board', () => {
+      const board = createBoardForSize('small');
+      const mid = 6;
+
+      const nw = board.getAllCells().filter(c => c.coord.q < mid && c.coord.r < mid);
+      const ne = board.getAllCells().filter(c => c.coord.q >= mid && c.coord.r < mid);
+      const sw = board.getAllCells().filter(c => c.coord.q < mid && c.coord.r >= mid);
+      const se = board.getAllCells().filter(c => c.coord.q >= mid && c.coord.r >= mid);
+
+      // Each quadrant should have 36 cells (6×6)
+      expect(nw).toHaveLength(36);
+      expect(ne).toHaveLength(36);
+      expect(sw).toHaveLength(36);
+      expect(se).toHaveLength(36);
     });
   });
 });

@@ -16,11 +16,23 @@ export class SetupPage {
   async goto(seed?: number): Promise<void> {
     const url = seed !== undefined ? `/?seed=${seed}` : '/';
     await this.page.goto(url);
+
+    // App now shows MainMenu by default; click "Single Player" to reach Game Setup
+    const singlePlayerButton = this.page.getByRole('button', { name: /single.*player/i });
+    try {
+      await singlePlayerButton.waitFor({ state: 'visible', timeout: 5000 });
+      await singlePlayerButton.click();
+      // Wait for Game Setup page to load
+      await this.setupHeading.waitFor({ state: 'visible', timeout: 5000 });
+    } catch {
+      // If Single Player button not found, assume we're already on Setup page
+      // (e.g., direct navigation via URL parameter in the future)
+    }
   }
 
   /** The main heading on the setup screen. */
   get heading(): Locator {
-    return this.page.getByRole('heading', { name: 'Kingdom Builder' });
+    return this.page.getByRole('heading', { name: /Kingdom Builder|Game Setup/ }).first();
   }
 
   /** The "Game Setup" sub-heading. */
@@ -42,8 +54,7 @@ export class SetupPage {
   /** Set a player's type to 'human' or 'bot' (0-based index). */
   async setPlayerType(index: number, type: 'human' | 'bot'): Promise<void> {
     const label = type === 'human' ? '🧑 Human' : '🤖 Computer';
-    const playerSection = this.page.locator('.border.rounded-lg.p-4').nth(index);
-    await playerSection.getByRole('button', { name: label }).click();
+    await this.page.getByRole('button', { name: label }).nth(index).click();
   }
 
   /** Select board size ('small', 'medium', or 'large'). */

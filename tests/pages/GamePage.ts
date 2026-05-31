@@ -41,7 +41,7 @@ export class GamePage {
 
   /** The "Undo" button. */
   get undoButton(): Locator {
-    return this.page.getByRole('button', { name: 'Undo' });
+    return this.page.getByRole('button', { name: /Undo/i }).first();
   }
 
   /**
@@ -157,7 +157,7 @@ export class GamePage {
    * Format: "{player}'s turn — {phase}[, terrain: {T}, placements remaining: {N}]"
    */
   get liveRegion(): Locator {
-    return this.page.locator('[aria-live="polite"]');
+    return this.page.locator('.sr-only[aria-live="polite"]');
   }
 
   /** Read the current player name from the aria-live region. */
@@ -185,7 +185,7 @@ export class GamePage {
 
   /** Return score rows from the Game Over modal. */
   async scoreRows(): Promise<{ name: string; score: string }[]> {
-    const rows = this.page.locator('div').filter({ has: this.page.locator('p.font-semibold') });
+    const rows = this.page.getByRole('list', { name: /Final Rankings/i }).getByRole('listitem');
     const count = await rows.count();
     const result: { name: string; score: string }[] = [];
     for (let i = 0; i < count; i++) {

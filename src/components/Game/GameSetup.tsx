@@ -130,6 +130,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
               <button
                 key={n}
                 onClick={() => handlePlayerCountChange(n)}
+                aria-pressed={playerCount === n}
                 className="flex-1 py-2 rounded-12 font-body font-semibold transition"
                 style={
                   playerCount === n
@@ -166,6 +167,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                     color: 'var(--color-stone-800)',
                   }}
                   placeholder={t('setup.playerPlaceholder', { number: i + 1 })}
+                  aria-label={t('setup.playerLabel', { number: i + 1 })}
                 />
               </div>
 
@@ -175,6 +177,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                   <button
                     key={type}
                     onClick={() => updateConfig(i, { type })}
+                    aria-pressed={cfg.type === type}
                     className="px-3 py-1 rounded-8 text-body-sm font-body font-medium transition"
                     style={
                       cfg.type === type
@@ -202,6 +205,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                       backgroundColor: 'var(--color-warm-cream-50)',
                       color: 'var(--color-stone-800)',
                     }}
+                    aria-label={t('setup.aiDifficulty')}
                   >
                     {SELECTABLE_DIFFICULTIES.map(d => (
                       <option key={d} value={d}>{difficultyLabels[d]}</option>
@@ -223,6 +227,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
               <button
                 key={size}
                 onClick={() => updateOption('boardSize', size)}
+                aria-pressed={options.boardSize === size}
                 className="flex-1 py-2 rounded-12 text-body-sm font-body font-semibold transition"
                 style={
                   options.boardSize === size
@@ -255,6 +260,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                 <button
                   key={n}
                   onClick={() => updateOption('objectiveCount', n)}
+                  aria-pressed={options.objectiveCount === n}
                   className="flex-1 py-1 rounded-8 text-body-sm font-body font-semibold transition"
                   style={
                     options.objectiveCount === n
@@ -274,6 +280,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
             <button
               role="switch"
               aria-checked={options.enableUndo}
+              aria-label={t('setup.allowUndo')}
               onClick={() => updateOption('enableUndo', !options.enableUndo)}
               className="relative inline-flex h-6 w-11 items-center rounded-full transition"
               style={{ backgroundColor: options.enableUndo ? 'var(--color-ink-green-500)' : 'var(--color-stone-300)' }}

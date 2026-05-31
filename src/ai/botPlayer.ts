@@ -91,7 +91,8 @@ function evaluateMoveStrategic(
   coord: AxialCoord,
   playerId: number,
   terrain: Terrain,
-  context?: BotStrategyContext
+  context?: BotStrategyContext,
+  placementsThisTurn: AxialCoord[] = []
 ): number {
   const immediate = evaluateMove(board, coord, playerId);
   const beforeObjectiveScore = context?.objectiveCards?.length
@@ -122,7 +123,7 @@ function evaluateMoveStrategic(
     }
   }
 
-  const mobility = getValidPlacements(sim, terrain, playerId).length;
+  const mobility = getValidPlacements(sim, terrain, playerId, [...placementsThisTurn, coord]).length;
 
   // Weight rationale:
   // - immediate/objective deltas dominate (core scoring progress)
@@ -142,7 +143,8 @@ function evaluateBoardState(
   board: Board,
   maximizingPlayerId: number,
   terrain: Terrain,
-  context?: BotStrategyContext
+  context?: BotStrategyContext,
+  placementsThisTurn: AxialCoord[] = []
 ): number {
   const objectiveCards = context?.objectiveCards ?? [];
   const opponents = context?.opponentIds ?? [];
@@ -151,7 +153,7 @@ function evaluateBoardState(
     ? calculatePlayerScore(board, maximizingPlayerId, objectiveCards)
     : scoreCastle(board, maximizingPlayerId);
 
-  const selfMobility = getValidPlacements(board, terrain, maximizingPlayerId).length;
+  const selfMobility = getValidPlacements(board, terrain, maximizingPlayerId, placementsThisTurn).length;
   const selfSettlements = board.getPlayerSettlements(maximizingPlayerId).length;
 
   let strongestOpponentScore = 0;
@@ -160,7 +162,7 @@ function evaluateBoardState(
     const opponentScore = objectiveCards.length
       ? calculatePlayerScore(board, opponentId, objectiveCards)
       : scoreCastle(board, opponentId);
-    const opponentMobility = getValidPlacements(board, terrain, opponentId).length;
+    const opponentMobility = getValidPlacements(board, terrain, opponentId, []).length;
     if (opponentScore > strongestOpponentScore) strongestOpponentScore = opponentScore;
     if (opponentMobility > strongestOpponentMobility) strongestOpponentMobility = opponentMobility;
   }
@@ -184,9 +186,10 @@ function getCandidateMoves(
   playerId: number,
   difficulty: BotDifficulty,
   limit: number,
-  context?: BotStrategyContext
+  context?: BotStrategyContext,
+  placementsThisTurn: AxialCoord[] = []
 ): AxialCoord[] {
-  const valid = getValidPlacements(board, terrain, playerId);
+  const valid = getValidPlacements(board, terrain, playerId, placementsThisTurn);
   if (valid.length <= limit) return valid;
 
   const normalized = normalizeDifficulty(difficulty);
@@ -198,8 +201,8 @@ function getCandidateMoves(
 
   return [...valid]
     .sort((a, b) => {
-      const scoreA = evaluateMoveStrategic(board, a, playerId, terrain, context);
-      const scoreB = evaluateMoveStrategic(board, b, playerId, terrain, context);
+      const scoreA = evaluateMoveStrategic(board, a, playerId, terrain, context, placementsThisTurn);
+      const scoreB = evaluateMoveStrategic(board, b, playerId, terrain, context, placementsThisTurn);
       if (scoreB !== scoreA) return scoreB - scoreA;
       return Math.random() - 0.5;
     })
@@ -211,7 +214,8 @@ function pickBestCoordStrategic(
   validMoves: AxialCoord[],
   playerId: number,
   terrain: Terrain,
-  context?: BotStrategyContext
+  context?: BotStrategyContext,
+  placementsThisTurn: AxialCoord[] = []
 ): AxialCoord | null {
   if (validMoves.length === 0) return null;
 
@@ -219,7 +223,7 @@ function pickBestCoordStrategic(
   let bestScore = -Infinity;
 
   for (const coord of validMoves) {
-    const score = evaluateMoveStrategic(board, coord, playerId, terrain, context);
+    const score = evaluateMoveStrategic(board, coord, playerId, terrain, context, placementsThisTurn);
     if (score > bestScore) {
       bestScore = score;
       best = [coord];
@@ -257,7 +261,8 @@ function alphaBeta(
     currentPlayerId,
     BotDifficulty.Hard,
     branchLimit,
-    context
+    context,
+    []
   );
 
   if (candidates.length === 0) {
@@ -320,7 +325,8 @@ function pickHardMove(
   terrain: Terrain,
   playerId: number,
   remainingPlacements: number,
-  context?: BotStrategyContext
+  context?: BotStrategyContext,
+  placementsThisTurn: AxialCoord[] = []
 ): AxialCoord | null {
   const candidates = getCandidateMoves(
     board,
@@ -328,7 +334,8 @@ function pickHardMove(
     playerId,
     BotDifficulty.Hard,
     HARD_CANDIDATE_LIMIT,
-    context
+    context,
+    placementsThisTurn
   );
   if (candidates.length === 0) return null;
 
@@ -340,9 +347,9 @@ function pickHardMove(
   // depth at 2 to control turn-time latency on large boards.
   const searchDepth = firstOpponentId
     ? Math.min(
-        HARD_MAX_DEPTH,
-        Math.max(1, remainingPlacements * 2 - 1) // odd ply depth so the final evaluated ply is our move
-      )
+      HARD_MAX_DEPTH,
+      Math.max(1, remainingPlacements * 2 - 1) // odd ply depth so the final evaluated ply is our move
+    )
     : Math.min(HARD_MAX_DEPTH_NO_OPPONENT, Math.max(1, remainingPlacements));
 
   let bestMove = candidates[0];
@@ -396,9 +403,10 @@ export function selectBestMoves(
   const resolvedDifficulty = normalizeDifficulty(difficulty);
   const moves: AxialCoord[] = [];
   const simBoard = cloneBoard(board);
+  const placedThisTurn: AxialCoord[] = [];
 
   for (let i = 0; i < count; i++) {
-    const valid = getValidPlacements(simBoard, terrain, playerId);
+    const valid = getValidPlacements(simBoard, terrain, playerId, placedThisTurn);
     if (valid.length === 0) break;
 
     let chosen: AxialCoord | null = null;
@@ -409,22 +417,24 @@ export function selectBestMoves(
       const mediumCandidates =
         valid.length > MEDIUM_CANDIDATE_LIMIT
           ? getCandidateMoves(
-              simBoard,
-              terrain,
-              playerId,
-              BotDifficulty.Medium,
-              MEDIUM_CANDIDATE_LIMIT,
-              context
-            )
+            simBoard,
+            terrain,
+            playerId,
+            BotDifficulty.Medium,
+            MEDIUM_CANDIDATE_LIMIT,
+            context,
+            placedThisTurn
+          )
           : valid;
-      chosen = pickBestCoordStrategic(simBoard, mediumCandidates, playerId, terrain, context);
+      chosen = pickBestCoordStrategic(simBoard, mediumCandidates, playerId, terrain, context, placedThisTurn);
     } else {
-      chosen = pickHardMove(simBoard, terrain, playerId, count - i, context);
+      chosen = pickHardMove(simBoard, terrain, playerId, count - i, context, placedThisTurn);
     }
 
     if (!chosen) break;
 
     moves.push(chosen);
+    placedThisTurn.push(chosen);
     simBoard.placeSettlement(chosen, playerId);
   }
 

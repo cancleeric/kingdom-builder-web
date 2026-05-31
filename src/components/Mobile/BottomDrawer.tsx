@@ -68,10 +68,14 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
   remainingPlacements,
   activeTile,
   tileMoveFrom,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   canUndo: _canUndo,
   history,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onDrawCard: _onDrawCard,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onEndTurn: _onEndTurn,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   onUndo: _onUndo,
   onActivateTile,
   onCancelTile,
