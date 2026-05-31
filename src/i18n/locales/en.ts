@@ -59,6 +59,17 @@ export const en = {
     settings: 'Settings',
     back: 'Back',
   },
+  settings: {
+    heading: 'Settings',
+    close: 'Close settings',
+    audio: 'Audio',
+    mute: 'Mute sound',
+    muted: 'Muted',
+    unmuted: 'On',
+    volume: 'Volume',
+    volumeValue: '{{value}}%',
+    language: 'Language',
+  },
   multiplayer: {
     serverUrl: 'Server URL',
     yourName: 'Your Name',

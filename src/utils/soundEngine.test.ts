@@ -36,7 +36,7 @@ function makeMockAudioContext() {
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const MockAudioContext = vi.fn(function (this: unknown): any { return instance; });
 
-  return { MockAudioContext, instance };
+  return { MockAudioContext, instance, mockGain };
 }
 
 describe('soundEngine', () => {
@@ -65,6 +65,35 @@ describe('soundEngine', () => {
       setMuted(false);
       expect(localStorage.getItem('kingdom-builder-muted')).toBe('false');
       expect(isMuted()).toBe(false);
+    });
+  });
+
+  describe('getVolume / setVolume', () => {
+    it('defaults to full volume', async () => {
+      const { getVolume } = await import('./soundEngine');
+      expect(getVolume()).toBe(1);
+    });
+
+    it('stores clamped volume values in localStorage', async () => {
+      const { getVolume, setVolume } = await import('./soundEngine');
+
+      setVolume(0.35);
+      expect(localStorage.getItem('kingdom-builder-volume')).toBe('0.35');
+      expect(getVolume()).toBe(0.35);
+
+      setVolume(2);
+      expect(getVolume()).toBe(1);
+
+      setVolume(-1);
+      expect(getVolume()).toBe(0);
+    });
+
+    it('falls back to full volume for invalid stored values', async () => {
+      const { getVolume } = await import('./soundEngine');
+
+      localStorage.setItem('kingdom-builder-volume', 'loud');
+
+      expect(getVolume()).toBe(1);
     });
   });
 
@@ -117,6 +146,19 @@ describe('soundEngine', () => {
       playSound(SoundType.PLACE);
 
       expect(instance.createOscillator).toHaveBeenCalled();
+    });
+
+    it('applies the configured volume to playback gain', async () => {
+      const { MockAudioContext, mockGain } = makeMockAudioContext();
+      vi.stubGlobal('AudioContext', MockAudioContext);
+      const { initAudio, playSound, setMuted, setVolume, SoundType } = await import('./soundEngine');
+      initAudio();
+
+      setMuted(false);
+      setVolume(0.5);
+      playSound(SoundType.PLACE);
+
+      expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.15, 0);
     });
   });
 });

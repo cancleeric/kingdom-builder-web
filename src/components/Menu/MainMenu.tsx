@@ -19,6 +19,8 @@ import {
 import { LeaderboardModal } from '../Game/LeaderboardModal';
 import { ReplayModal } from '../Game/ReplayModal';
 import { AchievementPanel } from '../Game/AchievementPanel';
+import { SettingsModal } from './SettingsModal';
+import { getVolume, setVolume } from '../../utils/soundEngine';
 
 interface MainMenuProps {
   muted: boolean;
@@ -38,7 +40,9 @@ export function MainMenu({
   onLanguageChange,
 }: MainMenuProps) {
   const { t, i18n } = useTranslation();
-  const [hasSave] = useState(() => loadGame() !== null);
+  const [hasSave, setHasSave] = useState(() => loadGame() !== null);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [volume, setVolumeState] = useState(() => getVolume());
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
@@ -52,6 +56,12 @@ export function MainMenu({
 
   const handleClearSave = () => {
     clearSave();
+    setHasSave(false);
+  };
+
+  const handleVolumeChange = (nextVolume: number) => {
+    setVolume(nextVolume);
+    setVolumeState(nextVolume);
   };
 
   return (
@@ -90,7 +100,7 @@ export function MainMenu({
         </button>
 
         <button
-          onClick={() => {}}
+          onClick={() => setSettingsOpen(true)}
           aria-label={t('menu.settings')}
           title={t('menu.settings')}
           className="w-9 h-9 flex items-center justify-center rounded-full transition"
@@ -271,6 +281,16 @@ export function MainMenu({
       <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
       <ReplayModal isOpen={replayOpen} onClose={() => setReplayOpen(false)} />
       {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
+      <SettingsModal
+        isOpen={settingsOpen}
+        muted={muted}
+        volume={volume}
+        language={i18n.language}
+        onClose={() => setSettingsOpen(false)}
+        onToggleMute={onToggleMute}
+        onVolumeChange={handleVolumeChange}
+        onLanguageChange={onLanguageChange}
+      />
     </div>
   );
 }
