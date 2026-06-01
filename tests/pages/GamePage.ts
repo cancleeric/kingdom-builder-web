@@ -185,7 +185,7 @@ export class GamePage {
 
   /** Return score rows from the Game Over modal. */
   async scoreRows(): Promise<{ name: string; score: string }[]> {
-    const rows = this.page.getByRole('list', { name: /Final Rankings/i }).getByRole('listitem');
+    const rows = this.page.getByTestId('final-score-row');
     const count = await rows.count();
     const result: { name: string; score: string }[] = [];
     for (let i = 0; i < count; i++) {

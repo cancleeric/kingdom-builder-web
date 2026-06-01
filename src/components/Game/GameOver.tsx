@@ -5,6 +5,18 @@ import { Player } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { tObjective } from '../../i18n/formatters';
 
+const SCORE_SEGMENT_COLORS = [
+  'var(--color-wine-600)',
+  'var(--color-ink-green-600)',
+  'var(--color-amber-600)',
+  'var(--color-player-blue)',
+];
+
+function scoreSegmentWidth(score: number, maxScore: number): string {
+  if (score <= 0 || maxScore <= 0) return '0%';
+  return `${(score / maxScore) * 100}%`;
+}
+
 interface GameOverProps {
   finalScores: PlayerScore[];
   players: Player[];
@@ -25,10 +37,14 @@ export const GameOver = React.memo(function GameOver({
   const { t } = useTranslation();
   const sorted = [...finalScores].sort((a, b) => b.totalScore - a.totalScore);
   const getPlayer = (id: number) => players.find(p => p.id === id);
+  const maxTotalScore = Math.max(...sorted.map(score => score.totalScore), 0);
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50">
-      <div className="bg-white rounded-xl shadow-2xl p-8 max-w-lg w-full mx-4">
+    <div className="fixed inset-0 bg-black bg-opacity-70 flex items-start sm:items-center justify-center z-50 overflow-y-auto p-4">
+      <div
+        className="bg-white rounded-xl shadow-2xl p-6 sm:p-8"
+        style={{ width: 'min(32rem, calc(100vw - 2rem))', maxHeight: 'calc(100vh - 2rem)', overflowY: 'auto' }}
+      >
         <h2 className="text-3xl font-bold text-center mb-2">{t('gameOver.heading')}</h2>
         <p className="text-gray-600 text-center mb-6">{t('gameOver.finalRankings')}</p>
 
@@ -37,11 +53,27 @@ export const GameOver = React.memo(function GameOver({
           {sorted.map((score, index) => {
             const player = getPlayer(score.playerId);
             const medal = ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`;
+            const playerName = player?.name ?? t('common.player', { number: score.playerId });
+            const segments = [
+              {
+                key: 'castle',
+                label: t('gameOver.castleSegment'),
+                score: score.castleScore,
+                color: SCORE_SEGMENT_COLORS[0],
+              },
+              ...score.objectiveScores.map(({ card, score: objectiveScore }, objectiveIndex) => ({
+                key: card,
+                label: tObjective(t, card),
+                score: objectiveScore,
+                color: SCORE_SEGMENT_COLORS[(objectiveIndex + 1) % SCORE_SEGMENT_COLORS.length],
+              })),
+            ];
             return (
               <div
                 key={score.playerId}
+                data-testid="final-score-row"
                 role="listitem"
-                className="flex items-center gap-3 p-3 rounded-lg border-2"
+                className="flex items-start gap-3 p-3 rounded-lg border-2"
                 style={{ borderColor: player?.color ?? '#ccc' }}
               >
                 <span className="text-2xl">{medal}</span>
@@ -49,13 +81,47 @@ export const GameOver = React.memo(function GameOver({
                   className="w-5 h-5 rounded-full border border-gray-800 shrink-0"
                   style={{ backgroundColor: player?.color ?? '#ccc' }}
                 />
-                <div className="flex-1">
-                  <p className="font-semibold">{player?.name ?? t('common.player', { number: score.playerId })}</p>
-                  <div className="text-xs text-gray-500 space-y-0.5 mt-0.5">
-                    <p>{t('gameOver.castleScore', { score: score.castleScore })}</p>
-                    {score.objectiveScores.map(({ card, score: s }) => (
-                      <p key={card}>
-                        {t('gameOver.objectiveScore', { card: tObjective(t, card), score: s })}
+                <div className="min-w-0 flex-1">
+                  <p className="font-semibold">{playerName}</p>
+                  <div className="mt-2 h-3 w-full overflow-hidden rounded-full bg-gray-100" role="presentation">
+                    <div
+                      className="flex h-full"
+                      data-testid={`score-bar-${score.playerId}`}
+                      role="list"
+                      aria-label={t('gameOver.scoreBarAriaLabel', {
+                        player: playerName,
+                        score: score.totalScore,
+                      })}
+                      style={{ width: scoreSegmentWidth(score.totalScore, maxTotalScore) }}
+                    >
+                      {segments.map(segment => (
+                        <div
+                          key={segment.key}
+                          role="listitem"
+                          tabIndex={segment.score > 0 ? 0 : -1}
+                          aria-label={t('gameOver.scoreSegmentAriaLabel', {
+                            player: playerName,
+                            label: segment.label,
+                            score: segment.score,
+                          })}
+                          className="h-full shrink-0 outline-none transition-opacity focus:opacity-80"
+                          style={{
+                            width: scoreSegmentWidth(segment.score, score.totalScore),
+                            backgroundColor: segment.color,
+                          }}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <div className="mt-2 space-y-1 text-xs text-gray-500">
+                    {segments.map(segment => (
+                      <p key={segment.key} className="flex items-center gap-1.5">
+                        <span
+                          aria-hidden="true"
+                          className="h-2 w-2 shrink-0 rounded-full"
+                          style={{ backgroundColor: segment.color }}
+                        />
+                        <span>{t('gameOver.segmentScore', { label: segment.label, score: segment.score })}</span>
                       </p>
                     ))}
                   </div>
