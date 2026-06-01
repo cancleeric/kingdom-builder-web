@@ -115,6 +115,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
             onClick={onDrawCard}
             disabled={!canControlActions}
             aria-label={t('app.drawTerrainCardAria')}
+            data-tutorial-target="draw-card-button"
             className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
               bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
               focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"

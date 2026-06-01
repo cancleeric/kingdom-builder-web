@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import type { TutorialStep } from '../types';
 
+export type TutorialAdvanceTrigger = Exclude<NonNullable<TutorialStep['advanceOn']>, 'none'>;
+
 // ────────────────────────────────────────────────────
 // Tutorial step definitions
 // ────────────────────────────────────────────────────
@@ -37,7 +39,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
       'At the start of each turn you draw a Terrain Card. The card tells you which terrain type you must place your 3 settlements on this turn. You cannot choose — the card decides! Click "Draw Terrain Card" to start your turn.',
     icon: '🃏',
     targetElement: 'draw-card-button',
-    advanceOn: 'none',
+    advanceOn: 'drawCard',
   },
   {
     id: 'placement-rules',
@@ -45,7 +47,8 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     description:
       "You must place exactly 3 settlements on the terrain shown on your card. If you already have a settlement adjacent to valid terrain, you MUST place next to your existing settlement (adjacency rule). The highlighted cells show where you can legally place.",
     icon: '📏',
-    advanceOn: 'none',
+    targetElement: 'hex-grid',
+    advanceOn: 'placeSettlement',
   },
   {
     id: 'location-tile-gain',
@@ -70,7 +73,7 @@ export const TUTORIAL_STEPS: TutorialStep[] = [
     description:
       '1️⃣ Draw a Terrain Card → 2️⃣ Place 3 settlements on matching terrain (following adjacency rules) → 3️⃣ End your turn. Optionally use a Location Tile ability before ending. Repeat until all settlements are placed!',
     icon: '🔄',
-    advanceOn: 'none',
+    advanceOn: 'endTurn',
   },
   {
     id: 'scoring',
@@ -109,6 +112,7 @@ export interface TutorialState {
   nextStep: () => void;
   prevStep: () => void;
   goToStep: (index: number) => void;
+  advanceTutorialIf: (trigger: TutorialAdvanceTrigger) => void;
   completeTutorial: () => void;
   dismissTutorial: () => void;
 }
@@ -146,6 +150,19 @@ export const useTutorialStore = create<TutorialState>((set) => ({
 
   goToStep: (index: number) =>
     set({ currentStepIndex: Math.max(0, Math.min(index, TUTORIAL_STEPS.length - 1)) }),
+
+  advanceTutorialIf: (trigger: TutorialAdvanceTrigger) =>
+    set((state) => {
+      if (!state.isActive) return state;
+      const step = TUTORIAL_STEPS[state.currentStepIndex];
+      if (step?.advanceOn !== trigger) return state;
+
+      const next = state.currentStepIndex + 1;
+      if (next >= TUTORIAL_STEPS.length) {
+        return markCompleted();
+      }
+      return { currentStepIndex: next };
+    }),
 
   completeTutorial: () => set(markCompleted),
 

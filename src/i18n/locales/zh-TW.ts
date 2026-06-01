@@ -349,6 +349,7 @@ export const zhTW = {
     finish: '完成 🎉',
     next: '下一步 →',
     keyboardHint: '按左右方向鍵切換 · Esc 關閉',
+    performHighlightedAction: '執行高亮操作即可自動前進。',
     steps: {
       welcome: {
         title: '歡迎來到王國建造者！',
