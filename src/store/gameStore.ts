@@ -606,7 +606,7 @@ export const gameStore = create<GameState>((set, get) => ({
           state.currentTerrainCard.terrain,
           state.players[state.currentPlayerIndex].id
         )
-        : state.validPlacements;
+        : [];
 
     set({ ...resetTileState(), validPlacements: restored });
   },
