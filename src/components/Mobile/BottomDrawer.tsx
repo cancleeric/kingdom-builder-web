@@ -6,6 +6,7 @@ import { GameAction } from '../../types/history';
 import type { ObjectiveCard } from '../../core/scoring';
 import { useTranslation } from 'react-i18next';
 import { tLocation, tObjective, tPhase, tTerrain } from '../../i18n/formatters';
+import { ObjectiveCardBadge } from '../Game/ObjectiveCardBadge';
 import {
   CastleIcon,
   FarmIcon,
@@ -95,6 +96,8 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
 }) => {
   const { t } = useTranslation();
   const dragStartY = useRef<number | null>(null);
+  const currentPlayerObjectiveScores =
+    liveScores.find(playerScore => playerScore.playerId === currentPlayer?.id)?.objectives ?? [];
 
   const handleDragHandleTouchStart = useCallback((e: React.TouchEvent) => {
     dragStartY.current = e.touches[0].clientY;
@@ -356,18 +359,13 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
               >
                 {t('sidebar.objectives')}
               </div>
-              <div className="p-3 flex flex-wrap gap-2" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="p-3 grid gap-2" style={{ backgroundColor: 'var(--color-surface)' }}>
                 {objectiveCards.map(card => (
-                  <span
+                  <ObjectiveCardBadge
                     key={card}
-                    className="px-3 py-1.5 text-xs font-semibold rounded-lg"
-                    style={{
-                      backgroundColor: 'var(--color-player-blue)',
-                      color: 'var(--color-warm-cream-50)',
-                    }}
-                  >
-                    {tObjective(t, card)}
-                  </span>
+                    card={card}
+                    score={currentPlayerObjectiveScores.find(objective => objective.card === card)?.score}
+                  />
                 ))}
               </div>
             </section>

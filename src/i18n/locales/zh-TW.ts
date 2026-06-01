@@ -46,6 +46,21 @@ export const zhTW = {
     Lords: '領主',
     Shepherds: '牧羊人',
   },
+  objectiveDescription: {
+    Fisherman: '每個相鄰水域的相連聚落群得 2 分。',
+    Miners: '每個相鄰山脈的聚落得 2 分。',
+    Knights: '你最長的水平連續聚落鏈，每個聚落得 1 分。',
+    Farmers: '你聚落最多的棋盤象限，該象限每個聚落得 1 分。',
+    Merchants: '你的聚落占據的每種不同地形各得 1 分。',
+    Rangers: '你最長的垂直連續聚落鏈，每個聚落得 1 分。',
+    Hermits: '每個沒有相鄰友方聚落的孤立聚落得 3 分。',
+    Citizens: '每個相鄰城堡的聚落得 3 分。',
+    Lords: '每個至少有一個己方聚落的象限得 3 分。',
+    Shepherds: '每個相連聚落群得 3 分。',
+  },
+  objectiveCard: {
+    currentScore: '{{score}} 分',
+  },
   menu: {
     subtitle: '策略性王國建造遊戲',
     singlePlayer: '單人模式',
