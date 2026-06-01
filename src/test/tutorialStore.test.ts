@@ -116,6 +116,27 @@ describe('tutorialStore', () => {
     expect(localStorageMock.getItem('tutorialCompleted')).toBe('true');
   });
 
+  it('advanceTutorialIf advances only when the current step trigger matches', () => {
+    useTutorialStore.getState().startTutorial();
+    const terrainCardStep = TUTORIAL_STEPS.findIndex((step) => step.id === 'terrain-card');
+    useTutorialStore.getState().goToStep(terrainCardStep);
+
+    useTutorialStore.getState().advanceTutorialIf('placeSettlement');
+    expect(useTutorialStore.getState().currentStepIndex).toBe(terrainCardStep);
+
+    useTutorialStore.getState().advanceTutorialIf('drawCard');
+    expect(useTutorialStore.getState().currentStepIndex).toBe(terrainCardStep + 1);
+  });
+
+  it('advanceTutorialIf ignores triggers while inactive', () => {
+    const terrainCardStep = TUTORIAL_STEPS.findIndex((step) => step.id === 'terrain-card');
+    useTutorialStore.getState().goToStep(terrainCardStep);
+
+    useTutorialStore.getState().advanceTutorialIf('drawCard');
+
+    expect(useTutorialStore.getState().currentStepIndex).toBe(terrainCardStep);
+  });
+
   it('TUTORIAL_STEPS has at least one step with required fields', () => {
     expect(TUTORIAL_STEPS.length).toBeGreaterThan(0);
     for (const step of TUTORIAL_STEPS) {
@@ -123,5 +144,11 @@ describe('tutorialStore', () => {
       expect(step.title).toBeTruthy();
       expect(step.description).toBeTruthy();
     }
+  });
+
+  it('defines interactive tutorial triggers for core game actions', () => {
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'terrain-card')?.advanceOn).toBe('drawCard');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'placement-rules')?.advanceOn).toBe('placeSettlement');
+    expect(TUTORIAL_STEPS.find((step) => step.id === 'turn-flow')?.advanceOn).toBe('endTurn');
   });
 });

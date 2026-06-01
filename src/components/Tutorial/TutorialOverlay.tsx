@@ -1,11 +1,32 @@
-import { useEffect, useCallback } from 'react';
+import { useEffect, useCallback, useState } from 'react';
 import { useTutorialStore, TUTORIAL_STEPS } from '../../store/tutorialStore';
 import { useTranslation } from 'react-i18next';
+
+interface SpotlightRect {
+  top: number;
+  left: number;
+  width: number;
+  height: number;
+}
+
+function stepIdToI18nKey(stepId: string): string {
+  return stepId.replace(/-([a-z])/g, (_, letter: string) => letter.toUpperCase());
+}
+
+function findTutorialTarget(targetElement?: string): HTMLElement | null {
+  if (!targetElement) return null;
+  return (
+    document.querySelector<HTMLElement>(`[data-tutorial-target="${targetElement}"]`) ??
+    document.getElementById(targetElement) ??
+    document.querySelector<HTMLElement>(targetElement)
+  );
+}
 
 export function TutorialOverlay() {
   const { t } = useTranslation();
   const { isActive, currentStepIndex, nextStep, prevStep, completeTutorial, dismissTutorial } =
     useTutorialStore();
+  const [spotlightRect, setSpotlightRect] = useState<SpotlightRect | null>(null);
 
   const step = TUTORIAL_STEPS[currentStepIndex];
   const isLastStep = currentStepIndex === TUTORIAL_STEPS.length - 1;
@@ -30,25 +51,76 @@ export function TutorialOverlay() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isActive, handleKeyDown]);
 
+  useEffect(() => {
+    if (!isActive || !step?.targetElement) {
+      return;
+    }
+
+    let frameId = 0;
+
+    const updateSpotlight = () => {
+      const target = findTutorialTarget(step.targetElement);
+      if (!target) {
+        setSpotlightRect(null);
+        return;
+      }
+
+      target.scrollIntoView({ block: 'center', inline: 'center', behavior: 'smooth' });
+      frameId = window.requestAnimationFrame(() => {
+        const rect = target.getBoundingClientRect();
+        if (rect.width === 0 || rect.height === 0) {
+          setSpotlightRect(null);
+          return;
+        }
+
+        const padding = 8;
+        setSpotlightRect({
+          top: Math.max(8, rect.top - padding),
+          left: Math.max(8, rect.left - padding),
+          width: Math.min(window.innerWidth - Math.max(8, rect.left - padding) - 8, rect.width + padding * 2),
+          height: Math.min(window.innerHeight - Math.max(8, rect.top - padding) - 8, rect.height + padding * 2),
+        });
+      });
+    };
+
+    frameId = window.requestAnimationFrame(updateSpotlight);
+    window.addEventListener('resize', updateSpotlight);
+    window.addEventListener('scroll', updateSpotlight, true);
+    return () => {
+      window.cancelAnimationFrame(frameId);
+      window.removeEventListener('resize', updateSpotlight);
+      window.removeEventListener('scroll', updateSpotlight, true);
+    };
+  }, [isActive, step]);
+
   if (!isActive || !step) return null;
 
   const progress = ((currentStepIndex + 1) / TUTORIAL_STEPS.length) * 100;
-  const translatedTitle = t(`tutorial.steps.${step.id}.title`, { defaultValue: step.title });
-  const translatedDescription = t(`tutorial.steps.${step.id}.description`, { defaultValue: step.description });
+  const stepI18nKey = stepIdToI18nKey(step.id);
+  const translatedTitle = t(`tutorial.steps.${stepI18nKey}.title`, { defaultValue: step.title });
+  const translatedDescription = t(`tutorial.steps.${stepI18nKey}.description`, { defaultValue: step.description });
+  const shouldShowActionHint = step.advanceOn !== undefined && step.advanceOn !== 'none';
 
   return (
-    /* Semi-transparent backdrop */
     <div
       role="dialog"
       aria-modal="true"
       aria-label={t('tutorial.dialogLabel')}
-      className="fixed inset-0 z-50 flex items-center justify-center"
-      style={{ backgroundColor: 'rgba(0, 0, 0, 0.65)' }}
-      onClick={dismissTutorial}
+      className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none"
     >
+      <div className="absolute inset-0 bg-black/65 pointer-events-none" aria-hidden="true" />
+      {step.targetElement && spotlightRect && (
+        <div
+          data-testid="tutorial-spotlight"
+          aria-hidden="true"
+          className="fixed rounded-xl border-4 border-yellow-300 shadow-[0_0_0_9999px_rgba(0,0,0,0.5),0_0_24px_rgba(250,204,21,0.9)] transition-all duration-200"
+          style={spotlightRect}
+        />
+      )}
+
       {/* Tooltip card – stop propagation so clicks inside don't close */}
       <div
-        className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 flex flex-col gap-4"
+        className="relative bg-white rounded-2xl shadow-2xl p-6 w-full max-w-md mx-4 flex flex-col gap-4 pointer-events-auto"
         onClick={(e) => e.stopPropagation()}
         role="document"
       >
@@ -73,6 +145,12 @@ export function TutorialOverlay() {
 
         {/* Description */}
         <p className="text-gray-600 leading-relaxed">{translatedDescription}</p>
+
+        {shouldShowActionHint && (
+          <p className="text-sm font-semibold text-blue-700 bg-blue-50 border border-blue-100 rounded-lg px-3 py-2">
+            {t('tutorial.performHighlightedAction')}
+          </p>
+        )}
 
         {/* Progress bar */}
         <div className="w-full bg-gray-200 rounded-full h-1.5" aria-hidden="true">

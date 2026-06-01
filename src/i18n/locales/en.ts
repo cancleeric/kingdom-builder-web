@@ -351,6 +351,7 @@ export const en = {
     finish: 'Finish 🎉',
     next: 'Next →',
     keyboardHint: 'Press left/right arrow keys to navigate · Esc to close',
+    performHighlightedAction: 'Perform the highlighted action to continue automatically.',
     steps: {
       welcome: {
         title: 'Welcome to Kingdom Builder!',

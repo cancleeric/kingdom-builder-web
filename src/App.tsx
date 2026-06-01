@@ -9,6 +9,7 @@ import { GameSetup } from './components/Game/GameSetup'
 import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
 import { MainMenu } from './components/Menu/MainMenu'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
+import { useTutorialStore } from './store/tutorialStore'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
@@ -294,6 +295,7 @@ function App() {
         () => placeSettlement(coord),
         { type: 'place_settlement', coord }
       )
+      useTutorialStore.getState().advanceTutorialIf('placeSettlement');
       playSound(SoundType.PLACE);
     }
   }
@@ -326,6 +328,7 @@ function App() {
       () => drawTerrainCard(),
       { type: 'draw_terrain_card' }
     );
+    useTutorialStore.getState().advanceTutorialIf('drawCard');
   };
 
   const handleEndTurn = () => {
@@ -333,6 +336,7 @@ function App() {
       () => endTurn(),
       { type: 'end_turn' }
     );
+    useTutorialStore.getState().advanceTutorialIf('endTurn');
   };
 
   const handleUndo = () => {
@@ -581,6 +585,7 @@ function App() {
           {/* HexGrid */}
           <div className="flex-1 relative overflow-hidden">
             {players.length > 0 && (
+              <div className="w-full h-full" data-tutorial-target="hex-grid">
               <HexGrid
                 board={board}
                 validPlacements={
@@ -594,6 +599,7 @@ function App() {
                 onCellSelect={selectCell}
                 onEscape={handleEscape}
               />
+              </div>
             )}
           </div>
 
@@ -611,6 +617,7 @@ function App() {
                 onClick={handleDrawTerrainCard}
                 disabled={!canControlActions}
                 aria-label={t('app.drawTerrainCardAria')}
+                data-tutorial-target="draw-card-button"
                 className="flex-1 flex items-center justify-center gap-1.5 font-bold py-2.5 rounded-xl transition disabled:opacity-50"
                 style={{
                   backgroundColor: 'var(--button-primary-bg)',
@@ -880,6 +887,7 @@ function App() {
               {objectiveCards.length > 0 && (
                 <section
                   aria-label={t('sidebar.objectives')}
+                  data-tutorial-target="objectives-section"
                   className="rounded-xl overflow-hidden"
                   style={{
                     border: '1px solid var(--card-border)',
