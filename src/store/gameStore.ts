@@ -20,7 +20,7 @@ import {
   scoreObjectiveCard,
 } from '../core/scoring';
 import { GameAction, UndoSnapshot } from '../types/history';
-import { selectBestMoves } from '../ai/botPlayer';
+import { evaluateMove, selectBestMoves } from '../ai/botPlayer';
 
 // ────────────────────────────────────────────────────
 // State shape
@@ -94,6 +94,15 @@ const PLAYER_COLORS = [
   '#95E1D3', // Mint
 ];
 
+const BOT_PLACEMENT_TILES = new Set<Location>([
+  Location.Farm,
+  Location.Harbor,
+  Location.Oasis,
+  Location.Tower,
+  Location.Oracle,
+  Location.Tavern,
+]);
+
 // ────────────────────────────────────────────────────
 // Helpers
 // ────────────────────────────────────────────────────
@@ -117,6 +126,22 @@ function buildPlayerScores(
       castleScore + objectiveScores.reduce((s, o) => s + o.score, 0);
     return { playerId: player.id, castleScore, objectiveScores, totalScore };
   });
+}
+
+function chooseBotTilePlacement(
+  board: Board,
+  playerId: number,
+  location: Location
+): AxialCoord | null {
+  const options = getExtraPlacementPositions(location, board, playerId);
+  if (options.length === 0) return null;
+
+  return [...options].sort((a, b) => {
+    const scoreDelta = evaluateMove(board, b, playerId) - evaluateMove(board, a, playerId);
+    if (scoreDelta !== 0) return scoreDelta;
+    if (a.r !== b.r) return a.r - b.r;
+    return a.q - b.q;
+  })[0] ?? null;
 }
 
 function resetTileState() {
@@ -557,6 +582,33 @@ export const gameStore = create<GameState>((set, get) => ({
       } else {
         _consecutiveEmptyTurns = 0;
       }
+
+      const botTurnState = get();
+      const botPlayer = botTurnState.players[botTurnState.currentPlayerIndex];
+      if (botPlayer?.isBot) {
+        for (const tile of [...botPlayer.tiles]) {
+          const latest = get();
+          const latestPlayer = latest.players[latest.currentPlayerIndex];
+          if (!latestPlayer?.isBot || latestPlayer.remainingSettlements <= 0) break;
+          if (latest.phase !== GamePhase.EndTurn && latest.phase !== GamePhase.PlaceSettlements) break;
+          if (tile.usedThisTurn || !BOT_PLACEMENT_TILES.has(tile.location)) continue;
+
+          const coord = chooseBotTilePlacement(latest.board, latestPlayer.id, tile.location);
+          if (!coord) continue;
+
+          get().activateTile(tile.location);
+          const activated = get();
+          const validCoord = activated.validPlacements.find(
+            c => c.q === coord.q && c.r === coord.r
+          );
+          if (validCoord) {
+            get().applyTilePlacement(validCoord);
+          } else {
+            get().cancelTile();
+          }
+        }
+      }
+
       get().endTurn();
     }, STEP_MS * (moves.length + 1));
   },
@@ -624,7 +676,9 @@ export const gameStore = create<GameState>((set, get) => ({
     currentPlayer.remainingSettlements--;
 
     const tileLocation = state.activeTile;
-    const tile = currentPlayer.tiles.find(t => t.location === tileLocation);
+    const tile = currentPlayer.tiles.find(
+      t => t.location === tileLocation && !t.usedThisTurn
+    );
     if (tile) tile.usedThisTurn = true;
 
     const { updatedAcquiredLocations, acquiredLocationKeys, acquiredTileLocs } =
@@ -706,7 +760,9 @@ export const gameStore = create<GameState>((set, get) => ({
     const idx = currentPlayer.settlements.findIndex(s => hexToKey(s) === fromKey);
     if (idx !== -1) currentPlayer.settlements[idx] = to;
 
-    const tile = currentPlayer.tiles.find(t => t.location === tileLocation);
+    const tile = currentPlayer.tiles.find(
+      t => t.location === tileLocation && !t.usedThisTurn
+    );
     if (tile) tile.usedThisTurn = true;
 
     const restoredValid =
