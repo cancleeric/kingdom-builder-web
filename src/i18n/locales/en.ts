@@ -46,6 +46,21 @@ export const en = {
     Lords: 'Lords',
     Shepherds: 'Shepherds',
   },
+  objectiveDescription: {
+    Fisherman: 'Each connected settlement group adjacent to water scores 2 points.',
+    Miners: 'Each settlement adjacent to a mountain scores 2 points.',
+    Knights: 'Your longest horizontal chain scores 1 point per settlement in that chain.',
+    Farmers: 'Your fullest board quadrant scores 1 point per settlement in that quadrant.',
+    Merchants: 'Score 1 point for each different terrain type occupied by your settlements.',
+    Rangers: 'Your longest vertical chain scores 1 point per settlement in that chain.',
+    Hermits: 'Each isolated settlement with no adjacent friendly settlement scores 3 points.',
+    Citizens: 'Each settlement adjacent to a castle scores 3 points.',
+    Lords: 'Each quadrant containing at least one of your settlements scores 3 points.',
+    Shepherds: 'Each connected settlement group scores 3 points.',
+  },
+  objectiveCard: {
+    currentScore: '{{score}} pts',
+  },
   menu: {
     subtitle: 'A Strategic Kingdom Building Game',
     singlePlayer: 'Single Player',

@@ -18,3 +18,7 @@ export function tLocation(t: TFunction, location: Location): string {
 export function tObjective(t: TFunction, objective: ObjectiveCard): string {
   return t(`objective.${objective}`);
 }
+
+export function tObjectiveDescription(t: TFunction, objective: ObjectiveCard): string {
+  return t(`objectiveDescription.${objective}`);
+}
