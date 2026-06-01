@@ -5,32 +5,9 @@ import { Player, LocationTile } from '../../types';
 import { GameAction } from '../../types/history';
 import type { ObjectiveCard } from '../../core/scoring';
 import { useTranslation } from 'react-i18next';
-import { tLocation, tObjective, tPhase, tTerrain } from '../../i18n/formatters';
+import { tObjective, tPhase, tTerrain } from '../../i18n/formatters';
 import { ObjectiveCardBadge } from '../Game/ObjectiveCardBadge';
-import {
-  CastleIcon,
-  FarmIcon,
-  HarborIcon,
-  OasisIcon,
-  TowerIcon,
-  PaddockIcon,
-  BarnIcon,
-  OracleIcon,
-  TavernIcon,
-} from '../icons';
-import type { ComponentType, SVGProps } from 'react';
-
-const LOCATION_ICON: Record<Location, ComponentType<{ size?: number } & SVGProps<SVGSVGElement>>> = {
-  [Location.Castle]:  CastleIcon,
-  [Location.Farm]:    FarmIcon,
-  [Location.Harbor]:  HarborIcon,
-  [Location.Oasis]:   OasisIcon,
-  [Location.Tower]:   TowerIcon,
-  [Location.Paddock]: PaddockIcon,
-  [Location.Barn]:    BarnIcon,
-  [Location.Oracle]:  OracleIcon,
-  [Location.Tavern]:  TavernIcon,
-};
+import { LocationTileCard } from '../Game/LocationTileCard';
 
 interface BottomDrawerProps {
   isOpen: boolean;
@@ -279,46 +256,21 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
               >
                 {t('sidebar.yourTiles')}
               </div>
-              <div className="p-3 flex flex-wrap gap-2" style={{ backgroundColor: 'var(--color-surface)' }}>
+              <div className="p-3 grid gap-2" style={{ backgroundColor: 'var(--color-surface)' }}>
                 {currentPlayer.tiles.map((tile: LocationTile, idx: number) => {
-                  const Ic = LOCATION_ICON[tile.location]
                   const isActive = activeTile === tile.location
                   const canUse = !tile.usedThisTurn &&
                     (phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn)
                   return (
-                    <div
+                    <LocationTileCard
                       key={`${tile.location}-${idx}`}
-                      className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm"
-                      style={{
-                        border: `2px solid ${isActive ? 'var(--color-warning)' : tile.usedThisTurn ? 'var(--card-border)' : 'var(--color-ink-green-300)'}`,
-                        backgroundColor: tile.usedThisTurn
-                          ? 'var(--color-warm-cream-100)'
-                          : isActive ? 'oklch(0.97 0.03 70)' : 'var(--color-ink-green-50)',
-                        opacity: tile.usedThisTurn ? 0.55 : 1,
-                      }}
-                    >
-                      <Ic size={16} />
-                      <span style={{ color: 'var(--color-text)' }}>{tLocation(t, tile.location)}</span>
-                      {canUse && (
-                        <button
-                          className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded"
-                          style={{
-                            backgroundColor: isActive ? 'var(--color-warning)' : 'var(--color-success)',
-                            color: 'var(--button-text)',
-                          }}
-                          onClick={() =>
-                            isActive ? onCancelTile() : onActivateTile(tile.location)
-                          }
-                        >
-                          {isActive ? t('app.cancel') : t('app.use')}
-                        </button>
-                      )}
-                      {tile.usedThisTurn && (
-                        <span className="ml-1 text-xs italic" style={{ color: 'var(--color-stone-400)' }}>
-                          {t('app.used')}
-                        </span>
-                      )}
-                    </div>
+                      tile={tile}
+                      isActive={isActive}
+                      canUse={canUse}
+                      onUse={() => onActivateTile(tile.location)}
+                      onCancel={onCancelTile}
+                      compact
+                    />
                   )
                 })}
               </div>
