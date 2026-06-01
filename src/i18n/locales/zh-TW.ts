@@ -34,6 +34,16 @@ export const zhTW = {
     Oracle: '神諭',
     Tavern: '酒館',
   },
+  locationDescription: {
+    Farm: '在任意空的草原格放置 1 個額外聚落。',
+    Harbor: '在任意空的可建造且相鄰水域的格子放置 1 個額外聚落。',
+    Oasis: '在任意空的沙漠格放置 1 個額外聚落。',
+    Tower: '在空的邊界格，或相鄰山脈的格子放置 1 個額外聚落。',
+    Paddock: '將你的 1 個聚落移動到 2 格內空的可建造格。',
+    Barn: '將你的 1 個聚落移動到任意空的相同地形格。',
+    Oracle: '在任意空的可建造且相鄰你聚落的格子放置 1 個額外聚落。',
+    Tavern: '在你的任一水平聚落列兩端放置 1 個額外聚落。',
+  },
   objective: {
     Fisherman: '漁夫',
     Miners: '礦工',

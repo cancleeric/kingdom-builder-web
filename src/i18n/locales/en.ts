@@ -34,6 +34,16 @@ export const en = {
     Oracle: 'Oracle',
     Tavern: 'Tavern',
   },
+  locationDescription: {
+    Farm: 'Place 1 extra settlement on any empty Grass cell.',
+    Harbor: 'Place 1 extra settlement on any empty buildable cell adjacent to Water.',
+    Oasis: 'Place 1 extra settlement on any empty Desert cell.',
+    Tower: 'Place 1 extra settlement on an empty border cell or next to Mountain.',
+    Paddock: 'Move 1 of your settlements to an empty buildable cell up to 2 hexes away.',
+    Barn: 'Move 1 of your settlements to any empty cell with the same terrain type.',
+    Oracle: 'Place 1 extra settlement on an empty buildable cell adjacent to your settlements.',
+    Tavern: 'Place 1 extra settlement at either end of one of your horizontal settlement rows.',
+  },
   objective: {
     Fisherman: 'Fisherman',
     Miners: 'Miners',

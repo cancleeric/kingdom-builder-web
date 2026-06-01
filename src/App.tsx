@@ -12,6 +12,7 @@ import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { useTutorialStore } from './store/tutorialStore'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { ObjectiveCardBadge } from './components/Game/ObjectiveCardBadge'
+import { LocationTileCard, LocationTileIcon } from './components/Game/LocationTileCard'
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import { Location } from './core/terrain'
@@ -22,7 +23,7 @@ import { useMultiplayerStore } from './store/multiplayerStore'
 import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
 import { useTranslation } from 'react-i18next'
-import { tLocation, tObjective, tPhase, tTerrain } from './i18n/formatters'
+import { tObjective, tPhase, tTerrain } from './i18n/formatters'
 import { LeaderboardModal } from './components/Game/LeaderboardModal'
 import { useLeaderboardStore } from './store/leaderboardStore'
 import { ReplayModal } from './components/Game/ReplayModal'
@@ -30,15 +31,6 @@ import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import {
-  CastleIcon,
-  FarmIcon,
-  HarborIcon,
-  OasisIcon,
-  TowerIcon,
-  PaddockIcon,
-  BarnIcon,
-  OracleIcon,
-  TavernIcon,
   MutedIcon,
   UnmutedIcon,
   BotIcon,
@@ -51,19 +43,6 @@ import {
   UndoIcon,
   AchievementIcon,
 } from './components/icons'
-import type { ComponentType, SVGProps } from 'react'
-
-const LOCATION_ICON: Record<Location, ComponentType<{ size?: number } & SVGProps<SVGSVGElement>>> = {
-  [Location.Castle]: CastleIcon,
-  [Location.Farm]: FarmIcon,
-  [Location.Harbor]: HarborIcon,
-  [Location.Oasis]: OasisIcon,
-  [Location.Tower]: TowerIcon,
-  [Location.Paddock]: PaddockIcon,
-  [Location.Barn]: BarnIcon,
-  [Location.Oracle]: OracleIcon,
-  [Location.Tavern]: TavernIcon,
-}
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
 
@@ -819,49 +798,21 @@ function App() {
                     {currentPlayer.tiles.length === 0 ? (
                       <p className="text-xs text-center py-2" style={{ color: 'var(--color-stone-400)' }}>—</p>
                     ) : (
-                      <div className="flex flex-wrap gap-2">
+                      <div className="grid gap-2">
                         {currentPlayer.tiles.map((tile, idx) => {
-                          const Ic = LOCATION_ICON[tile.location]
                           const isActive = activeTile === tile.location
                           const canUse = !tile.usedThisTurn &&
                             (phase === GamePhase.PlaceSettlements || phase === GamePhase.EndTurn)
                           return (
-                            <div
+                            <LocationTileCard
                               key={`${tile.location}-${idx}`}
-                              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-sm transition"
-                              style={{
-                                border: `2px solid ${isActive ? 'var(--color-warning)' : tile.usedThisTurn ? 'var(--card-border)' : 'var(--color-ink-green-300)'}`,
-                                backgroundColor: tile.usedThisTurn
-                                  ? 'var(--color-warm-cream-100)'
-                                  : isActive
-                                    ? 'oklch(0.97 0.03 70)'
-                                    : 'var(--color-ink-green-50)',
-                                opacity: tile.usedThisTurn ? 0.55 : 1,
-                              }}
-                            >
-                              <Ic size={16} />
-                              <span style={{ color: 'var(--color-text)' }}>{tLocation(t, tile.location)}</span>
-                              {canUse && (
-                                <button
-                                  className="ml-1 text-xs font-bold px-1.5 py-0.5 rounded transition"
-                                  disabled={!canControlActions}
-                                  style={{
-                                    backgroundColor: isActive ? 'var(--color-warning)' : 'var(--color-success)',
-                                    color: 'var(--button-text)',
-                                  }}
-                                  onClick={() =>
-                                    isActive ? handleCancelTile() : handleActivateTile(tile.location)
-                                  }
-                                >
-                                  {isActive ? t('app.cancel') : t('app.use')}
-                                </button>
-                              )}
-                              {tile.usedThisTurn && (
-                                <span className="ml-1 text-xs italic" style={{ color: 'var(--color-stone-400)' }}>
-                                  {t('app.used')}
-                                </span>
-                              )}
-                            </div>
+                              tile={tile}
+                              isActive={isActive}
+                              canUse={canUse}
+                              canControlActions={canControlActions}
+                              onUse={() => handleActivateTile(tile.location)}
+                              onCancel={handleCancelTile}
+                            />
                           )
                         })}
                       </div>
@@ -1084,10 +1035,14 @@ function App() {
                             />
                           </div>
                           {/* Tile icons */}
-                          {player.tiles.map((tile, tileIdx) => {
-                            const TileIc = LOCATION_ICON[tile.location]
-                            return <TileIc key={`${tile.location}-${tileIdx}`} size={12} style={{ color: 'var(--color-stone-500)' }} />
-                          })}
+                          {player.tiles.map((tile, tileIdx) => (
+                            <LocationTileIcon
+                              key={`${tile.location}-${tileIdx}`}
+                              location={tile.location}
+                              size={12}
+                              style={{ color: 'var(--color-stone-500)' }}
+                            />
+                          ))}
                         </div>
                       </div>
                     </li>
