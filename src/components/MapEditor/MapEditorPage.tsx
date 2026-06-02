@@ -28,6 +28,7 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
   const [importOpen, setImportOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
+  const [editMode, setEditMode] = useState<'paint' | 'pan'>('paint');
 
   const handleSelectTerrain = (t: Terrain) => {
     setSelectedTerrain(t);
@@ -121,6 +122,8 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
       shareCode={shareCode}
       onOpenList={() => setMapListOpen(true)}
       onOpenImport={() => setImportOpen(true)}
+      editMode={editMode}
+      onEditModeChange={setEditMode}
     />
   );
 
@@ -189,6 +192,8 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
             onEscape={onBack}
             editable={true}
             onEditCellClick={handleEditCell}
+            onEditCellPaint={handleEditCell}
+            editMode={editMode}
           />
         </div>
 
