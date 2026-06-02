@@ -5,6 +5,7 @@ import { getTerrainColor } from '../../core/terrain';
 import '../../styles/animations.css';
 import { useTranslation } from 'react-i18next';
 import { tTerrain } from '../../i18n/formatters';
+import { SettlementMarker } from './SettlementMarker';
 
 interface HexCellProps {
   cell: HexCellType;
@@ -123,14 +124,11 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
 
       {/* Show settlement marker if present */}
       {cell.settlement !== undefined && playerColor && (
-        <circle
+        <SettlementMarker
           cx={corners[0].x - HEX_SIZE}
           cy={corners[0].y}
-          r={HEX_SIZE * 0.4}
-          fill={playerColor}
-          stroke="#000"
-          strokeWidth={2}
-          className={isRecentlyPlaced ? 'animate-settlement-drop' : undefined}
+          playerColor={playerColor}
+          isRecentlyPlaced={isRecentlyPlaced}
         />
       )}
     </g>
