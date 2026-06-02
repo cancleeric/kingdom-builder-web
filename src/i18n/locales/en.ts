@@ -196,6 +196,7 @@ export const en = {
     customMapFromCode: 'Paste share code',
     noCustomMaps: 'No saved maps. Create one in Map Editor first.',
     invalidShareCode: 'Invalid share code. Please check and try again.',
+    mapNotFound: 'Map not found. Please select again.',
     customMapMultiplayerNote: 'Custom maps are not supported in multiplayer mode.',
   },
   gameOver: {
