@@ -14,6 +14,8 @@ interface HexGridProps {
   onCellClick: (coord: AxialCoord) => void;
   onCellSelect: (coord: AxialCoord | null) => void;
   onEscape?: () => void;
+  editable?: boolean;
+  onEditCellClick?: (coord: AxialCoord) => void;
 }
 
 export const HexGrid: React.FC<HexGridProps> = React.memo(({
@@ -24,6 +26,8 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onCellClick,
   onCellSelect,
   onEscape,
+  editable,
+  onEditCellClick,
 }) => {
   const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
@@ -111,6 +115,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
 
       if (e.key === 'Enter' || e.key === ' ') {
         e.preventDefault();
+        if (editable) { onEditCellClick?.(coord); return; }
         const isValid = validPlacements.some(v => hexEquals(v, coord));
         if (isValid) {
           onCellClick(coord);
@@ -230,17 +235,20 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                       playerName={playerName}
                       tabIndex={isEntry ? 0 : -1}
                       onClick={() => {
+                        if (editable) { onEditCellClick?.(cell.coord); return; }
                         if (isValid) {
                           onCellClick(cell.coord);
                         }
                       }}
                       onTap={() => {
                         // Only fire if the touch didn't move (i.e. it was a tap, not a pan)
-                        if (!touchMoved.current && isValid) {
-                          onCellClick(cell.coord);
+                        if (!touchMoved.current) {
+                          if (editable) { onEditCellClick?.(cell.coord); return; }
+                          if (isValid) onCellClick(cell.coord);
                         }
                       }}
                       onMouseEnter={() => {
+                        if (editable) { setHoveredCell(cell.coord); return; }
                         if (isValid) {
                           setHoveredCell(cell.coord);
                           onCellSelect(cell.coord);

@@ -29,6 +29,7 @@ interface MainMenuProps {
   onContinueGame: () => void;
   onMultiplayer: () => void;
   onLanguageChange: (lang: string) => void;
+  onMapEditor?: () => void;
 }
 
 export function MainMenu({
@@ -38,6 +39,7 @@ export function MainMenu({
   onContinueGame,
   onMultiplayer,
   onLanguageChange,
+  onMapEditor,
 }: MainMenuProps) {
   const { t, i18n } = useTranslation();
   const [hasSave, setHasSave] = useState(() => loadGame() !== null);
@@ -263,6 +265,20 @@ export function MainMenu({
             <ReplayIcon size={14} />
             {t('menu.replayLibrary')}
           </button>
+
+          {onMapEditor && (
+            <button
+              onClick={onMapEditor}
+              className="flex items-center gap-1.5 px-4 py-2 rounded-full text-body-sm font-body font-medium transition"
+              style={{
+                backgroundColor: 'var(--chip-bg)',
+                color: 'var(--chip-text)',
+                border: '1px solid var(--card-border)',
+              }}
+            >
+              {t('mapEditor.entryButton')}
+            </button>
+          )}
         </div>
 
         {/* Clear save (if exists) */}
