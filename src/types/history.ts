@@ -48,6 +48,15 @@ export interface UndoSnapshot {
   acquiredTileLocs: Location[];
   /** Location tile that was marked usedThisTurn by this action */
   tileUsed?: Location;
+  /**
+   * Index into player.tiles[] for the specific tile instance that was marked
+   * usedThisTurn. Used by undoLastAction to unmark the correct tile when the
+   * player holds duplicate location tiles (e.g. Farm×2).
+   *
+   * Backwards-compat: old snapshots (e.g. from localStorage) will not have
+   * this field → undoLastAction falls back to `.find(t.location === tileUsed)`.
+   */
+  tileUsedIndex?: number;
   /** Settlement index in player.settlements that was removed (TILE_MOVE only) */
   movedSettlementIdx?: number;
 }
