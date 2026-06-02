@@ -11,6 +11,8 @@ interface EditorToolbarProps {
   shareCode: string | null;
   onOpenList: () => void;
   onOpenImport: () => void;
+  editMode?: 'paint' | 'pan';
+  onEditModeChange?: (mode: 'paint' | 'pan') => void;
 }
 
 const chipStyle: React.CSSProperties = {
@@ -46,6 +48,8 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
   shareCode,
   onOpenList,
   onOpenImport,
+  editMode = 'paint',
+  onEditModeChange,
 }) => {
   const { t } = useTranslation();
   const [mapName, setMapName] = useState('');
@@ -80,6 +84,57 @@ export const EditorToolbar: React.FC<EditorToolbarProps> = ({
 
   return (
     <div className="flex flex-col gap-4">
+      {/* Edit Mode Toggle */}
+      {onEditModeChange && (
+        <div>
+          <span style={labelStyle}>{t('mapEditor.editMode')}</span>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              onClick={() => onEditModeChange('paint')}
+              style={{
+                flex: 1,
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: editMode === 'paint'
+                  ? '2px solid var(--color-wine-600)'
+                  : '2px solid var(--card-border)',
+                backgroundColor: editMode === 'paint'
+                  ? 'var(--color-warm-cream-100)'
+                  : 'transparent',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.875rem',
+                fontWeight: editMode === 'paint' ? 700 : 500,
+                cursor: 'pointer',
+              }}
+            >
+              ✏️ {t('mapEditor.modePaint')}
+            </button>
+            <button
+              onClick={() => onEditModeChange('pan')}
+              style={{
+                flex: 1,
+                padding: '6px 10px',
+                borderRadius: 8,
+                border: editMode === 'pan'
+                  ? '2px solid var(--color-wine-600)'
+                  : '2px solid var(--card-border)',
+                backgroundColor: editMode === 'pan'
+                  ? 'var(--color-warm-cream-100)'
+                  : 'transparent',
+                color: 'var(--color-text)',
+                fontFamily: 'var(--font-body)',
+                fontSize: '0.875rem',
+                fontWeight: editMode === 'pan' ? 700 : 500,
+                cursor: 'pointer',
+              }}
+            >
+              ✋ {t('mapEditor.modePan')}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Board Size */}
       <div>
         <span style={labelStyle}>{t('mapEditor.boardSize')}</span>

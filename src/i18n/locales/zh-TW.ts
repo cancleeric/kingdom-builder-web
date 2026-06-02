@@ -477,5 +477,8 @@ export const zhTW = {
     loadMap: '載入',
     deleteMap: '刪除',
     entryButton: '地圖編輯器',
+    editMode: '編輯模式',
+    modePaint: '繪製',
+    modePan: '平移',
   },
 } as const;
