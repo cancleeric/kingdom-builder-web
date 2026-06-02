@@ -195,6 +195,7 @@ export const zhTW = {
     customMapFromCode: '貼入分享碼',
     noCustomMaps: '尚無已存地圖，請先至地圖編輯器建立',
     invalidShareCode: '分享碼無效，請確認後重試',
+    mapNotFound: '地圖不存在，請重新選擇',
     customMapMultiplayerNote: '多人模式不支援自訂地圖',
   },
   gameOver: {

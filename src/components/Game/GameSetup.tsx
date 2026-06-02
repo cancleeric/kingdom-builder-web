@@ -43,6 +43,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
   const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
   const [shareCodeInput, setShareCodeInput] = useState('');
   const [shareCodeError, setShareCodeError] = useState<string | null>(null);
+  const [storeMapError, setStoreMapError] = useState<string | null>(null);
   // Resolved payload from share code (null until validated)
   const [resolvedSharePayload, setResolvedSharePayload] = useState<ReturnType<typeof decode>>(null);
 
@@ -76,6 +77,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
       setSelectedMapId(null);
       setShareCodeInput('');
       setShareCodeError(null);
+      setStoreMapError(null);
       setResolvedSharePayload(null);
     }
   };
@@ -98,6 +100,9 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
         const record = useCustomMapStore.getState().getMap(selectedMapId);
         if (record) {
           customBoard = payloadToBoard(record.mapData);
+        } else {
+          setStoreMapError(t('setup.mapNotFound'));
+          return;
         }
       } else if (customMapSource === 'code' && resolvedSharePayload) {
         customBoard = payloadToBoard(resolvedSharePayload);
@@ -332,6 +337,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                   onClick={() => {
                     setCustomMapSource(src);
                     setShareCodeError(null);
+                    setStoreMapError(null);
                   }}
                   aria-pressed={customMapSource === src}
                   className="flex-1 py-1 rounded-8 text-body-sm font-body font-medium transition"
@@ -357,7 +363,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                   {savedMaps.map(record => (
                     <button
                       key={record.id}
-                      onClick={() => setSelectedMapId(record.id)}
+                      onClick={() => { setSelectedMapId(record.id); setStoreMapError(null); }}
                       aria-pressed={selectedMapId === record.id}
                       className="w-full text-left px-3 py-2 rounded-8 text-body-sm font-body transition"
                       style={
@@ -369,6 +375,11 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                       {record.name}
                     </button>
                   ))}
+                  {storeMapError && (
+                    <p className="mt-1 text-label font-body" style={{ color: 'var(--color-wine-600)' }}>
+                      {storeMapError}
+                    </p>
+                  )}
                 </div>
               )
             )}
