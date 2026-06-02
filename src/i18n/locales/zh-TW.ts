@@ -190,6 +190,12 @@ export const zhTW = {
     allowUndo: '允許復原（每回合一次）',
     tutorial: '📖 教學：如何遊玩',
     startGame: '開始遊戲',
+    useCustomMap: '使用自訂地圖',
+    customMapFromStore: '從已存地圖選擇',
+    customMapFromCode: '貼入分享碼',
+    noCustomMaps: '尚無已存地圖，請先至地圖編輯器建立',
+    invalidShareCode: '分享碼無效，請確認後重試',
+    customMapMultiplayerNote: '多人模式不支援自訂地圖',
   },
   gameOver: {
     heading: '🏆 遊戲結束！',
