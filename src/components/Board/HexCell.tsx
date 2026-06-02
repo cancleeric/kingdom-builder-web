@@ -1,7 +1,7 @@
 import React from 'react';
-import { hexCorners, HEX_SIZE } from '../../core/hex';
+import { hexCorners, HEX_SIZE, axialToPixel } from '../../core/hex';
 import { HexCell as HexCellType } from '../../types';
-import { getTerrainColor } from '../../core/terrain';
+import { getTerrainColor, getTerrainGradientId } from '../../core/terrain';
 import '../../styles/animations.css';
 import { useTranslation } from 'react-i18next';
 import { tTerrain } from '../../i18n/formatters';
@@ -49,12 +49,16 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   const points = corners.map(c => `${c.x},${c.y}`).join(' ');
 
   const terrainColor = getTerrainColor(cell.terrain);
+  const gradientId = getTerrainGradientId(cell.terrain);
 
-  // Determine fill color
-  let fillColor = terrainColor;
-  if (isHovered && isValid) {
-    fillColor = '#FFFF99'; // Light yellow for hover
-  }
+  // Determine fill color:
+  // - hover on valid cell → #FFFF99 direct hex（hover 優先，跳過 gradient）
+  // - otherwise → url(#grad-{terrain}) 共用漸層
+  const isHoverHighlight = isHovered && isValid;
+  const fillColor = isHoverHighlight ? '#FFFF99' : `url(#${gradientId})`;
+
+  // terrainColor kept for reference (used by hover path via getTerrainColor)
+  void terrainColor;
 
   // Determine stroke
   let strokeColor = '#333';
@@ -86,6 +90,13 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
     ariaLabel += `, ${t('board.validPlacementSuffix')}`;
   }
 
+  // 計算 hex 中心（供 motif <use> 定位）
+  // corners[0].x - HEX_SIZE = axialToPixel center.x（與 SettlementMarker/LocationMarker 相同）
+  const center = axialToPixel(cell.coord, HEX_SIZE);
+  // motif symbol viewBox="0 0 52 60"，以中心為錨定：x = cx - 26，y = cy - 30
+  const motifX = center.x - 26;
+  const motifY = center.y - 30;
+
   return (
     <g
       ref={cellRef}
@@ -101,6 +112,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
       onKeyDown={onKeyDown}
       style={{ cursor: isValid ? 'pointer' : 'default' }}
     >
+      {/* 底色漸層 polygon（hover 時用直值 #FFFF99，非 hover 用共用 gradient） */}
       <polygon
         points={points}
         fill={fillColor}
@@ -108,6 +120,41 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
         strokeWidth={strokeWidth}
         opacity={0.9}
       />
+
+      {/* 頂部受光 sheen（hover 高亮時隱藏，避免蓋掉黃色） */}
+      {!isHoverHighlight && (
+        <polygon
+          points={points}
+          fill="url(#sheen-top)"
+          stroke="none"
+          pointerEvents="none"
+        />
+      )}
+
+      {/* 立體地形 motif 層（草叢/林冠/沙丘/花朵/岩裂/波光/雪峰）
+          套 center-feather-mask：中心羽化透明，留棋子/icon 空間
+          pointerEvents="none" 不擋點擊 */}
+      {!isHoverHighlight && (
+        <use
+          href={`#motif-${cell.terrain}`}
+          x={motifX}
+          y={motifY}
+          width={52}
+          height={60}
+          mask="url(#center-feather-mask)"
+          pointerEvents="none"
+        />
+      )}
+
+      {/* Vignette 暗角（邊緣暗角加強立體地塊厚度感，hover 時隱藏） */}
+      {!isHoverHighlight && (
+        <polygon
+          points={points}
+          fill="url(#vignette-grad)"
+          stroke="none"
+          pointerEvents="none"
+        />
+      )}
 
       {/* Show location marker if present */}
       {cell.location && (
