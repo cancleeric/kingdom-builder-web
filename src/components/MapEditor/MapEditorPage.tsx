@@ -28,7 +28,6 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
   const [importOpen, setImportOpen] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
   const [shareCode, setShareCode] = useState<string | null>(null);
-  const [editMode, setEditMode] = useState<'paint' | 'pan'>('paint');
 
   const handleSelectTerrain = (t: Terrain) => {
     setSelectedTerrain(t);
@@ -41,22 +40,24 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
   };
 
   const handleEditCell = (coord: AxialCoord) => {
-    const newCells = new Map(board.cells);
-    const key = hexToKey(coord);
-    const existing = newCells.get(key);
-    if (!existing) return;
-    const updated = { ...existing };
-    if (selectedLocation !== null) {
-      updated.location = selectedLocation;
-      updated.terrain = existing.terrain;
-    } else if (selectedTerrain !== null) {
-      updated.terrain = selectedTerrain;
-      updated.location = undefined;
-    }
-    newCells.set(key, updated);
-    const newBoard = new Board(board.width, board.height);
-    newBoard.cells = newCells;
-    setBoard(newBoard);
+    setBoard(prevBoard => {
+      const newCells = new Map(prevBoard.cells);
+      const key = hexToKey(coord);
+      const existing = newCells.get(key);
+      if (!existing) return prevBoard;
+      const updated = { ...existing };
+      if (selectedLocation !== null) {
+        updated.location = selectedLocation;
+        updated.terrain = existing.terrain;
+      } else if (selectedTerrain !== null) {
+        updated.terrain = selectedTerrain;
+        updated.location = undefined;
+      }
+      newCells.set(key, updated);
+      const newBoard = new Board(prevBoard.width, prevBoard.height);
+      newBoard.cells = newCells;
+      return newBoard;
+    });
   };
 
   const handleBoardSizeChange = (size: BoardSize) => {
@@ -120,8 +121,6 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
       shareCode={shareCode}
       onOpenList={() => setMapListOpen(true)}
       onOpenImport={() => setImportOpen(true)}
-      editMode={editMode}
-      onEditModeChange={setEditMode}
     />
   );
 
@@ -190,8 +189,6 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
             onEscape={onBack}
             editable={true}
             onEditCellClick={handleEditCell}
-            onEditCellPaint={handleEditCell}
-            editMode={editMode}
           />
         </div>
 
