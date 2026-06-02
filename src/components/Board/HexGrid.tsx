@@ -2,6 +2,7 @@ import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Board } from '../../core/board';
 import { AxialCoord, hexEquals, HEX_SIZE, axialToPixel } from '../../core/hex';
 import { HexCell } from './HexCell';
+import { TerrainDefs } from './TerrainDefs';
 import { Player, HexCell as HexCellData } from '../../types';
 import { useBoardTransform, Transform } from '../../hooks/useBoardTransform';
 import { useTranslation } from 'react-i18next';
@@ -400,6 +401,9 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           preserveAspectRatio="xMidYMid meet"
           role="none"
         >
+          {/* 共用 terrain defs：gradient / motif symbol / feather mask / vignette filter
+              只注入一次，400 格 HexCell 以 url(#...) / <use> 引用，不 inline 重複定義 */}
+          <TerrainDefs />
           <g transform={`translate(${gridOffset}, ${gridOffset})`}>
             {sortedRows.map(([, rowCells]) => (
               <g key={`row-${rowCells[0]?.coord.r}`} role="row">

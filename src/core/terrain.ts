@@ -67,6 +67,16 @@ export function getTerrainName(terrain: Terrain): string {
 }
 
 /**
+ * Get the SVG gradient id for a terrain type.
+ * Returns the id string referencing the shared <defs> gradient defined in TerrainDefs.tsx.
+ * Used by HexCell to set polygon fill="url(#grad-{terrain})".
+ * ⛔ Do NOT modify getTerrainColor — hover path still uses hex directly.
+ */
+export function getTerrainGradientId(terrain: Terrain): string {
+  return `grad-${terrain}`;
+}
+
+/**
  * Terrain card for drawing each turn
  */
 export interface TerrainCard {
