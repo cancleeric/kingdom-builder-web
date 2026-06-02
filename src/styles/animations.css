@@ -151,6 +151,24 @@
 }
 
 /* ----------------------------------------------------------
+ * Modal enter (opacity 0→1 + scale 0.96→1.0, 160 ms)
+ * ---------------------------------------------------------- */
+@keyframes modalEnter {
+  0% {
+    opacity: 0;
+    transform: scale(0.96);
+  }
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+}
+
+.animate-modal-enter {
+  animation: modalEnter 160ms ease-out both;
+}
+
+/* ----------------------------------------------------------
  * Accessibility: disable all animations when user prefers
  * reduced motion (WCAG 2.1 Success Criterion 2.3.3)
  * ---------------------------------------------------------- */

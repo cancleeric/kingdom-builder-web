@@ -1,5 +1,6 @@
 import { useTranslation } from 'react-i18next';
 import { useAchievementStore, getUnlockedCount } from '../../store/achievementStore';
+import { ModalFrame } from '../UI/ModalFrame';
 
 interface AchievementPanelProps {
   onClose: () => void;
@@ -10,76 +11,61 @@ export function AchievementPanel({ onClose }: AchievementPanelProps) {
   const achievements = useAchievementStore((s) => s.achievements);
   const unlockedCount = getUnlockedCount(achievements);
 
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label={t('achievement.panelLabel')}
-      className="fixed inset-0 bg-black/60 flex items-center justify-center z-50 p-4"
-      onClick={(e) => {
-        if (e.target === e.currentTarget) onClose();
-      }}
-    >
-      <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[80vh] flex flex-col overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b">
-          <div>
-            <h2 className="text-2xl font-bold">{t('achievement.heading')}</h2>
-            <p className="text-sm text-gray-500 mt-0.5">
-              {t('achievement.progress', {
-                unlocked: unlockedCount,
-                total: achievements.length,
-              })}
-            </p>
-          </div>
-          <button
-            onClick={onClose}
-            aria-label={t('achievement.close')}
-            className="text-gray-400 hover:text-gray-600 text-2xl leading-none"
-          >
-            ×
-          </button>
-        </div>
+  const kicker = t('achievement.progress', {
+    unlocked: unlockedCount,
+    total: achievements.length,
+  });
 
-        {/* Grid */}
-        <div className="overflow-y-auto p-6 grid grid-cols-2 sm:grid-cols-3 gap-4">
-          {achievements.map((a) => (
-            <div
-              key={a.id}
-              className={`rounded-xl border-2 p-4 flex flex-col items-center text-center gap-2 transition ${
-                a.unlocked
-                  ? 'border-yellow-400 bg-yellow-50'
-                  : 'border-gray-200 bg-gray-50 opacity-50 grayscale'
-              }`}
-              aria-label={
-                a.unlocked
-                  ? t('achievement.unlockedAria', { title: t(`achievement.items.${a.id}.title`) })
-                  : t('achievement.lockedAria', { title: t(`achievement.items.${a.id}.title`) })
-              }
-            >
-              <span className="text-4xl" aria-hidden="true">
-                {a.icon}
+  return (
+    <ModalFrame
+      isOpen
+      onClose={onClose}
+      ariaLabel={t('achievement.panelLabel')}
+      title={t('achievement.heading')}
+      kicker={kicker}
+    >
+      {/* Achievement grid */}
+      <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+        {achievements.map((a) => (
+          <div
+            key={a.id}
+            className="rounded-xl p-4 flex flex-col items-center text-center gap-2 transition"
+            style={{
+              border: `2px solid ${a.unlocked ? 'var(--color-amber-400)' : 'var(--card-border)'}`,
+              backgroundColor: a.unlocked ? 'oklch(0.97 0.02 80)' : 'var(--color-warm-cream-50)',
+              opacity: a.unlocked ? 1 : 0.5,
+              filter: a.unlocked ? 'none' : 'grayscale(1)',
+            }}
+            aria-label={
+              a.unlocked
+                ? t('achievement.unlockedAria', { title: t(`achievement.items.${a.id}.title`) })
+                : t('achievement.lockedAria', { title: t(`achievement.items.${a.id}.title`) })
+            }
+          >
+            <span className="text-4xl" aria-hidden="true">
+              {a.icon}
+            </span>
+            <span className="text-sm font-semibold leading-tight" style={{ color: 'var(--color-text)' }}>
+              {t(`achievement.items.${a.id}.title`)}
+            </span>
+            <span className="text-xs leading-tight" style={{ color: 'var(--color-stone-500)' }}>
+              {t(`achievement.items.${a.id}.description`)}
+            </span>
+            {a.unlocked && a.unlockedAt && (
+              <span className="text-xs font-medium" style={{ color: 'var(--color-amber-700)' }}>
+                {t('achievement.unlockedOn', {
+                  date: new Date(a.unlockedAt).toLocaleDateString(),
+                })}
               </span>
-              <span className="text-sm font-semibold leading-tight">
-                {t(`achievement.items.${a.id}.title`)}
+            )}
+            {!a.unlocked && (
+              <span className="text-xs italic" style={{ color: 'var(--color-stone-400)' }}>
+                {t('achievement.locked')}
               </span>
-              <span className="text-xs text-gray-500 leading-tight">
-                {t(`achievement.items.${a.id}.description`)}
-              </span>
-              {a.unlocked && a.unlockedAt && (
-                <span className="text-xs text-yellow-600 font-medium">
-                  {t('achievement.unlockedOn', {
-                    date: new Date(a.unlockedAt).toLocaleDateString(),
-                  })}
-                </span>
-              )}
-              {!a.unlocked && (
-                <span className="text-xs text-gray-400 italic">{t('achievement.locked')}</span>
-              )}
-            </div>
-          ))}
-        </div>
+            )}
+          </div>
+        ))}
       </div>
-    </div>
+    </ModalFrame>
   );
 }
