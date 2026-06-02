@@ -6,6 +6,7 @@ import '../../styles/animations.css';
 import { useTranslation } from 'react-i18next';
 import { tTerrain } from '../../i18n/formatters';
 import { SettlementMarker } from './SettlementMarker';
+import { LocationMarker } from './LocationMarker';
 
 interface HexCellProps {
   cell: HexCellType;
@@ -110,16 +111,12 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
 
       {/* Show location marker if present */}
       {cell.location && (
-        <text
-          x={corners[0].x - HEX_SIZE}
-          y={corners[0].y}
-          fontSize="10"
-          fill="#000"
-          fontWeight="bold"
-          textAnchor="middle"
-        >
-          {cell.location[0]}
-        </text>
+        <LocationMarker
+          cx={corners[0].x - HEX_SIZE}
+          cy={corners[0].y}
+          location={cell.location}
+          hasSettlement={cell.settlement !== undefined}
+        />
       )}
 
       {/* Show settlement marker if present */}
