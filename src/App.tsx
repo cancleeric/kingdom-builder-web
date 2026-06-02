@@ -33,6 +33,7 @@ import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
 import { SeasonHistory } from './components/Game/SeasonHistory'
 import { useSeasonStore } from './store/seasonStore'
+import { MapEditorPage } from './components/MapEditor/MapEditorPage'
 import {
   MutedIcon,
   UnmutedIcon,
@@ -53,7 +54,7 @@ function App() {
   const { t, i18n } = useTranslation();
   const [muted, setMutedState] = useState(isMuted);
   const [gameStarted, setGameStarted] = useState(false);
-  const [menuMode, setMenuMode] = useState<'home' | 'setup' | 'multiplayer'>('home');
+  const [menuMode, setMenuMode] = useState<'home' | 'setup' | 'multiplayer' | 'map-editor'>('home');
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
@@ -368,6 +369,10 @@ function App() {
     : '';
 
   if (!gameStarted) {
+    if (menuMode === 'map-editor') {
+      return <MapEditorPage onBack={() => setMenuMode('home')} />;
+    }
+
     if (menuMode === 'multiplayer') {
       return (
         <>
@@ -403,6 +408,7 @@ function App() {
           onContinueGame={() => setGameStarted(true)}
           onMultiplayer={() => setMenuMode('multiplayer')}
           onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
+          onMapEditor={() => setMenuMode('map-editor')}
         />
         <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
         <SeasonHistory isOpen={seasonHistoryOpen} onClose={() => setSeasonHistoryOpen(false)} />
