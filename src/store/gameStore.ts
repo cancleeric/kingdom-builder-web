@@ -676,9 +676,10 @@ export const gameStore = create<GameState>((set, get) => ({
     currentPlayer.remainingSettlements--;
 
     const tileLocation = state.activeTile;
-    const tile = currentPlayer.tiles.find(
+    const tileIdx = currentPlayer.tiles.findIndex(
       t => t.location === tileLocation && !t.usedThisTurn
     );
+    const tile = tileIdx !== -1 ? currentPlayer.tiles[tileIdx] : undefined;
     if (tile) tile.usedThisTurn = true;
 
     const { updatedAcquiredLocations, acquiredLocationKeys, acquiredTileLocs } =
@@ -711,6 +712,7 @@ export const gameStore = create<GameState>((set, get) => ({
       acquiredLocationKeys,
       acquiredTileLocs,
       tileUsed: tileLocation,
+      tileUsedIndex: tileIdx !== -1 ? tileIdx : undefined,
     };
 
     set({
@@ -760,9 +762,10 @@ export const gameStore = create<GameState>((set, get) => ({
     const idx = currentPlayer.settlements.findIndex(s => hexToKey(s) === fromKey);
     if (idx !== -1) currentPlayer.settlements[idx] = to;
 
-    const tile = currentPlayer.tiles.find(
+    const tileIdx = currentPlayer.tiles.findIndex(
       t => t.location === tileLocation && !t.usedThisTurn
     );
+    const tile = tileIdx !== -1 ? currentPlayer.tiles[tileIdx] : undefined;
     if (tile) tile.usedThisTurn = true;
 
     const restoredValid =
@@ -793,6 +796,7 @@ export const gameStore = create<GameState>((set, get) => ({
       acquiredLocationKeys: [],
       acquiredTileLocs: [],
       tileUsed: tileLocation,
+      tileUsedIndex: tileIdx !== -1 ? tileIdx : undefined,
       movedSettlementIdx: idx !== -1 ? idx : undefined,
     };
 
@@ -871,9 +875,15 @@ export const gameStore = create<GameState>((set, get) => ({
       );
       currentPlayer.remainingSettlements++;
 
-      // Un-mark tile as used
+      // Un-mark tile as used.
+      // Prefer tileUsedIndex for exact instance lookup (fixes duplicate-location
+      // bug #125). Fall back to .find() for old snapshots that lack the field
+      // (backwards-compat: snapshots from localStorage before this fix).
       if (snap.tileUsed) {
-        const usedTile = currentPlayer.tiles.find(t => t.location === snap.tileUsed);
+        const usedTile =
+          snap.tileUsedIndex !== undefined
+            ? currentPlayer.tiles[snap.tileUsedIndex]
+            : currentPlayer.tiles.find(t => t.location === snap.tileUsed);
         if (usedTile) usedTile.usedThisTurn = false;
       }
 
@@ -925,9 +935,15 @@ export const gameStore = create<GameState>((set, get) => ({
         currentPlayer.settlements[snap.movedSettlementIdx] = snap.fromCoord;
       }
 
-      // Un-mark tile as used
+      // Un-mark tile as used.
+      // Prefer tileUsedIndex for exact instance lookup (fixes duplicate-location
+      // bug #125). Fall back to .find() for old snapshots that lack the field
+      // (backwards-compat: snapshots from localStorage before this fix).
       if (snap.tileUsed) {
-        const usedTile = currentPlayer.tiles.find(t => t.location === snap.tileUsed);
+        const usedTile =
+          snap.tileUsedIndex !== undefined
+            ? currentPlayer.tiles[snap.tileUsedIndex]
+            : currentPlayer.tiles.find(t => t.location === snap.tileUsed);
         if (usedTile) usedTile.usedThisTurn = false;
       }
 
