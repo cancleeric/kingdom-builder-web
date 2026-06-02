@@ -479,5 +479,8 @@ export const en = {
     loadMap: 'Load',
     deleteMap: 'Delete',
     entryButton: 'Map Editor',
+    editMode: 'Edit Mode',
+    modePaint: 'Paint',
+    modePan: 'Pan',
   },
 } as const;

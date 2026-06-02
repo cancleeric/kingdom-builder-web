@@ -1,10 +1,70 @@
 import React, { useState, useRef, useCallback } from 'react';
 import { Board } from '../../core/board';
-import { AxialCoord, hexEquals, HEX_SIZE } from '../../core/hex';
+import { AxialCoord, hexEquals, HEX_SIZE, axialToPixel } from '../../core/hex';
 import { HexCell } from './HexCell';
-import { Player } from '../../types';
-import { useBoardTransform } from '../../hooks/useBoardTransform';
+import { Player, HexCell as HexCellData } from '../../types';
+import { useBoardTransform, Transform } from '../../hooks/useBoardTransform';
 import { useTranslation } from 'react-i18next';
+
+/**
+ * Given a client-space coordinate (e.g. from mouse or touch event),
+ * reverse the container transform and SVG viewBox scaling to find
+ * which hex cell is at that point. Returns null if no cell is close enough.
+ */
+export function findHexAtClientXY(
+  clientX: number,
+  clientY: number,
+  cells: HexCellData[],
+  transform: Transform,
+  containerRect: DOMRect,
+  svgElement: SVGSVGElement,
+  gridOffset: number,
+): AxialCoord | null {
+  // Step 1: position relative to container
+  const cx = clientX - containerRect.left;
+  const cy = clientY - containerRect.top;
+
+  // Step 2: undo transform (scale + translate)
+  const sx = (cx - transform.translateX) / transform.scale;
+  const sy = (cy - transform.translateY) / transform.scale;
+
+  // Step 3: SVG viewBox scaling
+  // The inner <div> is 100%×100% of container, SVG is also 100%×100% of that div
+  // We need the ratio between the rendered SVG size and its viewBox
+  const svgRect = svgElement.getBoundingClientRect();
+  const viewBox = svgElement.viewBox.baseVal;
+  const scaleX = svgRect.width > 0 ? viewBox.width / svgRect.width : 1;
+  const scaleY = svgRect.height > 0 ? viewBox.height / svgRect.height : 1;
+
+  // sx/sy are in the coordinate space of the inner div (which is 100%x100% of container)
+  // svgRect is also in client space, so we need to account for svgRect offset relative to container
+  const svgOffsetX = svgRect.left - containerRect.left;
+  const svgOffsetY = svgRect.top - containerRect.top;
+
+  const viewBoxX = (sx - svgOffsetX) * scaleX;
+  const viewBoxY = (sy - svgOffsetY) * scaleY;
+
+  // Step 4: subtract gridOffset to get hex coordinate space
+  const hexSpaceX = viewBoxX - gridOffset;
+  const hexSpaceY = viewBoxY - gridOffset;
+
+  // Step 5: find closest cell within HEX_SIZE * 0.95 threshold
+  let bestCell: HexCellData | null = null;
+  let bestDist = HEX_SIZE * 0.95;
+
+  for (const cell of cells) {
+    const center = axialToPixel(cell.coord, HEX_SIZE);
+    const dx = hexSpaceX - center.x;
+    const dy = hexSpaceY - center.y;
+    const dist = Math.sqrt(dx * dx + dy * dy);
+    if (dist < bestDist) {
+      bestDist = dist;
+      bestCell = cell;
+    }
+  }
+
+  return bestCell ? bestCell.coord : null;
+}
 
 interface HexGridProps {
   board: Board;
@@ -16,6 +76,8 @@ interface HexGridProps {
   onEscape?: () => void;
   editable?: boolean;
   onEditCellClick?: (coord: AxialCoord) => void;
+  onEditCellPaint?: (coord: AxialCoord) => void;
+  editMode?: 'paint' | 'pan';
 }
 
 export const HexGrid: React.FC<HexGridProps> = React.memo(({
@@ -28,6 +90,8 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onEscape,
   editable,
   onEditCellClick,
+  onEditCellPaint,
+  editMode = 'paint',
 }) => {
   const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
@@ -49,6 +113,11 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   const touchStartPos = useRef<{ x: number; y: number } | null>(null);
   const [focusedHex, setFocusedHex] = useState<AxialCoord | null>(null);
   const cellRefs = useRef<Map<string, SVGGElement>>(new Map());
+
+  // Phase 3: drag-paint state
+  const isPainting = useRef(false);
+  const lastPaintedCoord = useRef<AxialCoord | null>(null);
+  const svgRef = useRef<SVGSVGElement>(null);
 
   const cells = board.getAllCells();
 
@@ -149,6 +218,99 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   });
   const sortedRows = Array.from(rowMap.entries()).sort(([a], [b]) => a - b);
 
+  // ── Phase 3: container event wrappers ──────────────────────────────────────
+
+  const handleContainerMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    // Non-editable: always use pan
+    if (!editable) { onMouseDown(e); return; }
+    // Right/middle button or pan mode: use pan
+    if (e.button !== 0 || editMode !== 'paint') { onMouseDown(e); return; }
+    // paint mode + left button: start drag-paint
+    isPainting.current = true;
+    lastPaintedCoord.current = null;
+    // Paint the cell under the cursor immediately
+    if (onEditCellPaint && containerRef.current && svgRef.current) {
+      const containerRect = containerRef.current.getBoundingClientRect();
+      const coord = findHexAtClientXY(
+        e.clientX, e.clientY,
+        cells, transform, containerRect, svgRef.current, gridOffset,
+      );
+      if (coord) {
+        onEditCellPaint(coord);
+        lastPaintedCoord.current = coord;
+      }
+    }
+  };
+
+  const handleContainerMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (isPainting.current) {
+      // drag-paint: find and paint cell under cursor, dedup
+      if (onEditCellPaint && containerRef.current && svgRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const coord = findHexAtClientXY(
+          e.clientX, e.clientY,
+          cells, transform, containerRect, svgRef.current, gridOffset,
+        );
+        if (coord) {
+          const last = lastPaintedCoord.current;
+          if (!last || coord.q !== last.q || coord.r !== last.r) {
+            onEditCellPaint(coord);
+            lastPaintedCoord.current = coord;
+          }
+        }
+      }
+      return; // do not call pan handler
+    }
+    onMouseMove(e);
+  };
+
+  const handleContainerMouseUp = () => {
+    if (isPainting.current) {
+      isPainting.current = false;
+      lastPaintedCoord.current = null;
+      return; // do not call pan handler
+    }
+    onMouseUp();
+  };
+
+  const handleContainerMouseLeave = () => {
+    if (isPainting.current) {
+      isPainting.current = false;
+      lastPaintedCoord.current = null;
+      return;
+    }
+    onMouseUp();
+  };
+
+  const handleContainerTouchMove = (e: React.TouchEvent<HTMLDivElement>) => {
+    handleTouchMoveCapture(e);
+    // Phase 3 paint mode intercept: single finger drag in paint mode
+    if (
+      editable &&
+      editMode === 'paint' &&
+      touchMoved.current &&
+      e.touches.length === 1
+    ) {
+      // Intercept: do drag-paint instead of pan
+      if (onEditCellPaint && containerRef.current && svgRef.current) {
+        const containerRect = containerRef.current.getBoundingClientRect();
+        const coord = findHexAtClientXY(
+          e.touches[0].clientX, e.touches[0].clientY,
+          cells, transform, containerRect, svgRef.current, gridOffset,
+        );
+        if (coord) {
+          const last = lastPaintedCoord.current;
+          if (!last || coord.q !== last.q || coord.r !== last.r) {
+            onEditCellPaint(coord);
+            lastPaintedCoord.current = coord;
+          }
+        }
+      }
+      return; // do not call useBoardTransform.onTouchMove
+    }
+    onTouchMove(e);
+  };
+
   return (
     <div
       className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden relative select-none"
@@ -156,20 +318,21 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
       role="grid"
       aria-label={t('board.gridLabel')}
       onWheel={onWheel}
-      onMouseDown={onMouseDown}
-      onMouseMove={onMouseMove}
-      onMouseUp={onMouseUp}
-      onMouseLeave={onMouseUp}
+      onMouseDown={handleContainerMouseDown}
+      onMouseMove={handleContainerMouseMove}
+      onMouseUp={handleContainerMouseUp}
+      onMouseLeave={handleContainerMouseLeave}
       onTouchStart={(e) => {
         handleTouchStartCapture(e);
         onTouchStart(e);
       }}
-      onTouchMove={(e) => {
-        handleTouchMoveCapture(e);
-        onTouchMove(e);
+      onTouchMove={handleContainerTouchMove}
+      onTouchEnd={(e) => {
+        // reset paint coord tracking on touch end
+        lastPaintedCoord.current = null;
+        onTouchEnd(e);
       }}
-      onTouchEnd={onTouchEnd}
-      style={{ cursor: 'grab', touchAction: 'none' }}
+      style={{ cursor: editable && editMode === 'paint' ? 'crosshair' : 'grab', touchAction: 'none' }}
     >
       {/* Zoom reset button */}
       <button
@@ -196,6 +359,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
         }}
       >
         <svg
+          ref={svgRef}
           width="100%"
           height="100%"
           viewBox={`0 0 ${viewBoxWidth} ${viewBoxHeight}`}
