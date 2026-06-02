@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useSeasonStore } from '../../store/seasonStore';
+import { formatSeasonLabel } from '../../i18n/formatters';
 
 interface SeasonBannerProps {
   onOpenLeaderboard?: () => void;
@@ -9,7 +10,7 @@ interface SeasonBannerProps {
 export const SeasonBanner = React.memo(function SeasonBanner({
   onOpenLeaderboard,
 }: SeasonBannerProps) {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const currentSeason = useSeasonStore((s) => s.currentSeason);
 
   const daysLeft = useMemo(() => {
@@ -40,7 +41,7 @@ export const SeasonBanner = React.memo(function SeasonBanner({
       }}
     >
       <div className="flex items-center gap-2 flex-wrap">
-        <span className="font-semibold">{currentSeason.label}</span>
+        <span className="font-semibold">{formatSeasonLabel(t, i18n.language, currentSeason.id)}</span>
         <span style={{ opacity: 0.7 }}>·</span>
         <span style={{ opacity: 0.85 }}>
           {daysLeft === 1

@@ -378,6 +378,7 @@ export const en = {
     heading: 'Season',
     seasonTab: 'This Season',
     historyTab: 'Season History',
+    label: '{{period}} Season',
     daysLeft: '{{count}} day left',
     daysLeft_plural: '{{count}} days left',
     empty: 'No scores recorded this season yet.',

@@ -208,6 +208,6 @@ export const useSeasonStore = create<SeasonState>((set, get) => ({
 // ──────────────────────────────────────────────────
 // NOTE: test-only, allows injecting history data via browser console
 // e.g. window.__seasonStore.getState().checkAndRotateSeason(new Date('2026-05-01'))
-if (typeof window !== 'undefined') {
+if (typeof window !== 'undefined' && import.meta.env.DEV) {
   (window as Record<string, unknown>).__seasonStore = useSeasonStore;
 }

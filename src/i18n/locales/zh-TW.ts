@@ -376,6 +376,7 @@ export const zhTW = {
     heading: '賽季',
     seasonTab: '本賽季',
     historyTab: '賽季紀錄',
+    label: '{{period}} 賽季',
     daysLeft: '剩餘 {{count}} 天',
     daysLeft_plural: '剩餘 {{count}} 天',
     empty: '本賽季尚無紀錄。',

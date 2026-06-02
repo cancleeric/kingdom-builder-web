@@ -3,7 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { useShallow } from 'zustand/react/shallow';
 import { getTopEntries, getObjectiveComboKey, useLeaderboardStore } from '../../store/leaderboardStore';
 import { useSeasonStore } from '../../store/seasonStore';
-import { tObjective } from '../../i18n/formatters';
+import { tObjective, formatSeasonLabel } from '../../i18n/formatters';
 import type { ObjectiveCard } from '../../core/scoring';
 import { ModalFrame } from '../UI/ModalFrame';
 
@@ -100,7 +100,7 @@ export const LeaderboardModal = React.memo(function LeaderboardModal({
             border: '1px solid var(--card-border)',
           }}
         >
-          <span className="font-semibold">{currentSeason.label}</span>
+          <span className="font-semibold">{formatSeasonLabel(t, i18n.language, currentSeason.id)}</span>
           {currentSeason.myRank !== null && (
             <>
               <span style={{ color: 'var(--color-stone-400)' }}>·</span>

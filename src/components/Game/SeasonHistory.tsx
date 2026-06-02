@@ -3,6 +3,7 @@ import { useTranslation } from 'react-i18next';
 import { ModalFrame } from '../UI/ModalFrame';
 import { useSeasonStore } from '../../store/seasonStore';
 import type { Season } from '../../store/seasonStore';
+import { formatSeasonLabel } from '../../i18n/formatters';
 
 interface SeasonHistoryProps {
   isOpen: boolean;
@@ -90,7 +91,7 @@ export const SeasonHistory = React.memo(function SeasonHistory({
               <div className="flex items-start justify-between gap-2 flex-wrap">
                 <div>
                   <p className="font-semibold text-sm" style={{ color: 'var(--color-text)' }}>
-                    {season.label}
+                    {formatSeasonLabel(t, i18n.language, season.id)}
                   </p>
                   <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-500)' }}>
                     {new Date(season.startDate).toLocaleDateString(i18n.language)} —{' '}
