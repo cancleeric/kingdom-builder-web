@@ -30,6 +30,9 @@ import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
+import { SeasonBanner } from './components/Game/SeasonBanner'
+import { SeasonHistory } from './components/Game/SeasonHistory'
+import { useSeasonStore } from './store/seasonStore'
 import {
   MutedIcon,
   UnmutedIcon,
@@ -54,6 +57,7 @@ function App() {
   const [leaderboardOpen, setLeaderboardOpen] = useState(false);
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
+  const [seasonHistoryOpen, setSeasonHistoryOpen] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -127,6 +131,7 @@ function App() {
   const submitGameScores = useLeaderboardStore((s) => s.submitGameScores);
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
+  const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -175,6 +180,11 @@ function App() {
     }
     localAction();
   };
+
+  // Check and rotate season on startup
+  useEffect(() => {
+    checkAndRotateSeason();
+  }, [checkAndRotateSeason]);
 
   // Play game over sound when phase changes to GameOver
   useEffect(() => {
@@ -385,6 +395,7 @@ function App() {
     // Home / Main Menu
     return (
       <>
+        <SeasonBanner onOpenLeaderboard={() => setLeaderboardOpen(true)} />
         <MainMenu
           muted={muted}
           onToggleMute={handleToggleMute}
@@ -393,6 +404,8 @@ function App() {
           onMultiplayer={() => setMenuMode('multiplayer')}
           onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
         />
+        <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+        <SeasonHistory isOpen={seasonHistoryOpen} onClose={() => setSeasonHistoryOpen(false)} />
         <TutorialOverlay />
       </>
     );
@@ -505,6 +518,14 @@ function App() {
                     role="menuitem"
                     className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
                     style={{ color: 'var(--color-text)' }}
+                    onClick={() => { setSeasonHistoryOpen(true); setMoreMenuOpen(false); }}
+                  >
+                    {t('season.open')}
+                  </button>
+                  <button
+                    role="menuitem"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    style={{ color: 'var(--color-text)' }}
                     onClick={() => { setLeaderboardOpen(true); setMoreMenuOpen(false); }}
                   >
                     <LeaderboardIcon size={16} />
@@ -545,6 +566,9 @@ function App() {
           </div>
         </div>
       </header>
+
+      {/* Season banner — below header, above game area */}
+      <SeasonBanner onOpenLeaderboard={() => setLeaderboardOpen(true)} />
 
       {/* ── Main Game Area ── */}
       <div className="flex-1 flex overflow-hidden min-h-0">
@@ -1147,6 +1171,11 @@ function App() {
       <LeaderboardModal
         isOpen={leaderboardOpen}
         onClose={() => setLeaderboardOpen(false)}
+      />
+
+      <SeasonHistory
+        isOpen={seasonHistoryOpen}
+        onClose={() => setSeasonHistoryOpen(false)}
       />
 
       <ReplayModal
