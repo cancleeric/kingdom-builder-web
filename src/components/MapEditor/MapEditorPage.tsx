@@ -11,6 +11,7 @@ import { ImportCodeModal } from './ImportCodeModal';
 import { createBlankBoard } from '../../mapEditor/editorBoard';
 import { useCustomMapStore } from '../../mapEditor/customMapStore';
 import { CustomMapPayload, CustomMapRecord } from '../../mapEditor/types';
+import { payloadToBoard } from '../../mapEditor/payloadToBoard';
 import { BoardSize } from '../../types/index';
 
 interface MapEditorPageProps {
@@ -95,11 +96,7 @@ export const MapEditorPage: React.FC<MapEditorPageProps> = ({ onBack }) => {
   };
 
   const handleLoadMap = (record: CustomMapRecord) => {
-    const b = new Board(record.mapData.w, record.mapData.h);
-    record.mapData.cells.forEach(c =>
-      b.setCell({ coord: { q: c.q, r: c.r }, terrain: c.terrain, location: c.location, settlement: undefined })
-    );
-    setBoard(b);
+    setBoard(payloadToBoard(record.mapData));
     setMapListOpen(false);
   };
 

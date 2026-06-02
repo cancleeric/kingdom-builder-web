@@ -191,6 +191,12 @@ export const en = {
     allowUndo: 'Allow Undo (once per turn)',
     tutorial: '📖 How to Play (Tutorial)',
     startGame: 'Start Game',
+    useCustomMap: 'Use Custom Map',
+    customMapFromStore: 'Choose from saved maps',
+    customMapFromCode: 'Paste share code',
+    noCustomMaps: 'No saved maps. Create one in Map Editor first.',
+    invalidShareCode: 'Invalid share code. Please check and try again.',
+    customMapMultiplayerNote: 'Custom maps are not supported in multiplayer mode.',
   },
   gameOver: {
     heading: '🏆 Game Over!',

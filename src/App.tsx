@@ -15,6 +15,7 @@ import { ObjectiveCardBadge } from './components/Game/ObjectiveCardBadge'
 import { LocationTileCard, LocationTileIcon } from './components/Game/LocationTileCard'
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
+import type { Board } from './core/board'
 import { Location } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
@@ -143,8 +144,8 @@ function App() {
   // More menu (Header ⋯ button)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
 
-  const handleStart = (configs: PlayerConfig[], options: GameOptions) => {
-    initGame(configs, options);
+  const handleStart = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
+    initGame(configs, options, customBoard);
     setGameStarted(true);
   };
 

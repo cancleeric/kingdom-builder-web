@@ -60,7 +60,7 @@ interface GameState {
   /** Options chosen at setup time */
   gameOptions: GameOptions;
 
-  initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => void;
+  initGame: (configs: PlayerConfig[] | number, options?: GameOptions, customBoard?: Board) => void;
   drawTerrainCard: () => void;
   placeSettlement: (coord: AxialCoord) => void;
   endTurn: () => void;
@@ -223,7 +223,7 @@ export const gameStore = create<GameState>((set, get) => ({
   gameOptions: { boardSize: 'large', objectiveCount: 3, enableUndo: true },
 
   // ── Init ────────────────────────────────────────────
-  initGame: (configs: PlayerConfig[] | number, options?: GameOptions) => {
+  initGame: (configs: PlayerConfig[] | number, options?: GameOptions, customBoard?: Board) => {
     _consecutiveEmptyTurns = 0;
     let playerConfigs: PlayerConfig[];
 
@@ -264,7 +264,7 @@ export const gameStore = create<GameState>((set, get) => ({
     }));
 
     set({
-      board: createBoardForSize(resolvedOptions.boardSize),
+      board: customBoard ?? createBoardForSize(resolvedOptions.boardSize),
       players,
       currentPlayerIndex: 0,
       phase: GamePhase.DrawCard,

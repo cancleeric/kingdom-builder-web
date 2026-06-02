@@ -1,10 +1,14 @@
 import { useState } from 'react';
 import { PlayerConfig, BotDifficulty, GameOptions, BoardSize } from '../../types';
+import { Board } from '../../core/board';
 import { useTutorialStore } from '../../store/tutorialStore';
 import { useTranslation } from 'react-i18next';
+import { useCustomMapStore } from '../../mapEditor/customMapStore';
+import { decode } from '../../mapEditor/codec';
+import { payloadToBoard } from '../../mapEditor/payloadToBoard';
 
 interface GameSetupProps {
-  onStart: (configs: PlayerConfig[], options: GameOptions) => void;
+  onStart: (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => void;
   onBack?: () => void;
 }
 
@@ -33,6 +37,15 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
   );
   const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
 
+  // Custom map state
+  const [useCustomMap, setUseCustomMap] = useState(false);
+  const [customMapSource, setCustomMapSource] = useState<'store' | 'code'>('store');
+  const [selectedMapId, setSelectedMapId] = useState<string | null>(null);
+  const [shareCodeInput, setShareCodeInput] = useState('');
+  const [shareCodeError, setShareCodeError] = useState<string | null>(null);
+  // Resolved payload from share code (null until validated)
+  const [resolvedSharePayload, setResolvedSharePayload] = useState<ReturnType<typeof decode>>(null);
+
   const startTutorial = useTutorialStore((s) => s.startTutorial);
 
   const handlePlayerCountChange = (count: number) => {
@@ -56,8 +69,43 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
     setOptions(prev => ({ ...prev, [key]: value }));
   };
 
+  const handleToggleCustomMap = (value: boolean) => {
+    setUseCustomMap(value);
+    // Clear custom map state when toggling off
+    if (!value) {
+      setSelectedMapId(null);
+      setShareCodeInput('');
+      setShareCodeError(null);
+      setResolvedSharePayload(null);
+    }
+  };
+
+  const handleValidateShareCode = () => {
+    const payload = decode(shareCodeInput.trim());
+    if (payload === null) {
+      setShareCodeError(t('setup.invalidShareCode'));
+      setResolvedSharePayload(null);
+    } else {
+      setShareCodeError(null);
+      setResolvedSharePayload(payload);
+    }
+  };
+
   const handleStart = () => {
-    onStart(configs, options);
+    if (useCustomMap) {
+      let customBoard: Board | undefined;
+      if (customMapSource === 'store' && selectedMapId) {
+        const record = useCustomMapStore.getState().getMap(selectedMapId);
+        if (record) {
+          customBoard = payloadToBoard(record.mapData);
+        }
+      } else if (customMapSource === 'code' && resolvedSharePayload) {
+        customBoard = payloadToBoard(resolvedSharePayload);
+      }
+      onStart(configs, options, customBoard);
+    } else {
+      onStart(configs, options);
+    }
   };
 
   const difficultyLabels: Record<BotDifficulty, string> = {
@@ -71,6 +119,8 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
     medium: t('setup.boardSizeMedium'),
     large: t('setup.boardSizeLarge'),
   };
+
+  const savedMaps = useCustomMapStore.getState().maps;
 
   return (
     <div
@@ -217,29 +267,154 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
           ))}
         </div>
 
-        {/* Board Size */}
+        {/* Use Custom Map toggle */}
         <div className="mb-5">
-          <label className="block text-body-sm font-body font-medium mb-2" style={{ color: 'var(--color-stone-700)' }}>
-            {t('setup.boardSize')}
-          </label>
-          <div className="flex gap-2">
-            {(['small', 'medium', 'large'] as BoardSize[]).map(size => (
-              <button
-                key={size}
-                onClick={() => updateOption('boardSize', size)}
-                aria-pressed={options.boardSize === size}
-                className="flex-1 py-2 rounded-12 text-body-sm font-body font-semibold transition"
-                style={
-                  options.boardSize === size
-                    ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)', border: '2px solid var(--button-secondary-bg)' }
-                    : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '2px solid var(--card-border)' }
-                }
-              >
-                {boardSizeLabels[size]}
-              </button>
-            ))}
+          <div className="flex items-center justify-between mb-1">
+            <span className="text-body-sm font-body font-medium" style={{ color: 'var(--color-stone-700)' }}>
+              {t('setup.useCustomMap')}
+            </span>
+            <button
+              role="switch"
+              aria-checked={useCustomMap}
+              aria-label={t('setup.useCustomMap')}
+              onClick={() => handleToggleCustomMap(!useCustomMap)}
+              className="relative inline-flex h-6 w-11 items-center rounded-full transition"
+              style={{ backgroundColor: useCustomMap ? 'var(--color-ink-green-500)' : 'var(--color-stone-300)' }}
+            >
+              <span
+                className="inline-block h-4 w-4 transform rounded-full bg-white transition"
+                style={{ transform: useCustomMap ? 'translateX(1.5rem)' : 'translateX(0.25rem)' }}
+              />
+            </button>
           </div>
+          <p className="text-label font-body" style={{ color: 'var(--color-stone-400)' }}>
+            {t('setup.customMapMultiplayerNote')}
+          </p>
         </div>
+
+        {/* Board Size (hidden when custom map is on) */}
+        {!useCustomMap && (
+          <div className="mb-5">
+            <label className="block text-body-sm font-body font-medium mb-2" style={{ color: 'var(--color-stone-700)' }}>
+              {t('setup.boardSize')}
+            </label>
+            <div className="flex gap-2">
+              {(['small', 'medium', 'large'] as BoardSize[]).map(size => (
+                <button
+                  key={size}
+                  onClick={() => updateOption('boardSize', size)}
+                  aria-pressed={options.boardSize === size}
+                  className="flex-1 py-2 rounded-12 text-body-sm font-body font-semibold transition"
+                  style={
+                    options.boardSize === size
+                      ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)', border: '2px solid var(--button-secondary-bg)' }
+                      : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '2px solid var(--card-border)' }
+                  }
+                >
+                  {boardSizeLabels[size]}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Custom Map selector (shown when custom map is on) */}
+        {useCustomMap && (
+          <div
+            className="mb-5 rounded-12 p-4"
+            style={{ border: '1px solid var(--card-border)', backgroundColor: 'var(--color-warm-cream-50)' }}
+          >
+            {/* Source toggle */}
+            <div className="flex gap-2 mb-4">
+              {(['store', 'code'] as const).map(src => (
+                <button
+                  key={src}
+                  onClick={() => {
+                    setCustomMapSource(src);
+                    setShareCodeError(null);
+                  }}
+                  aria-pressed={customMapSource === src}
+                  className="flex-1 py-1 rounded-8 text-body-sm font-body font-medium transition"
+                  style={
+                    customMapSource === src
+                      ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)', border: '2px solid var(--button-secondary-bg)' }
+                      : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '2px solid var(--card-border)' }
+                  }
+                >
+                  {src === 'store' ? t('setup.customMapFromStore') : t('setup.customMapFromCode')}
+                </button>
+              ))}
+            </div>
+
+            {/* From store: map list */}
+            {customMapSource === 'store' && (
+              savedMaps.length === 0 ? (
+                <p className="text-body-sm font-body" style={{ color: 'var(--color-stone-500)' }}>
+                  {t('setup.noCustomMaps')}
+                </p>
+              ) : (
+                <div className="space-y-2">
+                  {savedMaps.map(record => (
+                    <button
+                      key={record.id}
+                      onClick={() => setSelectedMapId(record.id)}
+                      aria-pressed={selectedMapId === record.id}
+                      className="w-full text-left px-3 py-2 rounded-8 text-body-sm font-body transition"
+                      style={
+                        selectedMapId === record.id
+                          ? { backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)', border: '2px solid var(--button-secondary-bg)' }
+                          : { backgroundColor: 'var(--color-warm-cream-100)', color: 'var(--color-stone-700)', border: '2px solid var(--card-border)' }
+                      }
+                    >
+                      {record.name}
+                    </button>
+                  ))}
+                </div>
+              )
+            )}
+
+            {/* From share code */}
+            {customMapSource === 'code' && (
+              <div>
+                <div className="flex gap-2">
+                  <input
+                    type="text"
+                    value={shareCodeInput}
+                    onChange={e => {
+                      setShareCodeInput(e.target.value);
+                      setShareCodeError(null);
+                      setResolvedSharePayload(null);
+                    }}
+                    placeholder="KB-v1-..."
+                    className="flex-1 rounded-8 px-2 py-1 text-body-sm"
+                    style={{
+                      border: shareCodeError ? '1px solid var(--color-wine-600)' : '1px solid var(--card-border)',
+                      backgroundColor: 'var(--color-warm-cream-50)',
+                      color: 'var(--color-stone-800)',
+                    }}
+                  />
+                  <button
+                    onClick={handleValidateShareCode}
+                    className="px-3 py-1 rounded-8 text-body-sm font-body font-medium transition"
+                    style={{ backgroundColor: 'var(--button-secondary-bg)', color: 'var(--button-text)' }}
+                  >
+                    OK
+                  </button>
+                </div>
+                {shareCodeError && (
+                  <p className="mt-1 text-label font-body" style={{ color: 'var(--color-wine-600)' }}>
+                    {shareCodeError}
+                  </p>
+                )}
+                {resolvedSharePayload && !shareCodeError && (
+                  <p className="mt-1 text-label font-body" style={{ color: 'var(--color-ink-green-600)' }}>
+                    {resolvedSharePayload.w}x{resolvedSharePayload.h}
+                  </p>
+                )}
+              </div>
+            )}
+          </div>
+        )}
 
         {/* Game Options */}
         <div
