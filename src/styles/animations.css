@@ -169,6 +169,54 @@
 }
 
 /* ----------------------------------------------------------
+ * Settlement ring radiate (ring expands + fades, 250 ms)
+ * Triggered when a settlement is recently placed.
+ * Uses SVG <circle> r attribute animated via CSS.
+ * ---------------------------------------------------------- */
+@keyframes settlementRing {
+  0% {
+    r: 0;
+    opacity: 0.7;
+  }
+  100% {
+    r: 14;
+    opacity: 0;
+  }
+}
+
+.animate-settlement-ring {
+  animation: settlementRing 250ms ease-out forwards;
+}
+
+/* ----------------------------------------------------------
+ * Score pop-in on score increase (scale bounce, 400 ms)
+ * Triggered by key change forcing remount of score span.
+ * ---------------------------------------------------------- */
+@keyframes scorePopIn {
+  0%   { transform: scale(1); }
+  40%  { transform: scale(1.28); color: var(--color-amber-600, #d97706); }
+  100% { transform: scale(1); }
+}
+
+.animate-score-pop {
+  animation: scorePopIn 400ms ease-out both;
+  display: inline-block; /* scale requires non-inline context */
+}
+
+/* ----------------------------------------------------------
+ * TurnBanner enter on player change (slide from top, 200 ms)
+ * Triggered by key={currentPlayer.id} forcing remount.
+ * ---------------------------------------------------------- */
+@keyframes bannerEnter {
+  0%   { transform: translateY(-8px); opacity: 0; }
+  100% { transform: translateY(0);    opacity: 1; }
+}
+
+.animate-banner-enter {
+  animation: bannerEnter 200ms ease-out both;
+}
+
+/* ----------------------------------------------------------
  * Accessibility: disable all animations when user prefers
  * reduced motion (WCAG 2.1 Success Criterion 2.3.3)
  * ---------------------------------------------------------- */

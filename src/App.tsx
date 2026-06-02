@@ -51,6 +51,72 @@ import {
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
 
+/**
+ * Lightweight hook that returns the value from the previous render.
+ * Used to detect score increases for the scorePopIn animation.
+ */
+function usePrevious<T>(value: T): T | undefined {
+  const ref = useRef<T | undefined>(undefined);
+  useEffect(() => {
+    ref.current = value;
+  });
+  return ref.current;
+}
+
+interface ScoreRowProps {
+  playerId: string;
+  playerName: string | undefined;
+  playerColor: string;
+  total: number;
+  isLeader: boolean;
+  summaryText: string;
+  pointsLabel: string;
+}
+
+/**
+ * Score row with pop animation when total increases.
+ * Using a component so usePrevious can be called per-player safely.
+ */
+function ScoreRow({ playerId, playerName, playerColor, total, isLeader, summaryText, pointsLabel }: ScoreRowProps) {
+  const prevTotal = usePrevious(total);
+  const increased = prevTotal !== undefined && total > prevTotal;
+
+  return (
+    <div
+      key={playerId}
+      className="rounded-lg p-2"
+      style={{
+        border: `2px solid ${isLeader ? 'var(--color-amber-400)' : 'var(--card-border)'}`,
+        backgroundColor: isLeader ? 'oklch(0.97 0.02 80)' : 'var(--color-warm-cream-50)',
+      }}
+    >
+      <div className="flex justify-between items-center text-sm font-medium">
+        <div className="flex items-center gap-1.5">
+          <div
+            className="w-3 h-3 rounded-full"
+            style={{ backgroundColor: playerColor }}
+            aria-hidden="true"
+          />
+          <span style={{ color: 'var(--color-text)' }}>{playerName}</span>
+          {isLeader && (
+            <span className="text-xs" title="Leading">★</span>
+          )}
+        </div>
+        <span
+          key={increased ? `${playerId}-${total}` : playerId}
+          className={increased ? 'animate-score-pop font-bold' : 'font-bold'}
+          style={{ color: isLeader ? 'var(--color-amber-700)' : 'var(--color-text)' }}
+        >
+          {total} {pointsLabel}
+        </span>
+      </div>
+      <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
+        {summaryText}
+      </p>
+    </div>
+  );
+}
+
 function App() {
   const { t, i18n } = useTranslation();
   const [muted, setMutedState] = useState(isMuted);
@@ -584,6 +650,7 @@ function App() {
           {/* TurnBanner – sticky above the board */}
           {phase !== GamePhase.GameOver && (
             <TurnBanner
+              key={currentPlayer?.id}
               currentPlayer={currentPlayer}
               phase={phase}
               currentTerrainCard={currentTerrainCard}
@@ -596,7 +663,7 @@ function App() {
           )}
 
           {/* HexGrid */}
-          <div className="flex-1 relative overflow-hidden">
+          <div className="flex-1 relative overflow-hidden" style={{ boxShadow: 'var(--shadow-medium)' }}>
             {players.length > 0 && (
               <div className="w-full h-full" data-tutorial-target="hex-grid">
               <HexGrid
@@ -929,43 +996,23 @@ function App() {
                       const p = players.find(pl => pl.id === ps.playerId)
                       const total = ps.castle + ps.objectives.reduce((s, o) => s + o.score, 0)
                       const isLeader = total === maxLiveScore && total > 0
+                      const summaryText = t('app.castleScoreSummary', {
+                        castle: ps.castle,
+                        objectives: ps.objectives
+                          .map(o => t('app.objectiveScoreItem', { card: tObjective(t, o.card), score: o.score }))
+                          .join(' | '),
+                      })
                       return (
-                        <div
+                        <ScoreRow
                           key={ps.playerId}
-                          className="rounded-lg p-2"
-                          style={{
-                            border: `2px solid ${isLeader ? 'var(--color-amber-400)' : 'var(--card-border)'}`,
-                            backgroundColor: isLeader ? 'oklch(0.97 0.02 80)' : 'var(--color-warm-cream-50)',
-                          }}
-                        >
-                          <div className="flex justify-between items-center text-sm font-medium">
-                            <div className="flex items-center gap-1.5">
-                              <div
-                                className="w-3 h-3 rounded-full"
-                                style={{ backgroundColor: p?.color ?? '#ccc' }}
-                                aria-hidden="true"
-                              />
-                              <span style={{ color: 'var(--color-text)' }}>{p?.name}</span>
-                              {isLeader && (
-                                <span className="text-xs" title="Leading">★</span>
-                              )}
-                            </div>
-                            <span
-                              className="font-bold"
-                              style={{ color: isLeader ? 'var(--color-amber-700)' : 'var(--color-text)' }}
-                            >
-                              {total} {t('common.pointsShort')}
-                            </span>
-                          </div>
-                          <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
-                            {t('app.castleScoreSummary', {
-                              castle: ps.castle,
-                              objectives: ps.objectives
-                                .map(o => t('app.objectiveScoreItem', { card: tObjective(t, o.card), score: o.score }))
-                                .join(' | '),
-                            })}
-                          </p>
-                        </div>
+                          playerId={ps.playerId}
+                          playerName={p?.name}
+                          playerColor={p?.color ?? '#ccc'}
+                          total={total}
+                          isLeader={isLeader}
+                          summaryText={summaryText}
+                          pointsLabel={t('common.pointsShort')}
+                        />
                       )
                     })}
                   </div>
