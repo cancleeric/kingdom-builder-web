@@ -51,7 +51,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
 
   return (
     <div
-      className="sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-2 shadow-md"
+      className="animate-banner-enter sticky top-0 z-20 flex items-center justify-between gap-3 px-4 py-2 shadow-md"
       style={{ backgroundColor: currentPlayer.color + 'ee' }}
       role="status"
       aria-label={t('turnBanner.regionLabel', { player: currentPlayer.name, phase: phaseLabel })}

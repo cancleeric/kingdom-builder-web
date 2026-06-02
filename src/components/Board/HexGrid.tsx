@@ -1,4 +1,4 @@
-import React, { useState, useRef, useCallback } from 'react';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { Board } from '../../core/board';
 import { AxialCoord, hexEquals, HEX_SIZE, axialToPixel } from '../../core/hex';
 import { HexCell } from './HexCell';
@@ -120,6 +120,40 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   const svgRef = useRef<SVGSVGElement>(null);
 
   const cells = board.getAllCells();
+
+  // ── UI-only: track the most recently placed settlement cell ────────────────
+  // We compare the set of settlement keys before/after board changes.
+  // No gameStore logic is touched — this is purely a render-layer effect.
+  const [recentlyPlacedKey, setRecentlyPlacedKey] = useState<string | null>(null);
+  const prevSettlementKeysRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    // Build current settlement key set (only cells that have a settlement)
+    const currentKeys = new Set<string>();
+    for (const cell of cells) {
+      if (cell.settlement !== undefined) {
+        currentKeys.add(`${cell.coord.q},${cell.coord.r}`);
+      }
+    }
+
+    // Find any newly added key
+    let newKey: string | null = null;
+    for (const key of currentKeys) {
+      if (!prevSettlementKeysRef.current.has(key)) {
+        newKey = key;
+        break;
+      }
+    }
+
+    prevSettlementKeysRef.current = currentKeys;
+
+    if (newKey) {
+      setRecentlyPlacedKey(newKey);
+      const timer = setTimeout(() => setRecentlyPlacedKey(null), 350);
+      return () => clearTimeout(timer);
+    }
+  }, [cells]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // Calculate SVG dimensions
   // For axial coords, max x = HEX_SIZE * (√3 * (width-1) + √3/2 * (height-1))
@@ -387,6 +421,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
 
                   const key = `${cell.coord.q},${cell.coord.r}`;
                   const isEntry = entryCoord !== null && hexEquals(cell.coord, entryCoord);
+                  const isRecentlyPlaced = recentlyPlacedKey === key;
 
                   return (
                     <HexCell
@@ -395,6 +430,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                       isValid={isValid}
                       isSelected={isSelected}
                       isHovered={isHovered}
+                      isRecentlyPlaced={isRecentlyPlaced}
                       playerColor={playerColor}
                       playerName={playerName}
                       tabIndex={isEntry ? 0 : -1}
