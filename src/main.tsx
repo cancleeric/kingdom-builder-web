@@ -35,3 +35,4 @@ createRoot(document.getElementById('root')!).render(
 )
 
 registerSW()
+import './mapEditor/devExpose'
