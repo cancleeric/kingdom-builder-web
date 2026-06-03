@@ -1,4 +1,3 @@
-import React from 'react';
 
 // ────────────────────────────────────────────────────
 // AchievementIconKey union type（exportしてstore/typesで使用）

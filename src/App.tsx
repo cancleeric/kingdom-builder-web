@@ -73,7 +73,7 @@ function usePrevious<T>(value: T): T | undefined {
 }
 
 interface ScoreRowProps {
-  playerId: string;
+  playerId: number;
   playerName: string | undefined;
   playerColor: string;
   total: number;
