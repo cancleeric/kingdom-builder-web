@@ -5,6 +5,7 @@ import type { Player } from '../../types';
 import type { AxialCoord } from '../../core/hex';
 import { tPhase, tTerrain } from '../../i18n/formatters';
 import { DrawCardIcon, EndTurnIcon } from '../icons';
+import '../../styles/animations.css';
 
 interface TurnBannerProps {
   currentPlayer: Player | undefined;
@@ -15,6 +16,7 @@ interface TurnBannerProps {
   canControlActions: boolean;
   onDrawCard: () => void;
   onEndTurn: () => void;
+  isCurrentPlayerBot?: boolean;
 }
 
 /**
@@ -33,6 +35,7 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
   canControlActions,
   onDrawCard,
   onEndTurn,
+  isCurrentPlayerBot = false,
 }) => {
   const { t } = useTranslation();
 
@@ -107,6 +110,27 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
           </div>
         )}
       </div>
+
+      {/* Bot thinking indicator (R29) — only shown during bot turn */}
+      {isCurrentPlayerBot && (
+        <div className="flex items-center gap-1.5 flex-shrink-0" aria-live="polite">
+          <div
+            className="animate-spin-slow"
+            aria-hidden="true"
+            style={{
+              width: '14px',
+              height: '14px',
+              borderRadius: '50%',
+              border: '2px solid rgba(255,255,255,0.35)',
+              borderTopColor: '#ffffff',
+              flexShrink: 0,
+            }}
+          />
+          <span className="text-xs text-white/90 whitespace-nowrap">
+            {t('turnBanner.botThinking')}
+          </span>
+        </div>
+      )}
 
       {/* Primary action button */}
       <div className="flex-shrink-0">

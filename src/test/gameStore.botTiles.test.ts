@@ -70,7 +70,9 @@ describe('Bot location tiles', () => {
 
   it('uses an available placement tile before ending its turn', async () => {
     useGameStore.getState().triggerBotTurn();
-    await vi.advanceTimersByTimeAsync(1000);
+    // STEP_MS = 400: 3 placements at 400/800/1200ms, endTurn at 1600ms
+    // advance past 1600ms to ensure bot turn completes
+    await vi.advanceTimersByTimeAsync(2000);
 
     const state = useGameStore.getState();
     const bot = state.players[1];

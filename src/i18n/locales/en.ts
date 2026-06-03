@@ -276,6 +276,7 @@ export const en = {
     placementsProgress: '{{placed}} of {{total}} settlements placed',
     ofSettlements: '{{placed}} of {{total}}',
     noValidPlacements: 'No valid placements',
+    botThinking: 'Opponent thinking…',
   },
   sidebar: {
     terrainCard: 'Terrain Card',

@@ -275,6 +275,7 @@ export const zhTW = {
     placementsProgress: '已放置 {{placed}} / {{total}} 個聚落',
     ofSettlements: '{{placed}} / {{total}}',
     noValidPlacements: '無可放置位置',
+    botThinking: '對手行動中…',
   },
   sidebar: {
     terrainCard: '地形卡',

@@ -5,6 +5,7 @@ interface SettlementMarkerProps {
   cy: number;
   playerColor: string;
   isRecentlyPlaced?: boolean;
+  isBotPlacement?: boolean;
 }
 
 /**
@@ -30,6 +31,7 @@ export const SettlementMarker: React.FC<SettlementMarkerProps> = ({
   cy,
   playerColor,
   isRecentlyPlaced,
+  isBotPlacement,
 }) => {
   return (
     <g
@@ -45,9 +47,22 @@ export const SettlementMarker: React.FC<SettlementMarkerProps> = ({
           r={0}
           fill="none"
           stroke={playerColor}
-          strokeWidth={2}
+          strokeWidth={isBotPlacement ? 3 : 2}
           className="animate-settlement-ring"
           style={{ pointerEvents: 'none' }}
+        />
+      )}
+      {/* Bot ghost echo ring: delayed second ring for stronger emphasis */}
+      {isRecentlyPlaced && isBotPlacement && (
+        <circle
+          cx={0}
+          cy={0}
+          r={0}
+          fill="none"
+          stroke={playerColor}
+          strokeWidth={2}
+          className="animate-settlement-ring-ghost"
+          style={{ pointerEvents: 'none', opacity: 0.4 }}
         />
       )}
 

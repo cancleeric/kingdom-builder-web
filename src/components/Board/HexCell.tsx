@@ -15,6 +15,7 @@ interface HexCellProps {
   isHovered: boolean;
   isFocused?: boolean;
   isRecentlyPlaced?: boolean;
+  isBotPlacement?: boolean;
   playerColor?: string;
   playerName?: string;
   tabIndex: number;
@@ -56,6 +57,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   isHovered,
   isFocused = false,
   isRecentlyPlaced = false,
+  isBotPlacement = false,
   playerColor,
   playerName,
   tabIndex,
@@ -200,6 +202,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
           cy={corners[0].y}
           playerColor={playerColor}
           isRecentlyPlaced={isRecentlyPlaced}
+          isBotPlacement={isBotPlacement}
         />
       )}
     </g>

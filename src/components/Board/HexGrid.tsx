@@ -7,6 +7,7 @@ import { PieceDefs } from './PieceDefs';
 import { Player, HexCell as HexCellData } from '../../types';
 import { useBoardTransform, Transform } from '../../hooks/useBoardTransform';
 import { useTranslation } from 'react-i18next';
+import { useGameStore } from '../../store/gameStore';
 
 /**
  * Given a client-space coordinate (e.g. from mouse or touch event),
@@ -98,6 +99,10 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onInvalidClick,
 }) => {
   const { t } = useTranslation();
+  // Read-only: detect if current player is a bot for highlight emphasis (R29)
+  const isCurrentPlayerBot = useGameStore(
+    s => s.players[s.currentPlayerIndex]?.isBot ?? false
+  );
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
   const {
     transform,
@@ -462,6 +467,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                       isHovered={isHovered}
                       isFocused={isFocused}
                       isRecentlyPlaced={isRecentlyPlaced}
+                      isBotPlacement={isRecentlyPlaced && isCurrentPlayerBot}
                       playerColor={playerColor}
                       playerName={playerName}
                       tabIndex={isEntry ? 0 : -1}

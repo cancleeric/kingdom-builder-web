@@ -789,6 +789,7 @@ function App() {
               canControlActions={canControlActions}
               onDrawCard={handleDrawTerrainCard}
               onEndTurn={handleEndTurn}
+              isCurrentPlayerBot={currentPlayer?.isBot ?? false}
             />
           )}
 
