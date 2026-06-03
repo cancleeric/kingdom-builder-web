@@ -1224,8 +1224,8 @@ function App() {
                             <span
                               className="text-xs px-1.5 py-0.5 rounded-full font-semibold"
                               style={{
-                                backgroundColor: 'var(--color-info)',
-                                color: 'var(--color-warm-cream-50)',
+                                backgroundColor: 'var(--color-accent-turn)',
+                                color: 'var(--color-accent-turn-fg)',
                               }}
                             >
                               {t('app.current')}

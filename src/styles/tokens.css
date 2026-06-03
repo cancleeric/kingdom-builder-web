@@ -76,6 +76,14 @@
   --color-danger: var(--color-wine-600);
   --color-info: var(--color-player-blue);
 
+  /* R25: Quest card & turn indicator tokens */
+  --color-quest-bg:       var(--color-amber-50);
+  --color-quest-border:   var(--color-amber-600);
+  --color-quest-score-bg: var(--color-wine-600);
+  --color-quest-score-fg: var(--color-warm-cream-50);
+  --color-accent-turn:    var(--color-amber-600);
+  --color-accent-turn-fg: var(--color-warm-cream-50);
+
   /* Typography */
   --font-display: 'Cormorant Garamond', 'Times New Roman', serif;
   --font-body: 'Manrope', 'Segoe UI', system-ui, sans-serif;
