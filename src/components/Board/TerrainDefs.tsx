@@ -385,10 +385,10 @@ export const TerrainDefs: React.FC = () => (
     </symbol>
 
     {/* ────────── 沙漠 Desert ──────────
-        沙紋弧線（3–4 條）+ 結構化仙人掌（主幹+側臂）+ 碎石
-        A: 中央仙人掌+左右碎石，B: 偏右仙人掌+不同弧線，C: 兩棵小仙人掌 */}
+        沙紋弧線（3–4 條）+ 仙人掌（縮小 ~40%、霧綠低飽和、每格 1 個、偏磚邊）+ 碎石
+        A: 左偏小仙人掌+沙紋+碎石，B: 右偏小仙人掌+沙紋+碎石，C: 偏右小仙人掌+沙紋 */}
 
-    {/* Desert-a：中央仙人掌 + 3 條沙紋 + 2 碎石 */}
+    {/* Desert-a：左偏小仙人掌 + 3 條沙紋 + 2 碎石 */}
     <symbol id="motif-Desert-a" viewBox={MOTIF_VB} overflow="visible">
       {/* 沙紋弧線 */}
       <path d="M5,44 Q12,41 19,44 Q26,41 33,44 Q40,41 47,44"
@@ -397,25 +397,23 @@ export const TerrainDefs: React.FC = () => (
         stroke="#9A6C20" strokeWidth="1.3" fill="none" opacity="0.6" />
       <path d="M7,56 Q15,53 23,56 Q31,53 39,56 Q44,53 48,56"
         stroke="#8C6018" strokeWidth="1.1" fill="none" opacity="0.5" />
-      {/* 中央仙人掌 */}
-      {/* 主幹 */}
-      <rect x="22" y="26" width="7" height="22" rx="3.5" fill="#2A7A2A" opacity="0.92" />
-      {/* 左側臂 */}
-      <path d="M22,32 Q12,30 11,38 Q10,44 14,44" stroke="#2A7A2A" strokeWidth="5" fill="none" strokeLinecap="round" />
-      <rect x="9" y="37" width="6" height="9" rx="3" fill="#2A7A2A" opacity="0.88" />
-      {/* 右側臂 */}
-      <path d="M29,35 Q39,33 40,41 Q41,47 37,47" stroke="#2A7A2A" strokeWidth="5" fill="none" strokeLinecap="round" />
-      <rect x="36" y="40" width="6" height="9" rx="3" fill="#2A7A2A" opacity="0.88" />
-      {/* 仙人掌尖刺（短線） */}
-      <line x1="21" y1="30" x2="18" y2="28" stroke="#1A6018" strokeWidth="1" opacity="0.8" />
-      <line x1="30" y1="28" x2="33" y2="26" stroke="#1A6018" strokeWidth="1" opacity="0.8" />
-      <line x1="25.5" y1="26" x2="25.5" y2="23" stroke="#1A6018" strokeWidth="1.2" opacity="0.85" />
+      {/* 左偏小仙人掌（縮 ~40%，霧綠，偏左磚邊，opacity 0.7） */}
+      <g transform="translate(9,38) scale(0.6)" opacity="0.7">
+        {/* 主幹 */}
+        <rect x="-3.5" y="0" width="7" height="18" rx="3.5" fill="#6B8E5A" />
+        {/* 右側臂 */}
+        <path d="M3.5,5 Q11,3 12,9 Q13,14 9,14" stroke="#6B8E5A" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <rect x="8" y="8" width="5" height="7" rx="2.5" fill="#6B8E5A" />
+        {/* 頂刺 */}
+        <line x1="0" y1="0" x2="0" y2="-3" stroke="#4E6E40" strokeWidth="1.2" />
+        <line x1="-3" y1="2" x2="-5" y2="0" stroke="#4E6E40" strokeWidth="1" />
+      </g>
       {/* 碎石 */}
       <ellipse cx="7" cy="52" rx="3.5" ry="2" fill="#8A5818" opacity="0.6" transform="rotate(10,7,52)" />
       <ellipse cx="44" cy="54" rx="2.8" ry="1.6" fill="#7A4E14" opacity="0.55" transform="rotate(-8,44,54)" />
     </symbol>
 
-    {/* Desert-b：偏右仙人掌（側臂角度不同）+ 4 條沙紋 + 3 碎石 */}
+    {/* Desert-b：右偏小仙人掌 + 4 條沙紋 + 3 碎石 */}
     <symbol id="motif-Desert-b" viewBox={MOTIF_VB} overflow="visible">
       {/* 沙紋（稍微不同弧度）*/}
       <path d="M4,42 Q11,39 18,42 Q25,38 32,42 Q39,39 46,42"
@@ -426,25 +424,24 @@ export const TerrainDefs: React.FC = () => (
         stroke="#8C6018" strokeWidth="1.1" fill="none" opacity="0.5" />
       <path d="M9,58 Q17,55 26,58 Q34,55 42,58"
         stroke="#7A5414" strokeWidth="0.9" fill="none" opacity="0.42" />
-      {/* 偏右仙人掌 */}
-      <rect x="27" y="24" width="7" height="24" rx="3.5" fill="#2C7C2C" opacity="0.92" />
-      {/* 左側臂（角度稍低）*/}
-      <path d="M27,30 Q17,32 16,40 Q15,46 19,46" stroke="#2C7C2C" strokeWidth="5" fill="none" strokeLinecap="round" />
-      <rect x="14" y="39" width="6" height="8" rx="3" fill="#2C7C2C" opacity="0.88" />
-      {/* 右側臂（角度高）*/}
-      <path d="M34,28 Q42,24 43,30 Q44,36 40,37" stroke="#2C7C2C" strokeWidth="5" fill="none" strokeLinecap="round" />
-      <rect x="39" y="30" width="5" height="8" rx="2.5" fill="#2C7C2C" opacity="0.88" />
-      {/* 尖刺 */}
-      <line x1="26" y1="28" x2="23" y2="26" stroke="#1C6A1C" strokeWidth="1" opacity="0.8" />
-      <line x1="30.5" y1="24" x2="30.5" y2="21" stroke="#1C6A1C" strokeWidth="1.2" opacity="0.85" />
-      <line x1="35" y1="26" x2="38" y2="24" stroke="#1C6A1C" strokeWidth="1" opacity="0.8" />
+      {/* 右偏小仙人掌（縮 ~40%，霧綠，偏右磚邊，opacity 0.7） */}
+      <g transform="translate(40,36) scale(0.6)" opacity="0.7">
+        {/* 主幹 */}
+        <rect x="-3.5" y="0" width="7" height="20" rx="3.5" fill="#7D9471" />
+        {/* 左側臂 */}
+        <path d="M-3.5,6 Q-12,4 -13,11 Q-14,16 -10,16" stroke="#7D9471" strokeWidth="5" fill="none" strokeLinecap="round" />
+        <rect x="-15" y="10" width="5" height="7" rx="2.5" fill="#7D9471" />
+        {/* 頂刺 */}
+        <line x1="0" y1="0" x2="0" y2="-3" stroke="#5A7050" strokeWidth="1.2" />
+        <line x1="3.5" y1="2" x2="5.5" y2="0" stroke="#5A7050" strokeWidth="1" />
+      </g>
       {/* 3 碎石 */}
       <ellipse cx="7" cy="50" rx="3" ry="1.8" fill="#8A5818" opacity="0.58" transform="rotate(15,7,50)" />
       <ellipse cx="46" cy="52" rx="2.5" ry="1.5" fill="#7A4E14" opacity="0.55" transform="rotate(-12,46,52)" />
       <ellipse cx="12" cy="56" rx="2" ry="1.2" fill="#704815" opacity="0.48" transform="rotate(5,12,56)" />
     </symbol>
 
-    {/* Desert-c：兩棵小仙人掌 + 沙紋 */}
+    {/* Desert-c：右偏小仙人掌（單棵）+ 沙紋 + 碎石 */}
     <symbol id="motif-Desert-c" viewBox={MOTIF_VB} overflow="visible">
       {/* 沙紋 */}
       <path d="M4,46 Q11,43 18,46 Q25,42 32,46 Q39,43 46,46"
@@ -453,21 +450,21 @@ export const TerrainDefs: React.FC = () => (
         stroke="#927018" strokeWidth="1.2" fill="none" opacity="0.55" />
       <path d="M8,58 Q16,55 25,58 Q33,55 41,58"
         stroke="#845E14" strokeWidth="1" fill="none" opacity="0.45" />
-      {/* 左小仙人掌 */}
-      <rect x="8" y="32" width="5" height="16" rx="2.5" fill="#287828" opacity="0.9" />
-      <path d="M8,37 Q3,35 3,41" stroke="#287828" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <rect x="1.5" y="38" width="4" height="7" rx="2" fill="#287828" opacity="0.85" />
-      <line x1="10.5" y1="32" x2="10.5" y2="29" stroke="#1A6018" strokeWidth="1.2" opacity="0.85" />
-      {/* 右小仙人掌 */}
-      <rect x="36" y="30" width="5.5" height="18" rx="2.75" fill="#2A7A2A" opacity="0.92" />
-      <path d="M41.5,36 Q47,34 47,40" stroke="#2A7A2A" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <rect x="44.5" y="37" width="4" height="7" rx="2" fill="#2A7A2A" opacity="0.85" />
-      <path d="M36,38 Q29,36 29,42" stroke="#2A7A2A" strokeWidth="4" fill="none" strokeLinecap="round" />
-      <rect x="26.5" y="39" width="4" height="7" rx="2" fill="#2A7A2A" opacity="0.85" />
-      <line x1="38.75" y1="30" x2="38.75" y2="27" stroke="#1A6018" strokeWidth="1.2" opacity="0.85" />
-      <line x1="42" y1="31" x2="44" y2="29" stroke="#1A6018" strokeWidth="1" opacity="0.8" />
+      {/* 單棵右偏小仙人掌（縮 ~40%，霧綠，opacity 0.7） */}
+      <g transform="translate(38,32) scale(0.6)" opacity="0.7">
+        {/* 主幹 */}
+        <rect x="-3" y="0" width="6" height="20" rx="3" fill="#6B8E5A" />
+        {/* 右側臂 */}
+        <path d="M3,5 Q10,3 11,9" stroke="#6B8E5A" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <rect x="8" y="7" width="4" height="6" rx="2" fill="#6B8E5A" />
+        {/* 左側臂 */}
+        <path d="M-3,9 Q-9,7 -9,13" stroke="#6B8E5A" strokeWidth="4" fill="none" strokeLinecap="round" />
+        <rect x="-11" y="11" width="4" height="5" rx="2" fill="#6B8E5A" />
+        {/* 頂刺 */}
+        <line x1="0" y1="0" x2="0" y2="-3" stroke="#4E6E40" strokeWidth="1.2" />
+      </g>
       {/* 碎石 */}
-      <ellipse cx="22" cy="55" rx="3" ry="1.7" fill="#8A5818" opacity="0.55" transform="rotate(-8,22,55)" />
+      <ellipse cx="12" cy="54" rx="3" ry="1.7" fill="#8A5818" opacity="0.55" transform="rotate(-8,12,54)" />
     </symbol>
 
     {/* ────────── 花田 Flower ──────────
