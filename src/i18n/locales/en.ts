@@ -408,6 +408,12 @@ export const en = {
     next: 'Next →',
     keyboardHint: 'Press left/right arrow keys to navigate · Esc to close',
     performHighlightedAction: 'Perform the highlighted action to continue automatically.',
+    onboardingPrompt: {
+      title: 'First time playing?',
+      description: 'Would you like a quick tutorial to learn the rules?',
+      startButton: 'Show Me How',
+      skipButton: 'Skip for Now',
+    },
     steps: {
       welcome: {
         title: 'Welcome to Kingdom Builder!',

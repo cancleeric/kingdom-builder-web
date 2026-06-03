@@ -86,13 +86,27 @@ describe('tutorialStore', () => {
     expect(useTutorialStore.getState().currentStepIndex).toBe(TUTORIAL_STEPS.length - 1);
   });
 
-  it('dismissTutorial deactivates without marking completion', () => {
+  it('dismissTutorial deactivates AND marks completion (Bug 1 fix)', () => {
     useTutorialStore.getState().startTutorial();
     useTutorialStore.getState().dismissTutorial();
     const { isActive, hasCompleted } = useTutorialStore.getState();
     expect(isActive).toBe(false);
-    expect(hasCompleted).toBe(false);
+    expect(hasCompleted).toBe(true);
+    expect(localStorageMock.getItem('tutorialCompleted')).toBe('true');
+  });
+
+  it('dismissTutorial writes tutorialCompleted to localStorage', () => {
+    useTutorialStore.getState().startTutorial();
     expect(localStorageMock.getItem('tutorialCompleted')).toBeNull();
+    useTutorialStore.getState().dismissTutorial();
+    expect(localStorageMock.getItem('tutorialCompleted')).toBe('true');
+  });
+
+  it('dismissTutorial sets isActive to false', () => {
+    useTutorialStore.getState().startTutorial();
+    expect(useTutorialStore.getState().isActive).toBe(true);
+    useTutorialStore.getState().dismissTutorial();
+    expect(useTutorialStore.getState().isActive).toBe(false);
   });
 
   it('completeTutorial deactivates and persists to localStorage', () => {

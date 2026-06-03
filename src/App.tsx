@@ -9,6 +9,7 @@ import { GameSetup } from './components/Game/GameSetup'
 import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
 import { MainMenu } from './components/Menu/MainMenu'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
+import { OnboardingPromptModal } from './components/Tutorial/OnboardingPromptModal'
 import { useTutorialStore } from './store/tutorialStore'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { ObjectiveCardBadge } from './components/Game/ObjectiveCardBadge'
@@ -126,6 +127,7 @@ function App() {
   const [replayOpen, setReplayOpen] = useState(false);
   const [achievementOpen, setAchievementOpen] = useState(false);
   const [seasonHistoryOpen, setSeasonHistoryOpen] = useState(false);
+  const [showOnboardingPrompt, setShowOnboardingPrompt] = useState(false);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -213,6 +215,11 @@ function App() {
   const handleStart = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
     initGame(configs, options, customBoard);
     setGameStarted(true);
+    // First-time player onboarding prompt (single player only)
+    const { hasCompleted } = useTutorialStore.getState();
+    if (!hasCompleted && !isNetworkGame) {
+      setShowOnboardingPrompt(true);
+    }
   };
 
   const handleToggleMute = () => {
@@ -1284,6 +1291,19 @@ function App() {
 
       {/* Achievement unlock toast notification */}
       <AchievementToast />
+
+      {/* Onboarding prompt — shown to first-time players after game start */}
+      <OnboardingPromptModal
+        isOpen={showOnboardingPrompt}
+        onStartTutorial={() => {
+          setShowOnboardingPrompt(false);
+          useTutorialStore.getState().startTutorial();
+        }}
+        onSkip={() => {
+          setShowOnboardingPrompt(false);
+          useTutorialStore.getState().completeTutorial();
+        }}
+      />
 
       {/* Tutorial overlay – available from any screen */}
       <TutorialOverlay />
