@@ -13,6 +13,7 @@ interface HexCellProps {
   isValid: boolean;
   isSelected: boolean;
   isHovered: boolean;
+  isFocused?: boolean;
   isRecentlyPlaced?: boolean;
   playerColor?: string;
   playerName?: string;
@@ -53,6 +54,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   isValid,
   isSelected,
   isHovered,
+  isFocused = false,
   isRecentlyPlaced = false,
   playerColor,
   playerName,
@@ -84,17 +86,17 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   const isHoverHighlight = isHovered && isValid;
   const fillColor = isHoverHighlight ? '#FFFF99' : `url(#${gradientId})`;
 
-  // Determine stroke
-  let strokeColor = '#333';
+  // Determine stroke（主題色，取代原 debug 螢光綠/洋紅）
+  let strokeColor = '#3a2c20';   // 暖深褐格線（取代冷灰 #333，融入木桌/羊皮紙）
   let strokeWidth = 1;
 
   if (isValid) {
-    strokeColor = '#00FF00'; // Green for valid placements
-    strokeWidth = 2;
+    strokeColor = '#E8B84B';     // 琥珀金：可放置（取代螢光綠 #00FF00，清楚但不刺眼）
+    strokeWidth = 2.5;
   }
 
   if (isSelected) {
-    strokeColor = '#FF00FF'; // Magenta for selected
+    strokeColor = '#B5341F';     // 酒紅橘：選中（取代洋紅 #FF00FF）
     strokeWidth = 3;
   }
 
@@ -171,6 +173,14 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
           transform={`rotate(${jitter.rotate}, ${center.x}, ${center.y})`}
           pointerEvents="none"
         />
+      )}
+
+      {/* 六角形 focus ring（鍵盤導覽）：深底+金環雙線，任何地形上都清楚可見，取代矩形 outline */}
+      {isFocused && (
+        <>
+          <polygon points={points} fill="none" stroke="#1a1410" strokeWidth={5} opacity={0.85} pointerEvents="none" />
+          <polygon points={points} fill="none" stroke="#FFD24A" strokeWidth={2.5} pointerEvents="none" />
+        </>
       )}
 
       {/* Show location marker if present */}

@@ -438,6 +438,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                   );
                   const isSelected = selectedCell !== null && hexEquals(selectedCell, cell.coord);
                   const isHovered = hoveredCell !== null && hexEquals(hoveredCell, cell.coord);
+                  const isFocused = focusedHex !== null && hexEquals(focusedHex, cell.coord);
 
                   // Find player color/name if settlement exists
                   let playerColor: string | undefined;
@@ -459,6 +460,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                       isValid={isValid}
                       isSelected={isSelected}
                       isHovered={isHovered}
+                      isFocused={isFocused}
                       isRecentlyPlaced={isRecentlyPlaced}
                       playerColor={playerColor}
                       playerName={playerName}

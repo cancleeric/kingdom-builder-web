@@ -140,10 +140,16 @@ export const TerrainDefs: React.FC = () => (
         套在 HexGrid 容器 <g> 而非每格，402 格共用一次計算 ── */}
     <filter id="grain-overlay" x="0%" y="0%" width="100%" height="100%"
             colorInterpolationFilters="sRGB">
-      <feTurbulence type="fractalNoise" baseFrequency="0.65" numOctaves="3"
+      <feTurbulence type="fractalNoise" baseFrequency="0.9" numOctaves="2"
                     stitchTiles="stitch" result="noiseOut" seed={42} />
       <feColorMatrix type="saturate" values="0" in="noiseOut" result="grayNoise" />
-      <feBlend in="SourceGraphic" in2="grayNoise" mode="overlay" result="blended" />
+      {/* 把灰雜訊壓到接近中灰（overlay 中性值 0.5），grain 變極淡自然紋理而非全強度靜電雪花 */}
+      <feComponentTransfer in="grayNoise" result="softNoise">
+        <feFuncR type="linear" slope="0.13" intercept="0.435" />
+        <feFuncG type="linear" slope="0.13" intercept="0.435" />
+        <feFuncB type="linear" slope="0.13" intercept="0.435" />
+      </feComponentTransfer>
+      <feBlend in="SourceGraphic" in2="softNoise" mode="overlay" result="blended" />
       <feComposite in="blended" in2="SourceGraphic" operator="in" />
     </filter>
 
