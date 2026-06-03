@@ -37,6 +37,7 @@ import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
 import { SeasonHistory } from './components/Game/SeasonHistory'
+import { TerrainSwatch } from './components/Game/TerrainSwatch'
 import { BoardFrameOverlay } from './components/Board/BoardFrameOverlay'
 import { useSeasonStore } from './store/seasonStore'
 import { MapEditorPage } from './components/MapEditor/MapEditorPage'
@@ -949,18 +950,9 @@ function App() {
                       className="p-4 flex items-center gap-3"
                       style={{ backgroundColor: 'var(--color-surface)' }}
                     >
-                      {/* Terrain icon */}
-                      <div
-                        className="w-14 h-14 rounded-xl flex items-center justify-center text-3xl flex-shrink-0"
-                        style={{ backgroundColor: 'var(--color-warm-cream-100)' }}
-                      >
-                        {(() => {
-                          const terrainEmoji: Record<string, string> = {
-                            Grass: '🌿', Forest: '🌲', Desert: '🏜️',
-                            Flower: '🌸', Canyon: '🪨', Water: '💧', Mountain: '⛰️'
-                          }
-                          return terrainEmoji[currentTerrainCard.terrain] ?? '🗺️'
-                        })()}
+                      {/* Terrain icon — R27: mini hex swatch（TerrainSwatch），取代 emoji */}
+                      <div className="flex-shrink-0">
+                        <TerrainSwatch terrain={currentTerrainCard.terrain} size={56} />
                       </div>
                       <div className="flex-1 min-w-0">
                         <p
