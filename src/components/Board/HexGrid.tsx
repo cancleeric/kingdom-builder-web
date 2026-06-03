@@ -350,7 +350,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
 
   return (
     <div
-      className="w-full h-full flex items-center justify-center bg-gray-100 overflow-hidden relative select-none"
+      className="w-full h-full flex items-center justify-center overflow-hidden relative select-none"
       ref={containerRef}
       role="grid"
       aria-label={t('board.gridLabel')}
@@ -369,11 +369,14 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
         lastPaintedCoord.current = null;
         onTouchEnd(e);
       }}
-      style={{ cursor: editable && editMode === 'paint' ? 'crosshair' : 'grab', touchAction: 'none' }}
+      style={{ cursor: editable && editMode === 'paint' ? 'crosshair' : 'grab', touchAction: 'none', background: 'var(--color-warm-cream-200)' }}
     >
       {/* Zoom reset button */}
       <button
-        className="absolute top-2 right-2 z-10 bg-white/80 hover:bg-white border border-gray-300 rounded-full w-9 h-9 text-sm font-bold shadow flex items-center justify-center"
+        className="absolute top-2 right-2 z-10 rounded-full w-9 h-9 text-sm font-bold shadow flex items-center justify-center"
+        style={{ background: 'oklch(0.98 0.01 85 / 0.85)', border: '1px solid var(--card-border)' }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-surface)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'oklch(0.98 0.01 85 / 0.85)')}
         onClick={reset}
         title={t('board.resetZoomTitle')}
         aria-label={t('board.resetZoomAria')}
@@ -382,7 +385,10 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
       </button>
 
       {/* Zoom level badge */}
-      <div className="absolute bottom-2 right-2 z-10 bg-white/70 text-xs text-gray-600 rounded px-2 py-0.5 pointer-events-none">
+      <div
+        className="absolute bottom-2 right-2 z-10 text-xs rounded px-2 py-0.5 pointer-events-none"
+        style={{ background: 'oklch(0.98 0.01 85 / 0.75)', color: 'var(--color-stone-500)' }}
+      >
         {Math.round(transform.scale * 100)}%
       </div>
 
