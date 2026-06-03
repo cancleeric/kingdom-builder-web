@@ -553,7 +553,7 @@ export const gameStore = create<GameState>((set, get) => ({
     );
 
     // 3. Place each settlement with a short stagger so the UI can update
-    const STEP_MS = 100;
+    const STEP_MS = 400;
     moves.forEach((coord, i) => {
       setTimeout(() => get().placeSettlement(coord), STEP_MS * (i + 1));
     });

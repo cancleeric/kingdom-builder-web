@@ -189,6 +189,38 @@
 }
 
 /* ----------------------------------------------------------
+ * Bot ghost echo ring (delayed by 80ms, R29 bot highlight)
+ * Second ring for stronger emphasis on bot placements.
+ * ---------------------------------------------------------- */
+@keyframes settlementRingGhost {
+  0% {
+    r: 0;
+    opacity: 0.4;
+  }
+  100% {
+    r: 18;
+    opacity: 0;
+  }
+}
+
+.animate-settlement-ring-ghost {
+  animation: settlementRingGhost 300ms ease-out 80ms forwards;
+}
+
+/* ----------------------------------------------------------
+ * Slow spin for TurnBanner bot thinking spinner (R29)
+ * 800ms linear infinite — used with a CSS border-top element
+ * ---------------------------------------------------------- */
+@keyframes spinSlow {
+  0%   { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.animate-spin-slow {
+  animation: spinSlow 800ms linear infinite;
+}
+
+/* ----------------------------------------------------------
  * Score pop-in on score increase (scale bounce, 400 ms)
  * Triggered by key change forcing remount of score span.
  * ---------------------------------------------------------- */
