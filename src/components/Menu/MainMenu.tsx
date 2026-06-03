@@ -4,6 +4,8 @@ import { loadGame, clearSave } from '../../store/persistence';
 import { gameStore } from '../../store/gameStore';
 import { useAchievementStore, getUnlockedCount } from '../../store/achievementStore';
 import { useTutorialStore } from '../../store/tutorialStore';
+import { KingdomCrest } from './KingdomCrest';
+import { MenuBackground } from './MenuBackground';
 import {
   AchievementIcon,
   MutedIcon,
@@ -50,6 +52,7 @@ export function MainMenu({
   const [achievementOpen, setAchievementOpen] = useState(false);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
   const startTutorial = useTutorialStore((s) => s.startTutorial);
+  const isDark = typeof document !== 'undefined' && document.documentElement.dataset.theme === 'dark';
 
   const handleContinue = () => {
     gameStore.getState().loadSavedGame();
@@ -71,6 +74,9 @@ export function MainMenu({
       className="min-h-screen flex flex-col items-center justify-center relative overflow-hidden"
       style={{ background: 'var(--texture-parchment)', backgroundColor: 'var(--color-warm-cream-100)' }}
     >
+      {/* R26：氛圍背景層（絕對定位，pointer-events none） */}
+      <MenuBackground isDark={isDark} />
+
       {/* Control bar — top right */}
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
         <select
@@ -115,20 +121,59 @@ export function MainMenu({
         </button>
       </div>
 
-      {/* Centre content */}
-      <div className="flex flex-col items-center w-full max-w-sm px-6 gap-6">
+      {/* Centre content（z-index 高於背景層） */}
+      <div className="flex flex-col items-center w-full max-w-sm px-6 gap-6" style={{ position: 'relative', zIndex: 3 }}>
 
         {/* Logo + subtitle */}
         <div className="text-center mb-2">
+
+          {/* R26：王國紋章（標題上方） */}
+          <div style={{ display: 'flex', justifyContent: 'center', marginBottom: '0.5rem' }}>
+            <KingdomCrest
+              isDark={isDark}
+              style={{ width: 'clamp(84px, 10vw, 120px)', height: 'auto' }}
+            />
+          </div>
+
+          {/* R26：標題升級——漸層 + 自適應字級 */}
           <h1
-            className="font-display text-display-xl leading-tight"
-            style={{ color: 'var(--color-wine-700)' }}
+            className="font-display menu-title-gradient leading-tight"
+            style={{
+              fontSize: 'clamp(2.5rem, 5vw, 3.5rem)',
+            }}
           >
             {t('common.appName')}
           </h1>
+
+          {/* R26：Flourish 分隔線 SVG */}
+          <svg
+            width="200"
+            height="12"
+            viewBox="0 0 200 12"
+            style={{ display: 'block', margin: '4px auto 0', pointerEvents: 'none' }}
+            aria-hidden="true"
+          >
+            {/* 左線 */}
+            <line x1="10" y1="6" x2="78" y2="6" className="menu-flourish-line" strokeWidth="1" />
+            {/* 左菱形 */}
+            <rect x="84" y="3.5" width="5" height="5" transform="rotate(45 86.5 6)" className="menu-flourish-diamond" />
+            {/* 中央小皇冠形符號：三個小點 */}
+            <circle cx="97"  cy="6" r="1.5" className="menu-flourish-diamond" />
+            <circle cx="100" cy="4" r="1.5" className="menu-flourish-diamond" />
+            <circle cx="103" cy="6" r="1.5" className="menu-flourish-diamond" />
+            {/* 右菱形 */}
+            <rect x="111" y="3.5" width="5" height="5" transform="rotate(45 113.5 6)" className="menu-flourish-diamond" />
+            {/* 右線 */}
+            <line x1="122" y1="6" x2="190" y2="6" className="menu-flourish-line" strokeWidth="1" />
+          </svg>
+
           <p
-            className="mt-1 text-body-sm font-body tracking-wide"
-            style={{ color: 'var(--color-stone-600)' }}
+            className="mt-2 text-body-sm font-body"
+            style={{
+              color: 'var(--color-stone-600)',
+              opacity: 0.85,
+              letterSpacing: '0.12em',
+            }}
           >
             {t('menu.subtitle')}
           </p>
