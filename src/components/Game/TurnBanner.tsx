@@ -111,32 +111,36 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
       {/* Primary action button */}
       <div className="flex-shrink-0">
         {phase === GamePhase.DrawCard && (
-          <button
-            onClick={onDrawCard}
-            disabled={!canControlActions}
-            aria-label={t('app.drawTerrainCardAria')}
-            data-tutorial-target="draw-card-button"
-            className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
-              bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <DrawCardIcon size={16} />
-            {t('app.drawTerrainCard')}
-          </button>
+          <div className="hidden lg:block flex-shrink-0">
+            <button
+              onClick={onDrawCard}
+              disabled={!canControlActions}
+              aria-label={t('app.drawTerrainCardAria')}
+              data-tutorial-target="draw-card-button"
+              className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
+                bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
+                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              <DrawCardIcon size={16} />
+              {t('app.drawTerrainCard')}
+            </button>
+          </div>
         )}
 
         {shouldShowEndTurnButton && (
-          <button
-            onClick={onEndTurn}
-            disabled={!canControlActions}
-            aria-label={t('app.endTurnAria')}
-            className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
-              bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
-              focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
-          >
-            <EndTurnIcon size={16} />
-            {t('app.endTurn')}
-          </button>
+          <div className="hidden lg:block flex-shrink-0">
+            <button
+              onClick={onEndTurn}
+              disabled={!canControlActions}
+              aria-label={t('app.endTurnAria')}
+              className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
+                bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
+                focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+            >
+              <EndTurnIcon size={16} />
+              {t('app.endTurn')}
+            </button>
+          </div>
         )}
 
         {phase === GamePhase.PlaceSettlements && validPlacements.length > 0 && (
