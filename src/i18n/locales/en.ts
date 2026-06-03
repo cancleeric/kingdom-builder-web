@@ -210,6 +210,8 @@ export const en = {
     scoreSegmentAriaLabel: '{{player}} {{label}} score: {{score}} points',
     objectiveCards: 'Objective Cards',
     newGame: 'New Game',
+    winnerAnnounce: '{{name}} Wins!',
+    tieAnnounce: "It's a Tie!",
   },
   leaderboard: {
     open: 'Leaderboard',

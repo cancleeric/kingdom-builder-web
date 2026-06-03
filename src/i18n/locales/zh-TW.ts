@@ -209,6 +209,8 @@ export const zhTW = {
     scoreSegmentAriaLabel: '{{player}} {{label}} 得分：{{score}} 分',
     objectiveCards: '目標卡',
     newGame: '新遊戲',
+    winnerAnnounce: '{{name}} 獲勝！',
+    tieAnnounce: '平手！',
   },
   leaderboard: {
     open: '排行榜',
