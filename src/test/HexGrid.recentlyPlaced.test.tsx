@@ -8,12 +8,11 @@
 
 import { describe, it, expect, vi, beforeEach, afterEach } from 'vitest';
 import { render, act } from '@testing-library/react';
-import React from 'react';
 
 import { HexGrid } from '../components/Board/HexGrid';
 import { Board } from '../core/board';
 import { Terrain } from '../core/terrain';
-import { BotDifficulty, GamePhase } from '../types';
+import { BotDifficulty } from '../types';
 import type { Player } from '../types';
 
 // ─── helpers ──────────────────────────────────────────────────────────────────
