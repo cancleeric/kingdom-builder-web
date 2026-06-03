@@ -62,40 +62,6 @@ export function TrophyIcon({ size = 64, isDark = false, className }: TrophyIconP
       {/* ⑥ 底座 */}
       <rect x="24" y="66" width="32" height="7" rx="3" fill={base} stroke={gold} strokeWidth="1.2" />
 
-      {/* ⑦ 桂冠葉裝飾（左右各 2 片，純 stroke） */}
-      {/* 左葉上 */}
-      <path
-        d="M20 40 Q10 36 11 44 Q12 50 20 48"
-        fill="none"
-        stroke={gold}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      {/* 左葉下 */}
-      <path
-        d="M20 46 Q8 44 10 52 Q12 58 20 55"
-        fill="none"
-        stroke={gold}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      {/* 右葉上 */}
-      <path
-        d="M60 40 Q70 36 69 44 Q68 50 60 48"
-        fill="none"
-        stroke={gold}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-      {/* 右葉下 */}
-      <path
-        d="M60 46 Q72 44 70 52 Q68 58 60 55"
-        fill="none"
-        stroke={gold}
-        strokeWidth="1.2"
-        strokeLinecap="round"
-      />
-
       {/* ⑧ 杯身中央刻紋（十字 + 圓環，呼應寶石語言） */}
       <line x1="40" y1="39" x2="40" y2="51" stroke={gold} strokeWidth="0.8" opacity="0.6" />
       <line x1="33" y1="45" x2="47" y2="45" stroke={gold} strokeWidth="0.8" opacity="0.6" />
