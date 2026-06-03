@@ -143,3 +143,5 @@ vite.config.ts.timestamp-*
 
 # Claude worktrees / agent artifacts
 .claude/
+.eye-cache/
+.playwright-mcp/
