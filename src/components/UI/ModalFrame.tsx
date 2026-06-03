@@ -226,7 +226,7 @@ export const ModalFrame = React.memo(function ModalFrame({
         <button
           onClick={onClose}
           aria-label="Close"
-          className="shrink-0 flex items-center justify-center w-8 h-8 rounded-full transition"
+          className="shrink-0 flex items-center justify-center w-11 h-11 rounded-full transition"
           style={{ color: 'var(--color-stone-500)' }}
         >
           <CloseIcon size={18} />
