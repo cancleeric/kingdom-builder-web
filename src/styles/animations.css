@@ -247,6 +247,33 @@
 }
 
 /* ----------------------------------------------------------
+ * R28 GameOver — TrophyIcon 金光脈衝（2.4s × 3 次後停止）
+ * 只用 filter:drop-shadow，不觸發 layout reflow
+ * ---------------------------------------------------------- */
+@keyframes trophyGlow {
+  0%   { filter: drop-shadow(0 0 0px #c9a84c00); }
+  50%  { filter: drop-shadow(0 0 8px #c9a84c99); }
+  100% { filter: drop-shadow(0 0 0px #c9a84c00); }
+}
+
+.animate-trophy-glow {
+  animation: trophyGlow 2.4s ease-in-out 3;
+}
+
+/* ----------------------------------------------------------
+ * R28 GameOver — 冠軍名字 shimmer（opacity 脈衝 1.6s × 2 次）
+ * ---------------------------------------------------------- */
+@keyframes championShimmer {
+  0%   { opacity: 1; }
+  50%  { opacity: 0.85; }
+  100% { opacity: 1; }
+}
+
+.animate-champion-shimmer {
+  animation: championShimmer 1.6s ease-in-out 2;
+}
+
+/* ----------------------------------------------------------
  * Accessibility: disable all animations when user prefers
  * reduced motion (WCAG 2.1 Success Criterion 2.3.3)
  * ---------------------------------------------------------- */
@@ -257,5 +284,13 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  /* R28 新增動畫明確 disable */
+  .animate-trophy-glow,
+  .animate-champion-shimmer {
+    animation: none;
+    opacity: 1;
+    filter: none;
   }
 }

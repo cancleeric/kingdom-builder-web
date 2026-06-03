@@ -4,6 +4,8 @@ import { ObjectiveCard } from '../../core/scoring';
 import { Player } from '../../types';
 import { useTranslation } from 'react-i18next';
 import { tObjective } from '../../i18n/formatters';
+import { TrophyIcon } from './TrophyIcon';
+import { MedalIcon } from './MedalIcon';
 
 const SCORE_SEGMENT_COLORS = [
   'var(--color-wine-600)',
@@ -35,6 +37,10 @@ export const GameOver = React.memo(function GameOver({
   onOpenReplay,
 }: GameOverProps) {
   const { t } = useTranslation();
+  // isDark：GameOver modal 不會在開著的情況下切 theme，讀一次即可
+  const isDark = typeof document !== 'undefined'
+    ? document.documentElement.classList.contains('dark')
+    : false;
   const sorted = [...finalScores].sort((a, b) => b.totalScore - a.totalScore);
   const getPlayer = (id: number) => players.find(p => p.id === id);
   const maxTotalScore = Math.max(...sorted.map(score => score.totalScore), 0);
@@ -112,8 +118,14 @@ export const GameOver = React.memo(function GameOver({
             {t('gameOver.heading')}
           </p>
           <div className="animate-banner-enter" style={{ marginTop: '0.5rem' }}>
-            <span style={{ fontSize: '2.5rem' }} aria-hidden="true">🏆</span>
+            <div
+              className="animate-trophy-glow"
+              style={{ display: 'inline-block', willChange: 'filter' }}
+            >
+              <TrophyIcon size={72} isDark={isDark} />
+            </div>
             <p
+              className="animate-champion-shimmer"
               style={{
                 fontFamily: 'var(--font-display)',
                 fontSize: 'var(--type-display-md)',
@@ -142,7 +154,7 @@ export const GameOver = React.memo(function GameOver({
         <div className="space-y-3 mb-6" role="list" aria-label={t('gameOver.finalRankings')}>
           {sorted.map((score, index) => {
             const player = getPlayer(score.playerId);
-            const medal = ['🥇', '🥈', '🥉'][index] ?? `${index + 1}.`;
+            const isMedalRank = index < 3;
             const playerName = player?.name ?? t('common.player', { number: score.playerId });
             const segments = [
               {
@@ -170,7 +182,10 @@ export const GameOver = React.memo(function GameOver({
                   animationDelay: `${index * 80}ms`,
                 }}
               >
-                <span className="text-2xl">{medal}</span>
+                {isMedalRank
+                  ? <MedalIcon rank={(index + 1) as 1 | 2 | 3} size={36} isDark={isDark} />
+                  : <span style={{ fontSize: '1.25rem', fontWeight: 700, color: 'var(--color-stone-500)', minWidth: 36, textAlign: 'center', display: 'inline-block' }}>{index + 1}.</span>
+                }
                 <div
                   className="w-5 h-5 rounded-full border border-gray-800 shrink-0"
                   style={{ backgroundColor: player?.color ?? '#ccc' }}
