@@ -20,15 +20,16 @@ body {
   border-width: 0;
 }
 
-/* A11y: visible focus ring for hex grid cells (keyboard navigation) */
-[role="gridcell"]:focus-visible {
-  outline: 3px solid #2563eb;
-  outline-offset: 2px;
+/* 六角格用 SVG 內的六角形 focus ring（見 HexCell），不用矩形 outline（矩形疊在六角格上不對） */
+[role="gridcell"]:focus-visible,
+[role="gridcell"]:focus {
+  outline: none;
 }
 
-/* A11y: ensure all interactive elements show focus rings when navigated by keyboard */
+/* A11y: ensure all interactive elements show focus rings when navigated by keyboard
+   （排除六角格——它有自己的六角形 focus ring） */
 button:focus-visible,
-[tabindex]:focus-visible {
+[tabindex]:not([role="gridcell"]):focus-visible {
   outline: 2px solid #2563eb;
   outline-offset: 2px;
 }

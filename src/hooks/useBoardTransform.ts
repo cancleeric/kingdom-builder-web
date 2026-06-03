@@ -29,6 +29,8 @@ export interface BoardTransformHandlers {
 
 const MIN_SCALE = 0.3;
 const MAX_SCALE = 4.0;
+// 滑鼠拖動門檻（px）：移動未超過此值視為點擊而非平移，與 touch 的 8px tap 門檻一致
+const DRAG_THRESHOLD = 8;
 
 function clamp(value: number, min: number, max: number): number {
   return Math.min(Math.max(value, min), max);
@@ -66,6 +68,8 @@ export function useBoardTransform(): BoardTransformHandlers {
 
   // Mouse drag state
   const isDragging = useRef(false);
+  // 已超過拖動門檻才真正 pan；門檻內視為點擊（避免微移把 click 當成 pan 吞掉，導致「點了放不了聚落」）
+  const hasPassedDragThreshold = useRef(false);
   const dragStart = useRef<{ x: number; y: number; tx: number; ty: number }>({
     x: 0,
     y: 0,
@@ -103,6 +107,7 @@ export function useBoardTransform(): BoardTransformHandlers {
     // Only pan with left button
     if (e.button !== 0) return;
     isDragging.current = true;
+    hasPassedDragThreshold.current = false;
     dragStart.current = {
       x: e.clientX,
       y: e.clientY,
@@ -120,6 +125,11 @@ export function useBoardTransform(): BoardTransformHandlers {
     if (!isDragging.current) return;
     const dx = e.clientX - dragStart.current.x;
     const dy = e.clientY - dragStart.current.y;
+    // 門檻內（微移）不 pan，讓格子的 click 正常觸發放置；超過門檻一次後才持續 pan
+    if (!hasPassedDragThreshold.current && Math.abs(dx) < DRAG_THRESHOLD && Math.abs(dy) < DRAG_THRESHOLD) {
+      return;
+    }
+    hasPassedDragThreshold.current = true;
     setTransform(prev => ({
       ...prev,
       translateX: dragStart.current.tx + dx,
@@ -129,6 +139,7 @@ export function useBoardTransform(): BoardTransformHandlers {
 
   const onMouseUp = useCallback(() => {
     isDragging.current = false;
+    hasPassedDragThreshold.current = false;
   }, []);
 
   // ── Touch handlers ──────────────────────────────────────────────────────────
