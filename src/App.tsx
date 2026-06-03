@@ -261,6 +261,35 @@ function App() {
     }
   }, [phase]);
 
+  // TILE_GAIN: play sound when a new history entry contains an acquired tile
+  const prevHistoryLenRef = useRef(history.length);
+
+  useEffect(() => {
+    const prev = prevHistoryLenRef.current;
+    prevHistoryLenRef.current = history.length;
+    if (history.length <= prev) return;           // 防 undo / reset
+    const latest = history[history.length - 1];
+    if (latest?.acquiredTile != null) {
+      console.log('[sound] TILE_GAIN acquired:', latest.acquiredTile);
+      playSound(SoundType.TILE_GAIN);
+    }
+  }, [history]);
+
+  // TURN_END: play sound when turnNumber increases (but not on GameOver)
+  const prevTurnNumberRef = useRef(turnNumber);
+
+  useEffect(() => {
+    if (turnNumber <= prevTurnNumberRef.current) {
+      prevTurnNumberRef.current = turnNumber;
+      return;
+    }
+    prevTurnNumberRef.current = turnNumber;
+    if (phase !== GamePhase.GameOver) {
+      console.log('[sound] TURN_END turn:', turnNumber);
+      playSound(SoundType.TURN_END);
+    }
+  }, [turnNumber, phase]);
+
   useEffect(() => {
     if (phase !== GamePhase.GameOver || finalScores.length === 0 || players.length === 0) {
       submittedGameKeyRef.current = null;
@@ -357,6 +386,19 @@ function App() {
       playSound(SoundType.PLACE);
     }
   }
+
+  // INVALID: play sound when clicking a non-valid cell during PlaceSettlements
+  const invalidClickTimestampRef = useRef(0);
+
+  const handleInvalidCellClick = (_coord: { q: number; r: number }) => {
+    if (!canControlActions) return;
+    if (phase !== GamePhase.PlaceSettlements) return;   // 只在放聚落相響
+    const now = Date.now();
+    if (now - invalidClickTimestampRef.current < 100) return;
+    invalidClickTimestampRef.current = now;
+    console.log('[sound] INVALID click');
+    playSound(SoundType.INVALID);
+  };
 
   const liveScores = players.map(p => ({
     playerId: p.id,
@@ -678,6 +720,7 @@ function App() {
                 onCellClick={handleCellClick}
                 onCellSelect={selectCell}
                 onEscape={handleEscape}
+                onInvalidClick={handleInvalidCellClick}
               />
               </div>
             )}
