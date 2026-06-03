@@ -167,7 +167,7 @@ export const en = {
     playerListAria:
       '{{name}}: {{placed}} placed, {{remaining}} remaining{{isCurrent}}',
     playerListAriaCurrentSuffix: ', current player',
-    castleScoreSummary: '🏰 {{castle}} | {{objectives}}',
+    castleScoreSummary: '{{castle}} | {{objectives}}',
     objectiveScoreItem: '{{card}}: {{score}}',
   },
   setup: {
@@ -175,8 +175,8 @@ export const en = {
     numberOfPlayers: 'Number of Players',
     playerLabel: 'Player {{number}}',
     playerPlaceholder: 'Player {{number}}',
-    human: '🧑 Human',
-    computer: '🤖 Computer',
+    human: 'Human',
+    computer: 'Computer',
     aiDifficulty: 'AI Difficulty',
     difficultyEasy: 'Easy (Random)',
     difficultyMedium: 'Medium (Strategic)',
@@ -200,10 +200,10 @@ export const en = {
     customMapMultiplayerNote: 'Custom maps are not supported in multiplayer mode.',
   },
   gameOver: {
-    heading: '🏆 Game Over!',
+    heading: 'Game Over!',
     finalRankings: 'Final Rankings',
-    castleScore: '🏰 Castle: {{score}} pts',
-    objectiveScore: '🎯 {{card}}: {{score}} pts',
+    castleScore: 'Castle: {{score}} pts',
+    objectiveScore: '{{card}}: {{score}} pts',
     castleSegment: 'Castle',
     segmentScore: '{{label}}: {{score}} pts',
     scoreBarAriaLabel: '{{player}} score breakdown, {{score}} total points',

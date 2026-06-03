@@ -8,6 +8,7 @@ import { useTranslation } from 'react-i18next';
 import { tObjective, tPhase, tTerrain } from '../../i18n/formatters';
 import { ObjectiveCardBadge } from '../Game/ObjectiveCardBadge';
 import { LocationTileCard } from '../Game/LocationTileCard';
+import { CastleIcon } from '../icons/CastleIcon';
 
 interface BottomDrawerProps {
   isOpen: boolean;
@@ -374,7 +375,8 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
                           {total} {t('common.pointsShort')}
                         </span>
                       </div>
-                      <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
+                      <p className="text-xs mt-0.5 inline-flex items-center gap-1" style={{ color: 'var(--color-stone-400)' }}>
+                        <CastleIcon size={11} aria-hidden="true" />
                         {t('app.castleScoreSummary', {
                           castle: playerScore.castle,
                           objectives: playerScore.objectives

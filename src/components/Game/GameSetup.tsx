@@ -6,6 +6,8 @@ import { useTranslation } from 'react-i18next';
 import { useCustomMapStore } from '../../mapEditor/customMapStore';
 import { decode } from '../../mapEditor/codec';
 import { payloadToBoard } from '../../mapEditor/payloadToBoard';
+import { HumanIcon } from '../icons/HumanIcon';
+import { BotIcon } from '../icons/BotIcon';
 
 interface GameSetupProps {
   onStart: (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => void;
@@ -240,7 +242,12 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
                         : { backgroundColor: 'var(--color-warm-cream-200)', color: 'var(--color-stone-700)' }
                     }
                   >
-                    {type === 'human' ? t('setup.human') : t('setup.computer')}
+                    <span className="inline-flex items-center gap-1.5">
+                      {type === 'human'
+                        ? <HumanIcon size={14} />
+                        : <BotIcon size={14} />}
+                      {type === 'human' ? t('setup.human') : t('setup.computer')}
+                    </span>
                   </button>
                 ))}
               </div>

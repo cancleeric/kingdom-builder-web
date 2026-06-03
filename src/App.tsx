@@ -56,6 +56,7 @@ import {
   AchievementIcon,
   ExitIcon,
 } from './components/icons'
+import { CastleIcon } from './components/icons/CastleIcon'
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
 
@@ -118,7 +119,8 @@ function ScoreRow({ playerId, playerName, playerColor, total, isLeader, summaryT
           {total} {pointsLabel}
         </span>
       </div>
-      <p className="text-xs mt-0.5" style={{ color: 'var(--color-stone-400)' }}>
+      <p className="text-xs mt-0.5 inline-flex items-center gap-1" style={{ color: 'var(--color-stone-400)' }}>
+        <CastleIcon size={11} aria-hidden="true" />
         {summaryText}
       </p>
     </div>

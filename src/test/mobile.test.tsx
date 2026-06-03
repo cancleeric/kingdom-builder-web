@@ -261,7 +261,7 @@ describe('BottomDrawer', () => {
     expect(within(liveScores).getByText('Alice')).toBeTruthy();
     expect(within(liveScores).getByText(/10\s+pts/)).toBeTruthy();
     expect(within(liveScores).getByTitle('Leading')).toBeTruthy();
-    expect(within(liveScores).getByText('🏰 3 | Hermits: 5 | Farmers: 2')).toBeTruthy();
+    expect(within(liveScores).getByText(/3 \| Hermits: 5 \| Farmers: 2/)).toBeTruthy();
   });
 
   it('does not show live scores during setup phase', () => {

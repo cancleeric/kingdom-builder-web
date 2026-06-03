@@ -166,7 +166,7 @@ export const zhTW = {
     playerListAria:
       '{{name}}：已放置 {{placed}}，剩餘 {{remaining}}{{isCurrent}}',
     playerListAriaCurrentSuffix: '，目前玩家',
-    castleScoreSummary: '🏰 {{castle}} | {{objectives}}',
+    castleScoreSummary: '{{castle}} | {{objectives}}',
     objectiveScoreItem: '{{card}}：{{score}}',
   },
   setup: {
@@ -174,8 +174,8 @@ export const zhTW = {
     numberOfPlayers: '玩家人數',
     playerLabel: '玩家 {{number}}',
     playerPlaceholder: '玩家 {{number}}',
-    human: '🧑 玩家',
-    computer: '🤖 電腦',
+    human: '玩家',
+    computer: '電腦',
     aiDifficulty: 'AI 難度',
     difficultyEasy: '簡單（隨機）',
     difficultyMedium: '中等（策略）',
@@ -199,10 +199,10 @@ export const zhTW = {
     customMapMultiplayerNote: '多人模式不支援自訂地圖',
   },
   gameOver: {
-    heading: '🏆 遊戲結束！',
+    heading: '遊戲結束！',
     finalRankings: '最終排名',
-    castleScore: '🏰 城堡：{{score}} 分',
-    objectiveScore: '🎯 {{card}}：{{score}} 分',
+    castleScore: '城堡：{{score}} 分',
+    objectiveScore: '{{card}}：{{score}} 分',
     castleSegment: '城堡',
     segmentScore: '{{label}}：{{score}} 分',
     scoreBarAriaLabel: '{{player}} 得分分解，總分 {{score}} 分',
