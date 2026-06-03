@@ -370,7 +370,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
         lastPaintedCoord.current = null;
         onTouchEnd(e);
       }}
-      style={{ cursor: editable && editMode === 'paint' ? 'crosshair' : 'grab', touchAction: 'none', background: 'var(--color-warm-cream-200)' }}
+      style={{ cursor: editable && editMode === 'paint' ? 'crosshair' : 'grab', touchAction: 'none', background: 'var(--board-inner-bg)' }}
     >
       {/* Zoom reset button */}
       <button
@@ -416,6 +416,17 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           {/* R24-B 棋子 defs：9 種地點 symbol + 共用 drop-shadow filter
               LocationMarker 以 <use href="#piece-{location}"> 引用 */}
           <PieceDefs />
+          {/* R24-C 羅盤底紋：opacity 0.04，純氛圍，不搶地形視覺 */}
+          <use
+            href="#compass-rose"
+            x={viewBoxWidth / 2 - 80}
+            y={viewBoxHeight / 2 - 80}
+            width={160}
+            height={160}
+            color="oklch(0.50 0.04 70)"
+            opacity={0.04}
+            style={{ pointerEvents: 'none' }}
+          />
           {/* grain-overlay 套在容器層（O(1) 效能方案）：整 SVG 畫布計算一次 feTurbulence，402 格共用 */}
           <g filter="url(#grain-overlay)">
           <g transform={`translate(${gridOffset}, ${gridOffset})`}>

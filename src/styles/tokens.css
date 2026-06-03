@@ -161,4 +161,68 @@
   --toast-bg: var(--color-stone-900);
   --toast-text: var(--color-warm-cream-50);
   --toast-border: oklch(0.82 0.03 80 / 0.3);
+
+  /* ── R24-C 棋盤環境框 token ──────────────────────────────────────────── */
+  /* 木紋桌面背景 (light) */
+  --board-bg-light:
+    repeating-linear-gradient(
+      92deg,
+      transparent 0px,
+      oklch(0.58 0.06 56 / 0.14) 1px,
+      transparent 2px,
+      transparent 16px
+    ),
+    repeating-linear-gradient(
+      89deg,
+      transparent 0px,
+      oklch(0.34 0.05 48 / 0.16) 1px,
+      transparent 3px,
+      transparent 30px
+    ),
+    linear-gradient(
+      175deg,
+      oklch(0.50 0.072 56),
+      oklch(0.43 0.078 51),
+      oklch(0.47 0.075 54),
+      oklch(0.41 0.082 49)
+    );
+  /* 木紋桌面背景 (dark) */
+  --board-bg-dark:
+    repeating-linear-gradient(
+      92deg,
+      transparent 0px,
+      oklch(0.95 0.01 80 / 0.04) 1px,
+      transparent 2px,
+      transparent 18px
+    ),
+    repeating-linear-gradient(
+      89deg,
+      transparent 0px,
+      oklch(0.90 0.01 75 / 0.03) 1px,
+      transparent 3px,
+      transparent 32px
+    ),
+    linear-gradient(
+      175deg,
+      oklch(0.22 0.03 60),
+      oklch(0.19 0.025 58),
+      oklch(0.21 0.03 62),
+      oklch(0.18 0.025 56)
+    );
+  /* 棋盤 HexGrid 內部背景：透明，露出容器層的木桌（否則淺底鋪滿會蓋掉木桌） */
+  --board-inner-bg: transparent;
+  /* 落地陰影（強化版） */
+  --board-frame-shadow:
+    0 8px 32px oklch(0.15 0.04 60 / 0.55),
+    0 3px 12px oklch(0.15 0.04 60 / 0.40),
+    0 1px 4px  oklch(0.10 0.03 60 / 0.30);
+  /* 銅角扣顏色 token */
+  --copper-fill-light: oklch(0.65 0.08 72);
+  --copper-stroke-light: oklch(0.50 0.08 68);
+  --copper-highlight-light: oklch(0.72 0.09 78);
+}
+
+/* ── R24-C dark mode 覆蓋 ────────────────────────────────────────────── */
+[data-theme="dark"] {
+  --board-bg-light: var(--board-bg-dark);
 }

@@ -37,6 +37,7 @@ import { AchievementToast } from './components/Game/AchievementToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
 import { SeasonHistory } from './components/Game/SeasonHistory'
+import { BoardFrameOverlay } from './components/Board/BoardFrameOverlay'
 import { useSeasonStore } from './store/seasonStore'
 import { MapEditorPage } from './components/MapEditor/MapEditorPage'
 import {
@@ -791,7 +792,13 @@ function App() {
           )}
 
           {/* HexGrid */}
-          <div className="flex-1 relative overflow-hidden" style={{ boxShadow: 'var(--shadow-medium)' }}>
+          <div
+            className="flex-1 relative overflow-hidden"
+            style={{
+              background: 'var(--board-bg-light)',
+              boxShadow: 'var(--board-frame-shadow)',
+            }}
+          >
             {players.length > 0 && (
               <div className="w-full h-full" data-tutorial-target="hex-grid">
               <HexGrid
@@ -810,6 +817,8 @@ function App() {
               />
               </div>
             )}
+            {/* 棋盤環境框裝飾 overlay（pointer-events:none，不攔截 pan/zoom） */}
+            <BoardFrameOverlay />
           </div>
 
           {/* Mobile floating action bar (< md) — safe-area aware */}
