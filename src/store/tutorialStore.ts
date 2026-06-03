@@ -166,6 +166,5 @@ export const useTutorialStore = create<TutorialState>((set) => ({
 
   completeTutorial: () => set(markCompleted),
 
-  dismissTutorial: () =>
-    set({ isActive: false }),
+  dismissTutorial: () => set(markCompleted),
 }));
