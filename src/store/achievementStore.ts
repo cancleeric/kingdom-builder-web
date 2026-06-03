@@ -1,5 +1,6 @@
 import { create } from 'zustand';
 import type { Achievement, AchievementProgress } from '../types/achievement';
+import type { AchievementIconKey } from '../components/icons/AchievementBadge';
 
 const LOCAL_STORAGE_KEY = 'kingdom-builder-achievements';
 
@@ -9,7 +10,7 @@ const LOCAL_STORAGE_KEY = 'kingdom-builder-achievements';
 
 export interface AchievementDef {
   id: string;
-  icon: string;
+  icon: AchievementIconKey;
   /**
    * Returns true when this achievement should be unlocked.
    * Called after every relevant game event with the latest progress snapshot
@@ -35,62 +36,62 @@ export interface GameEventData {
 const ACHIEVEMENT_DEFS: AchievementDef[] = [
   {
     id: 'first_win',
-    icon: '🏆',
+    icon: 'trophy',
     check: (p) => p.totalGamesWon >= 1,
   },
   {
     id: 'win_5',
-    icon: '🥇',
+    icon: 'medal_gold',
     check: (p) => p.totalGamesWon >= 5,
   },
   {
     id: 'win_10',
-    icon: '👑',
+    icon: 'crown',
     check: (p) => p.totalGamesWon >= 10,
   },
   {
     id: 'first_game',
-    icon: '🎲',
+    icon: 'dice',
     check: (p) => p.totalGamesPlayed >= 1,
   },
   {
     id: 'play_5',
-    icon: '🎮',
+    icon: 'gamepad',
     check: (p) => p.totalGamesPlayed >= 5,
   },
   {
     id: 'play_20',
-    icon: '📅',
+    icon: 'calendar',
     check: (p) => p.totalGamesPlayed >= 20,
   },
   {
     id: 'score_50',
-    icon: '⭐',
+    icon: 'star',
     check: (_p, g) => g.topScore >= 50,
   },
   {
     id: 'score_100',
-    icon: '💫',
+    icon: 'star_burst',
     check: (_p, g) => g.topScore >= 100,
   },
   {
     id: 'settlements_100',
-    icon: '🏘️',
+    icon: 'village',
     check: (p) => p.totalSettlementsPlaced >= 100,
   },
   {
     id: 'settlements_500',
-    icon: '🌆',
+    icon: 'city',
     check: (p) => p.totalSettlementsPlaced >= 500,
   },
   {
     id: 'turns_50',
-    icon: '⏳',
+    icon: 'hourglass',
     check: (p) => p.totalTurnsPlayed >= 50,
   },
   {
     id: 'tile_collector',
-    icon: '🗺️',
+    icon: 'compass',
     check: (_p, g) => g.tilesAtEnd >= 3,
   },
 ];
@@ -185,7 +186,7 @@ function loadFromStorage(): { achievements: Achievement[]; progress: Achievement
 
     const achievements = ACHIEVEMENT_DEFS.map((def) => {
       const persisted = persistedMap.get(def.id);
-      if (persisted) return persisted;
+      if (persisted) return { ...persisted, icon: def.icon };
       return { id: def.id, icon: def.icon, unlocked: false };
     });
 

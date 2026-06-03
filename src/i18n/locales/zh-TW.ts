@@ -329,7 +329,7 @@ export const zhTW = {
   },
   achievement: {
     panelLabel: '成就',
-    heading: '🏅 成就',
+    heading: '成就',
     close: '關閉成就',
     progress: '已解鎖 {{unlocked}} / {{total}}',
     unlocked: '成就解鎖！',

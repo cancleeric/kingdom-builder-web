@@ -1,11 +1,13 @@
+import type { AchievementIconKey } from '../components/icons/AchievementBadge';
+
 /**
  * A single achievement definition and its runtime state.
  */
 export interface Achievement {
   /** Unique identifier */
   id: string;
-  /** Emoji icon displayed in the panel */
-  icon: string;
+  /** SVG icon key for AchievementBadge */
+  icon: AchievementIconKey;
   /** Whether the player has unlocked this achievement */
   unlocked: boolean;
   /** ISO timestamp of when the achievement was unlocked */
