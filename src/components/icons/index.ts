@@ -41,6 +41,7 @@ export { ChevronIcon } from './ChevronIcon'
 export { MenuIcon } from './MenuIcon'
 export { MoreIcon } from './MoreIcon'
 export { SearchIcon } from './SearchIcon'
+export { ExitIcon } from './ExitIcon'
 
 // Wrapper component
 export { Icon } from './Icon'

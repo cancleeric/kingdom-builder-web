@@ -10,6 +10,7 @@ import { MultiplayerSetup } from './components/Game/MultiplayerSetup'
 import { MainMenu } from './components/Menu/MainMenu'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { OnboardingPromptModal } from './components/Tutorial/OnboardingPromptModal'
+import { QuitToMenuConfirmModal } from './components/Game/QuitToMenuConfirmModal'
 import { useTutorialStore } from './store/tutorialStore'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { ObjectiveCardBadge } from './components/Game/ObjectiveCardBadge'
@@ -48,6 +49,7 @@ import {
   EndTurnIcon,
   UndoIcon,
   AchievementIcon,
+  ExitIcon,
 } from './components/icons'
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
@@ -211,6 +213,9 @@ function App() {
 
   // More menu (Header ⋯ button)
   const [moreMenuOpen, setMoreMenuOpen] = useState(false)
+
+  // Quit-to-menu confirmation modal
+  const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
 
   const handleStart = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
     initGame(configs, options, customBoard);
@@ -432,6 +437,14 @@ function App() {
     setGameStarted(false);
   };
 
+  const handleQuitToMenu = () => {
+    if (isNetworkGame) {
+      leaveRoom();
+    }
+    setMenuMode('home');
+    setGameStarted(false);
+  };
+
   const handleDrawTerrainCard = () => {
     runNetworkedAction(
       () => drawTerrainCard(),
@@ -638,16 +651,20 @@ function App() {
                 >
                   <button
                     role="menuitem"
-                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition"
                     style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     onClick={() => { setSeasonHistoryOpen(true); setMoreMenuOpen(false); }}
                   >
                     {t('season.open')}
                   </button>
                   <button
                     role="menuitem"
-                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition"
                     style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     onClick={() => { setLeaderboardOpen(true); setMoreMenuOpen(false); }}
                   >
                     <LeaderboardIcon size={16} />
@@ -655,8 +672,10 @@ function App() {
                   </button>
                   <button
                     role="menuitem"
-                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition"
                     style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     onClick={() => { setReplayOpen(true); setMoreMenuOpen(false); }}
                   >
                     <ReplayIcon size={16} />
@@ -664,8 +683,10 @@ function App() {
                   </button>
                   <button
                     role="menuitem"
-                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 hover:bg-gray-100 transition"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition"
                     style={{ color: 'var(--color-text)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0 0 0 / 0.06)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
                     onClick={() => { setAchievementOpen(true); setMoreMenuOpen(false); }}
                   >
                     <AchievementIcon size={16} />
@@ -681,6 +702,24 @@ function App() {
                         {achievementUnlockedCount}
                       </span>
                     )}
+                  </button>
+                  {/* Divider */}
+                  <div
+                    role="separator"
+                    aria-hidden="true"
+                    style={{ borderTop: '1px solid var(--card-border)', margin: '4px 0' }}
+                  />
+                  {/* Quit to menu */}
+                  <button
+                    role="menuitem"
+                    className="w-full text-left px-4 py-2.5 text-sm flex items-center gap-2 transition"
+                    style={{ color: 'var(--color-wine-600)' }}
+                    onMouseEnter={e => (e.currentTarget.style.backgroundColor = 'oklch(0.95 0.01 30 / 0.08)')}
+                    onMouseLeave={e => (e.currentTarget.style.backgroundColor = 'transparent')}
+                    onClick={() => { setQuitConfirmOpen(true); setMoreMenuOpen(false); }}
+                  >
+                    <ExitIcon size={16} />
+                    {t('quitConfirm.title')}
                   </button>
                 </div>
               </>
@@ -1291,6 +1330,14 @@ function App() {
 
       {/* Achievement unlock toast notification */}
       <AchievementToast />
+
+      {/* Quit-to-menu confirmation modal */}
+      <QuitToMenuConfirmModal
+        isOpen={quitConfirmOpen}
+        isNetworkGame={isNetworkGame}
+        onConfirm={() => { setQuitConfirmOpen(false); handleQuitToMenu(); }}
+        onCancel={() => setQuitConfirmOpen(false)}
+      />
 
       {/* Onboarding prompt — shown to first-time players after game start */}
       <OnboardingPromptModal
