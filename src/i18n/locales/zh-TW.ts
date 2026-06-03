@@ -467,7 +467,7 @@ export const zhTW = {
   },
   quitConfirm: {
     title: '離開遊戲？',
-    bodySolo: '目前遊戲進度不會保存。',
+    bodySolo: '你可以隨時從主選單繼續這局遊戲。',
     bodyMultiplayer: '你將離開房間，其他玩家將繼續遊戲。',
     confirm: '離開遊戲',
     cancel: '繼續遊戲',

@@ -469,7 +469,7 @@ export const en = {
   },
   quitConfirm: {
     title: 'Quit Game?',
-    bodySolo: 'Your current progress will not be saved.',
+    bodySolo: 'You can continue this game anytime from the main menu.',
     bodyMultiplayer: 'You will leave the room. Other players will continue without you.',
     confirm: 'Leave Game',
     cancel: 'Keep Playing',
