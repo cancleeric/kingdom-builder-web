@@ -160,5 +160,45 @@ describe('soundEngine', () => {
 
       expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.15, 0);
     });
+
+    it('ACHIEVEMENT: schedules 4 oscillators for rising arpeggio', async () => {
+      const { MockAudioContext, instance } = makeMockAudioContext();
+      vi.stubGlobal('AudioContext', MockAudioContext);
+      const { initAudio, playSound, setMuted, SoundType } = await import('./soundEngine');
+      initAudio();
+
+      setMuted(false);
+      playSound(SoundType.ACHIEVEMENT);
+
+      // 4 notes → createOscillator called 4 times
+      expect(instance.createOscillator).toHaveBeenCalledTimes(4);
+    });
+
+    it('ACHIEVEMENT: does not schedule oscillators when muted', async () => {
+      const { MockAudioContext, instance } = makeMockAudioContext();
+      vi.stubGlobal('AudioContext', MockAudioContext);
+      const { initAudio, playSound, setMuted, SoundType } = await import('./soundEngine');
+      initAudio();
+
+      setMuted(true);
+      playSound(SoundType.ACHIEVEMENT);
+
+      expect(instance.createOscillator).not.toHaveBeenCalled();
+    });
+
+    it('ACHIEVEMENT: uses gain value 0.25 at full volume', async () => {
+      const { MockAudioContext, mockGain } = makeMockAudioContext();
+      vi.stubGlobal('AudioContext', MockAudioContext);
+      const { initAudio, playSound, setMuted, setVolume, SoundType } = await import('./soundEngine');
+      initAudio();
+
+      setMuted(false);
+      setVolume(1);
+      playSound(SoundType.ACHIEVEMENT);
+
+      // Each of the 4 notes calls gain.setValueAtTime(0.25 * volume, startTime)
+      // First note starts at currentTime=0, gain = 0.25 * 1 = 0.25
+      expect(mockGain.gain.setValueAtTime).toHaveBeenCalledWith(0.25, 0);
+    });
   });
 });
