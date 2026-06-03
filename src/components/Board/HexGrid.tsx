@@ -79,6 +79,7 @@ interface HexGridProps {
   onEditCellClick?: (coord: AxialCoord) => void;
   onEditCellPaint?: (coord: AxialCoord) => void;
   editMode?: 'paint' | 'pan';
+  onInvalidClick?: (coord: AxialCoord) => void;
 }
 
 export const HexGrid: React.FC<HexGridProps> = React.memo(({
@@ -93,6 +94,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onEditCellClick,
   onEditCellPaint,
   editMode = 'paint',
+  onInvalidClick,
 }) => {
   const { t } = useTranslation();
   const [hoveredCell, setHoveredCell] = useState<AxialCoord | null>(null);
@@ -442,6 +444,8 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                         if (editable) { onEditCellClick?.(cell.coord); return; }
                         if (isValid) {
                           onCellClick(cell.coord);
+                        } else {
+                          onInvalidClick?.(cell.coord);
                         }
                       }}
                       onTap={() => {
@@ -449,6 +453,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                         if (!touchMoved.current) {
                           if (editable) { onEditCellClick?.(cell.coord); return; }
                           if (isValid) onCellClick(cell.coord);
+                          else onInvalidClick?.(cell.coord);
                         }
                       }}
                       onMouseEnter={() => {
