@@ -19,8 +19,8 @@ export function ObjectiveCardBadge({ card, score, className = '' }: ObjectiveCar
       aria-label={`${title}. ${description}`}
       className={`rounded-lg px-3 py-2 text-left ${className}`}
       style={{
-        backgroundColor: 'oklch(0.97 0.02 255)',
-        border: '1px solid var(--color-player-blue)',
+        backgroundColor: 'var(--color-quest-bg)',
+        border: '1px solid var(--color-quest-border)',
         color: 'var(--color-stone-800)',
       }}
     >
@@ -33,8 +33,8 @@ export function ObjectiveCardBadge({ card, score, className = '' }: ObjectiveCar
             data-testid="objective-score-preview"
             className="shrink-0 rounded-full px-2 py-0.5 text-[11px] font-bold leading-none"
             style={{
-              backgroundColor: 'var(--color-player-blue)',
-              color: 'var(--color-warm-cream-50)',
+              backgroundColor: 'var(--color-quest-score-bg)',
+              color: 'var(--color-quest-score-fg)',
             }}
           >
             {t('objectiveCard.currentScore', { score })}
