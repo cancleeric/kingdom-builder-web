@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useTranslation } from 'react-i18next';
 import { useAchievementStore } from '../../store/achievementStore';
+import { initAudio, playSound, SoundType } from '../../utils/soundEngine';
 
 const TOAST_DURATION_MS = 4000;
 
@@ -13,6 +14,8 @@ export function AchievementToast() {
 
   useEffect(() => {
     if (!currentId) return;
+    initAudio();
+    playSound(SoundType.ACHIEVEMENT);
     const timer = setTimeout(dismissToast, TOAST_DURATION_MS);
     return () => clearTimeout(timer);
   }, [currentId, dismissToast]);
@@ -23,7 +26,7 @@ export function AchievementToast() {
     <div
       role="status"
       aria-live="polite"
-      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-bounce-in"
+      className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-achievement-bounce-in"
     >
       <div className="bg-yellow-400 text-yellow-900 rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 max-w-xs">
         <span className="text-3xl" aria-hidden="true">🏅</span>

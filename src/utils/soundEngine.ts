@@ -4,6 +4,7 @@ export enum SoundType {
   INVALID = 'INVALID',
   TURN_END = 'TURN_END',
   GAME_OVER = 'GAME_OVER',
+  ACHIEVEMENT = 'ACHIEVEMENT',
 }
 
 const MUTE_STORAGE_KEY = 'kingdom-builder-muted';
@@ -129,6 +130,17 @@ export function playSound(type: SoundType): void {
         const noteDuration = 0.06;
         gameOverFreqs.forEach((freq, i) => {
           playTone(ctx, freq, noteDuration, 'sine', now + i * noteDuration);
+        });
+        break;
+      }
+
+      case SoundType.ACHIEVEMENT: {
+        // 4-note rising arpeggio: C5→E5→G5→C6, interval 90ms, gain 0.25
+        // 4th note duration 150ms (extended), others 70ms
+        const freqs = [523, 659, 784, 1047];
+        const durations = [0.07, 0.07, 0.07, 0.15];
+        freqs.forEach((freq, i) => {
+          playTone(ctx, freq, durations[i], 'sine', now + i * 0.09, 0.25);
         });
         break;
       }
