@@ -406,6 +406,12 @@ export const zhTW = {
     next: '下一步 →',
     keyboardHint: '按左右方向鍵切換 · Esc 關閉',
     performHighlightedAction: '執行高亮操作即可自動前進。',
+    onboardingPrompt: {
+      title: '第一次玩嗎？',
+      description: '要看快速教學了解遊戲規則嗎？',
+      startButton: '開始教學',
+      skipButton: '先跳過',
+    },
     steps: {
       welcome: {
         title: '歡迎來到王國建造者！',
