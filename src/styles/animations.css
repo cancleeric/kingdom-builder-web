@@ -204,6 +204,23 @@
 }
 
 /* ----------------------------------------------------------
+ * Achievement Toast bounce-in (scale 0.4→1.08→1, 320 ms)
+ * Triggered when a new achievement is unlocked.
+ * translateX(-50%) must be preserved in every step to keep
+ * the toast horizontally centred (mirrors Tailwind -translate-x-1/2).
+ * ---------------------------------------------------------- */
+@keyframes achievementBounceIn {
+  0%   { transform: translateX(-50%) scale(0.4);  opacity: 0; }
+  60%  { transform: translateX(-50%) scale(1.08); opacity: 1; }
+  80%  { transform: translateX(-50%) scale(0.97); }
+  100% { transform: translateX(-50%) scale(1);    opacity: 1; }
+}
+
+.animate-achievement-bounce-in {
+  animation: achievementBounceIn 320ms cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+/* ----------------------------------------------------------
  * TurnBanner enter on player change (slide from top, 200 ms)
  * Triggered by key={currentPlayer.id} forcing remount.
  * ---------------------------------------------------------- */
