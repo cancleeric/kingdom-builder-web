@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useGameStore } from './store/gameStore'
 import { HexGrid } from './components/Board/HexGrid'
@@ -29,19 +29,17 @@ import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
 import { useTranslation } from 'react-i18next'
 import { tObjective, tPhase, tTerrain } from './i18n/formatters'
-import { LeaderboardModal } from './components/Game/LeaderboardModal'
 import { useLeaderboardStore } from './store/leaderboardStore'
-import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
 import { InvalidHintToast } from './components/Game/InvalidHintToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
-import { SeasonHistory } from './components/Game/SeasonHistory'
 import { TerrainSwatch } from './components/Game/TerrainSwatch'
 import { BoardFrameOverlay } from './components/Board/BoardFrameOverlay'
 import { useSeasonStore } from './store/seasonStore'
-import { MapEditorPage } from './components/MapEditor/MapEditorPage'
+import { PageLoadingFallback } from './components/UI/PageLoadingFallback'
+import { ModalLoadingFallback } from './components/UI/ModalLoadingFallback'
 import {
   MutedIcon,
   UnmutedIcon,
@@ -57,6 +55,19 @@ import {
   ExitIcon,
 } from './components/icons'
 import { CastleIcon } from './components/icons/CastleIcon'
+
+const MapEditorPage = lazy(() =>
+  import('./components/MapEditor/MapEditorPage').then(m => ({ default: m.MapEditorPage }))
+)
+const LeaderboardModal = lazy(() =>
+  import('./components/Game/LeaderboardModal').then(m => ({ default: m.LeaderboardModal }))
+)
+const ReplayModal = lazy(() =>
+  import('./components/Game/ReplayModal').then(m => ({ default: m.ReplayModal }))
+)
+const SeasonHistory = lazy(() =>
+  import('./components/Game/SeasonHistory').then(m => ({ default: m.SeasonHistory }))
+)
 
 const STATE_BROADCAST_DEBOUNCE_MS = 50;
 
@@ -590,7 +601,11 @@ function App() {
 
   if (!gameStarted) {
     if (menuMode === 'map-editor') {
-      return <MapEditorPage onBack={() => setMenuMode('home')} />;
+      return (
+        <Suspense fallback={<PageLoadingFallback />}>
+          <MapEditorPage onBack={() => setMenuMode('home')} />
+        </Suspense>
+      );
     }
 
     if (menuMode === 'multiplayer') {
@@ -636,8 +651,16 @@ function App() {
           onLanguageChange={(lang) => void i18n.changeLanguage(lang)}
           onMapEditor={() => setMenuMode('map-editor')}
         />
-        <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
-        <SeasonHistory isOpen={seasonHistoryOpen} onClose={() => setSeasonHistoryOpen(false)} />
+        {leaderboardOpen && (
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+          </Suspense>
+        )}
+        {seasonHistoryOpen && (
+          <Suspense fallback={<ModalLoadingFallback />}>
+            <SeasonHistory isOpen={seasonHistoryOpen} onClose={() => setSeasonHistoryOpen(false)} />
+          </Suspense>
+        )}
         <TutorialOverlay />
       </>
     );
@@ -1409,20 +1432,32 @@ function App() {
         />
       )}
 
-      <LeaderboardModal
-        isOpen={leaderboardOpen}
-        onClose={() => setLeaderboardOpen(false)}
-      />
+      {leaderboardOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <LeaderboardModal
+            isOpen={leaderboardOpen}
+            onClose={() => setLeaderboardOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      <SeasonHistory
-        isOpen={seasonHistoryOpen}
-        onClose={() => setSeasonHistoryOpen(false)}
-      />
+      {seasonHistoryOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <SeasonHistory
+            isOpen={seasonHistoryOpen}
+            onClose={() => setSeasonHistoryOpen(false)}
+          />
+        </Suspense>
+      )}
 
-      <ReplayModal
-        isOpen={replayOpen}
-        onClose={() => setReplayOpen(false)}
-      />
+      {replayOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <ReplayModal
+            isOpen={replayOpen}
+            onClose={() => setReplayOpen(false)}
+          />
+        </Suspense>
+      )}
 
       {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
 
