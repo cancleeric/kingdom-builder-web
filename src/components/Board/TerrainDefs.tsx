@@ -799,5 +799,21 @@ export const TerrainDefs: React.FC = () => (
       <circle cx="47" cy="54" r="1.4" fill="#484848" opacity="0.45" />
     </symbol>
 
+    {/* ── R24-C 羅盤底紋 symbol（opacity 0.04 極淡，純氛圍）
+        在 HexGrid SVG 以 <use href="#compass-rose"> 引用，currentColor + color 屬性控色
+        ⚠️ 只 append，不改現有任何 defs ── */}
+    <symbol id="compass-rose" viewBox="-50 -50 100 100">
+      {/* 8 方向細線 */}
+      <line x1="0" y1="-45" x2="0" y2="45" stroke="currentColor" strokeWidth="0.8" />
+      <line x1="-45" y1="0" x2="45" y2="0" stroke="currentColor" strokeWidth="0.8" />
+      <line x1="-32" y1="-32" x2="32" y2="32" stroke="currentColor" strokeWidth="0.5" />
+      <line x1="32" y1="-32" x2="-32" y2="32" stroke="currentColor" strokeWidth="0.5" />
+      {/* 外圈 */}
+      <circle cx="0" cy="0" r="42" fill="none" stroke="currentColor" strokeWidth="0.6" />
+      <circle cx="0" cy="0" r="30" fill="none" stroke="currentColor" strokeWidth="0.4" />
+      {/* 北方三角尖 */}
+      <polygon points="0,-44 -4,-32 4,-32" fill="currentColor" />
+    </symbol>
+
   </defs>
 );
