@@ -31,7 +31,13 @@ export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
       {hasSave && (
         <button
           onClick={handleContinue}
-          className="w-full bg-green-600 hover:bg-green-700 text-white font-bold py-2 px-4 rounded transition"
+          className="w-full font-bold py-2 px-4 rounded transition"
+          style={{
+            background: 'var(--button-secondary-bg)',
+            color: 'var(--button-text)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--button-secondary-bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--button-secondary-bg)')}
         >
           {t('saveLoad.continueGame')}
         </button>
@@ -39,7 +45,13 @@ export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
       {hasSave && (
         <button
           onClick={handleNewGame}
-          className="w-full bg-blue-500 hover:bg-blue-600 text-white font-bold py-2 px-4 rounded transition"
+          className="w-full font-bold py-2 px-4 rounded transition"
+          style={{
+            background: 'var(--button-primary-bg)',
+            color: 'var(--button-text)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'var(--button-primary-bg-hover)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'var(--button-primary-bg)')}
         >
           {t('saveLoad.newGame')}
         </button>
@@ -47,7 +59,14 @@ export function SaveLoadUI({ onGameLoaded }: SaveLoadUIProps) {
       {hasSave && (
         <button
           onClick={handleClearSave}
-          className="w-full font-bold py-2 px-4 rounded transition border bg-red-100 hover:bg-red-200 text-red-700 border-red-300"
+          className="w-full font-bold py-2 px-4 rounded transition border"
+          style={{
+            background: 'oklch(0.95 0.02 20 / 0.25)',
+            color: 'var(--color-wine-700)',
+            borderColor: 'var(--color-danger)',
+          }}
+          onMouseEnter={e => (e.currentTarget.style.background = 'oklch(0.90 0.03 20 / 0.4)')}
+          onMouseLeave={e => (e.currentTarget.style.background = 'oklch(0.95 0.02 20 / 0.25)')}
         >
           {t('saveLoad.clearSave')}
         </button>

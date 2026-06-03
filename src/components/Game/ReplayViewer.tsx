@@ -75,7 +75,10 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
       <div className="flex items-center gap-3 mb-4">
         <button
           onClick={onBack}
-          className="text-sm text-blue-600 hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-600"
+          className="text-sm hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2"
+          style={{ color: 'var(--color-wine-600)', outlineColor: 'var(--color-wine-600)' }}
+          onMouseEnter={e => (e.currentTarget.style.color = 'var(--color-wine-700)')}
+          onMouseLeave={e => (e.currentTarget.style.color = 'var(--color-wine-600)')}
           aria-label={t('replay.backToList')}
         >
           {t('replay.backToList')}
@@ -84,8 +87,19 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
       </div>
 
       {/* Winner & players summary */}
-      <div className="mb-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
-        <p className="font-semibold text-amber-800 mb-1">{t('replay.winner', { name: replay.winnerName })}</p>
+      <div
+        className="mb-4 p-3 rounded-lg border"
+        style={{
+          background: 'var(--color-amber-100)',
+          borderColor: 'var(--color-amber-700)',
+        }}
+      >
+        <p
+          className="font-semibold mb-1"
+          style={{ color: 'var(--color-amber-700)' }}
+        >
+          {t('replay.winner', { name: replay.winnerName })}
+        </p>
         <div className="flex flex-wrap gap-2">
           {players.map((p) => (
             <span
@@ -94,8 +108,8 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
               style={{ borderColor: p.color }}
             >
               <span
-                className="w-2.5 h-2.5 rounded-full inline-block border border-gray-600"
-                style={{ backgroundColor: p.color }}
+                className="w-2.5 h-2.5 rounded-full inline-block border"
+                style={{ backgroundColor: p.color, borderColor: 'var(--color-stone-600)' }}
                 aria-hidden="true"
               />
               {p.name}
@@ -105,29 +119,33 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
       </div>
 
       {total === 0 ? (
-        <p className="text-gray-500 text-sm">{t('replay.noActions')}</p>
+        <p className="text-sm" style={{ color: 'var(--color-stone-500)' }}>{t('replay.noActions')}</p>
       ) : (
         <>
           {/* Step counter */}
-          <p className="text-sm text-gray-500 mb-2 text-center">
+          <p className="text-sm mb-2 text-center" style={{ color: 'var(--color-stone-500)' }}>
             {t('replay.stepOf', { current: stepIndex + 1, total })}
           </p>
 
           {/* Current action card */}
           {currentAction && (
             <div
-              className="mb-4 p-4 bg-white border-2 rounded-lg shadow-sm"
-              style={{ borderColor: getPlayerColor(currentAction.playerId) }}
+              className="mb-4 p-4 border-2 rounded-lg"
+              style={{
+                background: 'var(--color-surface)',
+                boxShadow: 'var(--shadow-soft)',
+                borderColor: getPlayerColor(currentAction.playerId),
+              }}
               aria-live="polite"
               aria-atomic="true"
             >
-              <p className="text-xs text-gray-500 mb-1">
+              <p className="text-xs mb-1" style={{ color: 'var(--color-stone-500)' }}>
                 {t('replay.actionTurn', { turn: currentAction.turnNumber })}
               </p>
               <p className="font-semibold text-base mb-1">
                 {t('replay.actionPlayer', { player: getPlayerName(currentAction.playerId) })}
               </p>
-              <p className="text-sm text-gray-700">
+              <p className="text-sm" style={{ color: 'var(--color-stone-700)' }}>
                 {describeAction(t, currentAction)}
               </p>
             </div>
@@ -138,11 +156,31 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
             <button
               onClick={goPrev}
               disabled={stepIndex === 0}
-              className={`flex-1 py-2 px-4 rounded font-semibold text-sm transition border ${
+              className="flex-1 py-2 px-4 rounded font-semibold text-sm transition border"
+              style={
                 stepIndex === 0
-                  ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                  : 'bg-white hover:bg-gray-50 text-blue-600 border-blue-400'
-              }`}
+                  ? {
+                      background: 'var(--color-warm-cream-200)',
+                      color: 'var(--color-stone-400)',
+                      borderColor: 'var(--card-border)',
+                      cursor: 'not-allowed',
+                    }
+                  : {
+                      background: 'var(--color-surface)',
+                      color: 'var(--color-wine-600)',
+                      borderColor: 'var(--color-wine-600)',
+                    }
+              }
+              onMouseEnter={e => {
+                if (stepIndex !== 0) {
+                  e.currentTarget.style.background = 'var(--color-warm-cream-200)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (stepIndex !== 0) {
+                  e.currentTarget.style.background = 'var(--color-surface)';
+                }
+              }}
               aria-label={t('replay.previous')}
             >
               {t('replay.previous')}
@@ -150,11 +188,31 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
             <button
               onClick={goNext}
               disabled={stepIndex === total - 1}
-              className={`flex-1 py-2 px-4 rounded font-semibold text-sm transition border ${
+              className="flex-1 py-2 px-4 rounded font-semibold text-sm transition border"
+              style={
                 stepIndex === total - 1
-                  ? 'bg-gray-100 text-gray-400 border-gray-300 cursor-not-allowed'
-                  : 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600'
-              }`}
+                  ? {
+                      background: 'var(--color-warm-cream-200)',
+                      color: 'var(--color-stone-400)',
+                      borderColor: 'var(--card-border)',
+                      cursor: 'not-allowed',
+                    }
+                  : {
+                      background: 'var(--button-primary-bg)',
+                      color: 'var(--button-text)',
+                      borderColor: 'var(--color-wine-600)',
+                    }
+              }
+              onMouseEnter={e => {
+                if (stepIndex !== total - 1) {
+                  e.currentTarget.style.background = 'var(--button-primary-bg-hover)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (stepIndex !== total - 1) {
+                  e.currentTarget.style.background = 'var(--button-primary-bg)';
+                }
+              }}
               aria-label={t('replay.next')}
             >
               {t('replay.next')}
@@ -172,22 +230,41 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
                   <li key={idx}>
                     <button
                       onClick={() => setStepIndex(idx)}
-                      className={`w-full text-left flex items-start gap-2 p-2 rounded text-sm transition ${
-                        isActive ? 'bg-blue-50 border border-blue-300' : 'hover:bg-gray-50 border border-transparent'
-                      }`}
+                      className="w-full text-left flex items-start gap-2 p-2 rounded text-sm transition border"
+                      style={
+                        isActive
+                          ? {
+                              background: 'var(--color-warm-cream-200)',
+                              borderColor: 'var(--card-border)',
+                            }
+                          : {
+                              background: 'transparent',
+                              borderColor: 'transparent',
+                            }
+                      }
+                      onMouseEnter={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'var(--color-warm-cream-200)';
+                        }
+                      }}
+                      onMouseLeave={e => {
+                        if (!isActive) {
+                          e.currentTarget.style.background = 'transparent';
+                        }
+                      }}
                       aria-current={isActive ? 'true' : undefined}
                     >
                       <span
-                        className="w-2.5 h-2.5 rounded-full mt-0.5 shrink-0 border border-gray-600"
-                        style={{ backgroundColor: pColor }}
+                        className="w-2.5 h-2.5 rounded-full mt-0.5 shrink-0 border"
+                        style={{ backgroundColor: pColor, borderColor: 'var(--color-stone-600)' }}
                         aria-hidden="true"
                       />
                       <span className="flex-1 min-w-0">
                         <span className="font-medium">{pName}</span>
-                        <span className="text-gray-500 text-xs ml-2">
+                        <span className="text-xs ml-2" style={{ color: 'var(--color-stone-500)' }}>
                           {t('replay.actionTurn', { turn: action.turnNumber })}
                         </span>
-                        <span className="block text-gray-600 truncate">
+                        <span className="block truncate" style={{ color: 'var(--color-stone-600)' }}>
                           {describeAction(t, action)}
                         </span>
                       </span>
@@ -201,7 +278,10 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
       )}
 
       {/* Final scores */}
-      <div className="mt-4 pt-4 border-t border-gray-200">
+      <div
+        className="mt-4 pt-4 border-t"
+        style={{ borderTopColor: 'var(--card-border)' }}
+      >
         <h4 className="text-sm font-semibold mb-2">{t('replay.finalScores')}</h4>
         <div className="space-y-1">
           {[...finalScores]
@@ -217,8 +297,8 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
                 >
                   <span className="flex items-center gap-1.5">
                     <span
-                      className="w-2.5 h-2.5 rounded-full inline-block border border-gray-600 shrink-0"
-                      style={{ backgroundColor: pColor }}
+                      className="w-2.5 h-2.5 rounded-full inline-block border shrink-0"
+                      style={{ backgroundColor: pColor, borderColor: 'var(--color-stone-600)' }}
                       aria-hidden="true"
                     />
                     {pName}
@@ -235,7 +315,11 @@ export const ReplayViewer = React.memo(function ReplayViewer({ replay, onBack }:
         {objectiveCards.length > 0 && (
           <div className="mt-2 flex flex-wrap gap-1">
             {objectiveCards.map((card) => (
-              <span key={card} className="px-2 py-0.5 bg-blue-100 text-blue-800 text-xs rounded-full">
+              <span
+                key={card}
+                className="px-2 py-0.5 text-xs rounded-full"
+                style={{ background: 'var(--color-amber-100)', color: 'var(--color-amber-700)' }}
+              >
                 {tObjective(t, card)}
               </span>
             ))}
