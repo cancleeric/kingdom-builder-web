@@ -11,6 +11,8 @@ import { MainMenu } from './components/Menu/MainMenu'
 import { TutorialOverlay } from './components/Tutorial/TutorialOverlay'
 import { OnboardingPromptModal } from './components/Tutorial/OnboardingPromptModal'
 import { QuitToMenuConfirmModal } from './components/Game/QuitToMenuConfirmModal'
+import { NewGameOverwriteConfirmModal } from './components/Game/NewGameOverwriteConfirmModal'
+import { loadGame } from './store/persistence'
 import { useTutorialStore } from './store/tutorialStore'
 import { TurnBanner } from './components/Game/TurnBanner'
 import { ObjectiveCardBadge } from './components/Game/ObjectiveCardBadge'
@@ -130,6 +132,12 @@ function App() {
   const [achievementOpen, setAchievementOpen] = useState(false);
   const [seasonHistoryOpen, setSeasonHistoryOpen] = useState(false);
   const [showOnboardingPrompt, setShowOnboardingPrompt] = useState(false);
+  const [newGameConfirmOpen, setNewGameConfirmOpen] = useState(false);
+  const pendingStartRef = useRef<{
+    configs: PlayerConfig[];
+    options: GameOptions;
+    customBoard?: Board;
+  } | null>(null);
   const broadcastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const submittedGameKeyRef = useRef<string | null>(null);
 
@@ -217,7 +225,7 @@ function App() {
   // Quit-to-menu confirmation modal
   const [quitConfirmOpen, setQuitConfirmOpen] = useState(false)
 
-  const handleStart = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
+  const _doStartGame = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
     initGame(configs, options, customBoard);
     setGameStarted(true);
     // First-time player onboarding prompt (single player only)
@@ -225,6 +233,32 @@ function App() {
     if (!hasCompleted && !isNetworkGame) {
       setShowOnboardingPrompt(true);
     }
+  };
+
+  const handleStart = (configs: PlayerConfig[], options: GameOptions, customBoard?: Board) => {
+    // Guard: if a save exists, require confirmation before overwriting
+    // (only single-player new game goes through handleStart;
+    //  continue-game and multiplayer bypass this entirely)
+    if (loadGame() !== null) {
+      pendingStartRef.current = { configs, options, customBoard };
+      setNewGameConfirmOpen(true);
+      return;
+    }
+    _doStartGame(configs, options, customBoard);
+  };
+
+  const handleNewGameConfirm = () => {
+    setNewGameConfirmOpen(false);
+    if (pendingStartRef.current) {
+      const { configs, options, customBoard } = pendingStartRef.current;
+      pendingStartRef.current = null;
+      _doStartGame(configs, options, customBoard);
+    }
+  };
+
+  const handleNewGameCancel = () => {
+    setNewGameConfirmOpen(false);
+    pendingStartRef.current = null;
   };
 
   const handleToggleMute = () => {
@@ -1337,6 +1371,13 @@ function App() {
         isNetworkGame={isNetworkGame}
         onConfirm={() => { setQuitConfirmOpen(false); handleQuitToMenu(); }}
         onCancel={() => setQuitConfirmOpen(false)}
+      />
+
+      {/* New-game overwrite confirmation modal */}
+      <NewGameOverwriteConfirmModal
+        isOpen={newGameConfirmOpen}
+        onConfirm={handleNewGameConfirm}
+        onCancel={handleNewGameCancel}
       />
 
       {/* Onboarding prompt — shown to first-time players after game start */}
