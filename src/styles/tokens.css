@@ -168,23 +168,23 @@
     repeating-linear-gradient(
       92deg,
       transparent 0px,
-      oklch(0.72 0.04 62 / 0.06) 1px,
+      oklch(0.58 0.06 56 / 0.14) 1px,
       transparent 2px,
-      transparent 18px
+      transparent 16px
     ),
     repeating-linear-gradient(
       89deg,
       transparent 0px,
-      oklch(0.68 0.05 60 / 0.04) 1px,
+      oklch(0.34 0.05 48 / 0.16) 1px,
       transparent 3px,
-      transparent 32px
+      transparent 30px
     ),
     linear-gradient(
       175deg,
-      oklch(0.75 0.05 65),
-      oklch(0.70 0.055 62),
-      oklch(0.72 0.05 64),
-      oklch(0.68 0.06 60)
+      oklch(0.50 0.072 56),
+      oklch(0.43 0.078 51),
+      oklch(0.47 0.075 54),
+      oklch(0.41 0.082 49)
     );
   /* 木紋桌面背景 (dark) */
   --board-bg-dark:
@@ -209,8 +209,8 @@
       oklch(0.21 0.03 62),
       oklch(0.18 0.025 56)
     );
-  /* 棋盤 HexGrid 內部背景（比原本 warm-cream-200 更暖，仿羊皮紙） */
-  --board-inner-bg: oklch(0.89 0.025 80);
+  /* 棋盤 HexGrid 內部背景：透明，露出容器層的木桌（否則淺底鋪滿會蓋掉木桌） */
+  --board-inner-bg: transparent;
   /* 落地陰影（強化版） */
   --board-frame-shadow:
     0 8px 32px oklch(0.15 0.04 60 / 0.55),
