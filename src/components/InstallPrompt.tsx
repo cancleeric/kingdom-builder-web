@@ -34,7 +34,14 @@ export function InstallPrompt() {
     <div className="fixed top-0 left-0 right-0 flex justify-center z-50 p-2">
       <button
         onClick={handleInstall}
-        className="bg-yellow-600 hover:bg-yellow-500 text-white font-semibold px-4 py-2 rounded-lg shadow-lg transition-colors"
+        className="font-semibold px-4 py-2 rounded-lg transition-colors"
+        style={{
+          background: 'var(--button-primary-bg)',
+          color: 'var(--button-text)',
+          boxShadow: 'var(--shadow-lifted)',
+        }}
+        onMouseEnter={e => (e.currentTarget.style.background = 'var(--button-primary-bg-hover)')}
+        onMouseLeave={e => (e.currentTarget.style.background = 'var(--button-primary-bg)')}
         aria-label={t('installPrompt.ariaLabel')}
       >
         {t('installPrompt.button')}
