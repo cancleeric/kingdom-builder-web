@@ -465,6 +465,13 @@ export const zhTW = {
       },
     },
   },
+  quitConfirm: {
+    title: '離開遊戲？',
+    bodySolo: '目前遊戲進度不會保存。',
+    bodyMultiplayer: '你將離開房間，其他玩家將繼續遊戲。',
+    confirm: '離開遊戲',
+    cancel: '繼續遊戲',
+  },
   mapEditor: {
     title: '地圖編輯器',
     subtitle: '設計你的自訂地圖',
