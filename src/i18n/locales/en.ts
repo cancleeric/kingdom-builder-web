@@ -311,6 +311,15 @@ export const en = {
     settlementSuffix: '{{player}} settlement',
     validPlacementSuffix: 'valid placement',
   },
+  hint: {
+    invalid: {
+      occupied: 'This cell is already occupied',
+      terrain_unbuildable: 'Cannot place on {{terrain}}',
+      wrong_terrain: 'Must place on {{terrain}} this turn',
+      must_be_adjacent: 'Must place next to a settlement from this turn',
+      not_valid: 'Cannot place here',
+    },
+  },
   installPrompt: {
     ariaLabel: 'Install to home screen',
     button: '📲 Install to home screen',

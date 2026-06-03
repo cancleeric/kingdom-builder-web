@@ -16,6 +16,8 @@ interface HexCellProps {
   isFocused?: boolean;
   isRecentlyPlaced?: boolean;
   isBotPlacement?: boolean;
+  /** R30: true for 400ms when an invalid click lands on this cell */
+  isInvalidFlash?: boolean;
   playerColor?: string;
   playerName?: string;
   tabIndex: number;
@@ -58,6 +60,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
   isFocused = false,
   isRecentlyPlaced = false,
   isBotPlacement = false,
+  isInvalidFlash = false,
   playerColor,
   playerName,
   tabIndex,
@@ -140,6 +143,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
       onMouseLeave={onMouseLeave}
       onFocus={onFocus}
       onKeyDown={onKeyDown}
+      className={isInvalidFlash ? 'animate-hex-invalid-shake' : undefined}
       style={{ cursor: isValid ? 'pointer' : 'default' }}
     >
       {/* 底色漸層 polygon（hover 時用直值 #FFFF99，非 hover 用共用 gradient 變體） */}
@@ -183,6 +187,19 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
           <polygon points={points} fill="none" stroke="#1a1410" strokeWidth={5} opacity={0.85} pointerEvents="none" />
           <polygon points={points} fill="none" stroke="#FFD24A" strokeWidth={2.5} pointerEvents="none" />
         </>
+      )}
+
+      {/* R30: invalid click red stroke flash overlay */}
+      {isInvalidFlash && (
+        <polygon
+          points={points}
+          fill="none"
+          stroke="#CC2200"
+          strokeWidth={3.5}
+          opacity={0}
+          pointerEvents="none"
+          className="animate-hex-invalid-flash"
+        />
       )}
 
       {/* Show location marker if present */}

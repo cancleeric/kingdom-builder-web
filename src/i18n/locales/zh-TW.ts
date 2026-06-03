@@ -309,6 +309,15 @@ export const zhTW = {
     settlementSuffix: '{{player}} 的聚落',
     validPlacementSuffix: '可放置',
   },
+  hint: {
+    invalid: {
+      occupied: '此格已有聚落',
+      terrain_unbuildable: '無法在{{terrain}}放置聚落',
+      wrong_terrain: '本回合須放在{{terrain}}地形',
+      must_be_adjacent: '須相鄰本回合已放的聚落',
+      not_valid: '無法在此放置',
+    },
+  },
   installPrompt: {
     ariaLabel: '安裝到主畫面',
     button: '📲 安裝到主畫面',

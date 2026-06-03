@@ -306,6 +306,56 @@
 }
 
 /* ----------------------------------------------------------
+ * R30 Invalid cell shake (X ±3px, 400ms)
+ * transform-box + transform-origin ensure the shake pivots
+ * around the hex cell centre rather than the SVG origin.
+ * ---------------------------------------------------------- */
+@keyframes hexInvalidShake {
+  0%   { transform: translateX(0); }
+  15%  { transform: translateX(-3px); }
+  30%  { transform: translateX(3px); }
+  45%  { transform: translateX(-3px); }
+  60%  { transform: translateX(3px); }
+  75%  { transform: translateX(-2px); }
+  90%  { transform: translateX(1px); }
+  100% { transform: translateX(0); }
+}
+
+.animate-hex-invalid-shake {
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: hexInvalidShake 400ms ease-out both;
+}
+
+/* ----------------------------------------------------------
+ * R30 Invalid cell red stroke flash (opacity 0.85 → 0, 400ms)
+ * Applied to an overlay polygon inside HexCell.
+ * ---------------------------------------------------------- */
+@keyframes hexInvalidFlash {
+  0%   { opacity: 0.85; }
+  60%  { opacity: 0.5; }
+  100% { opacity: 0; }
+}
+
+.animate-hex-invalid-flash {
+  animation: hexInvalidFlash 400ms ease-out forwards;
+}
+
+/* ----------------------------------------------------------
+ * R30 Hint toast slide-in (translateY 6px→0, opacity 0→1, 180ms)
+ * translateX(-50%) preserved in every keyframe to maintain
+ * the Tailwind -translate-x-1/2 horizontal centring.
+ * ---------------------------------------------------------- */
+@keyframes hintToastIn {
+  0%   { transform: translateX(-50%) translateY(6px); opacity: 0; }
+  100% { transform: translateX(-50%) translateY(0);   opacity: 1; }
+}
+
+.animate-hint-toast-in {
+  animation: hintToastIn 180ms ease-out both;
+}
+
+/* ----------------------------------------------------------
  * Accessibility: disable all animations when user prefers
  * reduced motion (WCAG 2.1 Success Criterion 2.3.3)
  * ---------------------------------------------------------- */
