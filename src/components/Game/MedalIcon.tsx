@@ -1,4 +1,3 @@
-import React from 'react';
 
 interface MedalIconProps {
   rank: 1 | 2 | 3;
