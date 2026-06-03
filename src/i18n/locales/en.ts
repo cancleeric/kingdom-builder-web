@@ -331,7 +331,7 @@ export const en = {
   },
   achievement: {
     panelLabel: 'Achievements',
-    heading: '🏅 Achievements',
+    heading: 'Achievements',
     close: 'Close achievements',
     progress: '{{unlocked}} / {{total}} unlocked',
     unlocked: 'Achievement Unlocked!',
