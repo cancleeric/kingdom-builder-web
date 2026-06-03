@@ -170,6 +170,26 @@
   --toast-text: var(--color-warm-cream-50);
   --toast-border: oklch(0.82 0.03 80 / 0.3);
 
+  /* ── R26 主選單英雄視覺 token ─────────────────────────────────────────── */
+  --menu-vignette-light: radial-gradient(
+    ellipse 78% 68% at 50% 40%,
+    transparent 0%,
+    transparent 45%,
+    oklch(0.39 0.075 24 / 0.18) 74%,
+    oklch(0.24 0.055 20 / 0.34) 100%
+  );
+  --menu-vignette-dark: radial-gradient(
+    ellipse 80% 70% at 50% 40%,
+    transparent 0%,
+    transparent 35%,
+    oklch(0.15 0.04 24 / 0.45) 75%,
+    oklch(0.08 0.02 20 / 0.60) 100%
+  );
+  --menu-title-size-mobile: 3rem;
+  --menu-title-size-desktop: 3.5rem;
+  --menu-skyline-opacity-light: 0.14;
+  --menu-skyline-opacity-dark: 0.10;
+
   /* ── R24-C 棋盤環境框 token ──────────────────────────────────────────── */
   /* 木紋桌面背景 (light) */
   --board-bg-light:
@@ -233,4 +253,36 @@
 /* ── R24-C dark mode 覆蓋 ────────────────────────────────────────────── */
 [data-theme="dark"] {
   --board-bg-light: var(--board-bg-dark);
+
+  /* ── R26 dark mode 覆蓋 */
+  --menu-vignette-light: var(--menu-vignette-dark);
+  --menu-skyline-opacity-light: var(--menu-skyline-opacity-dark);
+}
+
+/* ── R26 標題漸層 CSS class ─────────────────────────────────────────── */
+.menu-title-gradient {
+  background: linear-gradient(180deg, #7b2d3a 0%, #a0192e 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+[data-theme="dark"] .menu-title-gradient {
+  background: linear-gradient(180deg, #e8a0a8 0%, #f0b8c0 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── R26 flourish SVG dark mode ─────────────────────────────────────── */
+.menu-flourish-line {
+  stroke: #c9a84c;
+}
+.menu-flourish-diamond {
+  fill: #c9a84c;
+}
+[data-theme="dark"] .menu-flourish-line {
+  stroke: #f0cc7a;
+}
+[data-theme="dark"] .menu-flourish-diamond {
+  fill: #f0cc7a;
 }
