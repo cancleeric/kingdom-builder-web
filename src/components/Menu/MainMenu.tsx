@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, lazy, Suspense } from 'react';
 import { useTranslation } from 'react-i18next';
 import { loadGame, clearSave } from '../../store/persistence';
 import { gameStore } from '../../store/gameStore';
@@ -18,9 +18,15 @@ import {
   PlayIcon,
   ConnectedIcon,
 } from '../icons';
-import { LeaderboardModal } from '../Game/LeaderboardModal';
-import { ReplayModal } from '../Game/ReplayModal';
 import { AchievementPanel } from '../Game/AchievementPanel';
+import { ModalLoadingFallback } from '../UI/ModalLoadingFallback';
+
+const LeaderboardModal = lazy(() =>
+  import('../Game/LeaderboardModal').then(m => ({ default: m.LeaderboardModal }))
+)
+const ReplayModal = lazy(() =>
+  import('../Game/ReplayModal').then(m => ({ default: m.ReplayModal }))
+)
 import { SettingsModal } from './SettingsModal';
 import { getVolume, setVolume } from '../../utils/soundEngine';
 
@@ -339,8 +345,16 @@ export function MainMenu({
       </div>
 
       {/* Modals */}
-      <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
-      <ReplayModal isOpen={replayOpen} onClose={() => setReplayOpen(false)} />
+      {leaderboardOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <LeaderboardModal isOpen={leaderboardOpen} onClose={() => setLeaderboardOpen(false)} />
+        </Suspense>
+      )}
+      {replayOpen && (
+        <Suspense fallback={<ModalLoadingFallback />}>
+          <ReplayModal isOpen={replayOpen} onClose={() => setReplayOpen(false)} />
+        </Suspense>
+      )}
       {achievementOpen && <AchievementPanel onClose={() => setAchievementOpen(false)} />}
       <SettingsModal
         isOpen={settingsOpen}
