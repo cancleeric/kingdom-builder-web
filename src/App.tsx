@@ -728,7 +728,7 @@ function App() {
 
           {/* Mobile floating action bar (< md) — safe-area aware */}
           <div
-            className="lg:hidden flex items-center gap-2 px-4 py-3 flex-shrink-0"
+            className="lg:hidden flex items-center gap-2 px-4 pt-3 pb-14 flex-shrink-0"
             style={{
               backgroundColor: 'var(--color-surface)',
               borderTop: '1px solid var(--card-border)',

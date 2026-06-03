@@ -133,8 +133,8 @@ export const BottomDrawer: React.FC<BottomDrawerProps> = ({
           onKeyDown={e => e.key === 'Enter' && onToggle()}
         >
           <div
-            className="w-10 h-1 rounded-full mb-1"
-            style={{ backgroundColor: 'var(--color-stone-300)' }}
+            className="w-12 h-1.5 rounded-full mb-1"
+            style={{ backgroundColor: 'var(--color-stone-400)' }}
           />
           <div
             className="flex items-center justify-between w-full px-4 py-1"
