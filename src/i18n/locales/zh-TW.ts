@@ -472,6 +472,12 @@ export const zhTW = {
     confirm: '離開遊戲',
     cancel: '繼續遊戲',
   },
+  newGameOverwrite: {
+    title: '開始新遊戲？',
+    body: '你有一局進行中的遊戲。開始新局將覆蓋現有存檔，舊局無法恢復。',
+    confirm: '開始新局',
+    cancel: '返回',
+  },
   mapEditor: {
     title: '地圖編輯器',
     subtitle: '設計你的自訂地圖',

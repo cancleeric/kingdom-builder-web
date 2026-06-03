@@ -474,6 +474,12 @@ export const en = {
     confirm: 'Leave Game',
     cancel: 'Keep Playing',
   },
+  newGameOverwrite: {
+    title: 'Start a New Game?',
+    body: 'You have a game in progress. Starting a new game will overwrite your saved progress and it cannot be recovered.',
+    confirm: 'Start New Game',
+    cancel: 'Go Back',
+  },
   mapEditor: {
     title: 'Map Editor',
     subtitle: 'Design your custom map',
