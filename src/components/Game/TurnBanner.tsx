@@ -118,8 +118,11 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
               aria-label={t('app.drawTerrainCardAria')}
               data-tutorial-target="draw-card-button"
               className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
-                bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
+                disabled:opacity-50 disabled:cursor-not-allowed
                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-warm-cream-200)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}
             >
               <DrawCardIcon size={16} />
               {t('app.drawTerrainCard')}
@@ -134,8 +137,11 @@ export const TurnBanner: React.FC<TurnBannerProps> = ({
               disabled={!canControlActions}
               aria-label={t('app.endTurnAria')}
               className="flex items-center gap-1.5 text-sm font-bold px-3 py-1.5 rounded-lg transition
-                bg-white text-gray-800 hover:bg-gray-100 disabled:opacity-50 disabled:cursor-not-allowed
+                disabled:opacity-50 disabled:cursor-not-allowed
                 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-white"
+              style={{ background: 'var(--color-surface)', color: 'var(--color-text)' }}
+              onMouseEnter={e => (e.currentTarget.style.background = 'var(--color-warm-cream-200)')}
+              onMouseLeave={e => (e.currentTarget.style.background = 'var(--color-surface)')}
             >
               <EndTurnIcon size={16} />
               {t('app.endTurn')}

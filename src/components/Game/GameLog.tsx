@@ -56,7 +56,7 @@ export const GameLog = React.memo(function GameLog({ history, players }: GameLog
     return (
       <div className="mb-4">
         <h3 className="text-lg font-semibold mb-2">{t('gameLog.heading')}</h3>
-        <p className="text-xs text-gray-400 italic">{t('gameLog.empty')}</p>
+        <p className="text-xs italic" style={{ color: 'var(--color-stone-400)' }}>{t('gameLog.empty')}</p>
       </div>
     );
   }
@@ -82,7 +82,7 @@ export const GameLog = React.memo(function GameLog({ history, players }: GameLog
               </span>{' '}
               {actionLabel(action, t)}
               {action.acquiredTile && (
-                <span className="ml-1 text-gray-500">
+                <span className="ml-1" style={{ color: 'var(--color-stone-500)' }}>
                   {t('gameLog.acquiredTile', {
                     emoji: LOCATION_EMOJI[action.acquiredTile] ?? '',
                     tile: tLocation(t, action.acquiredTile),
