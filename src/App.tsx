@@ -556,6 +556,12 @@ function App() {
             onBack={() => setMenuMode('home')}
           />
           <TutorialOverlay />
+          {/* New-game overwrite confirmation — rendered here because game hasn't started yet */}
+          <NewGameOverwriteConfirmModal
+            isOpen={newGameConfirmOpen}
+            onConfirm={handleNewGameConfirm}
+            onCancel={handleNewGameCancel}
+          />
         </>
       );
     }
