@@ -172,11 +172,11 @@
 
   /* ── R26 主選單英雄視覺 token ─────────────────────────────────────────── */
   --menu-vignette-light: radial-gradient(
-    ellipse 80% 70% at 50% 40%,
+    ellipse 78% 68% at 50% 40%,
     transparent 0%,
     transparent 45%,
-    oklch(0.39 0.075 24 / 0.12) 75%,
-    oklch(0.25 0.055 20 / 0.22) 100%
+    oklch(0.39 0.075 24 / 0.18) 74%,
+    oklch(0.24 0.055 20 / 0.34) 100%
   );
   --menu-vignette-dark: radial-gradient(
     ellipse 80% 70% at 50% 40%,
@@ -187,8 +187,8 @@
   );
   --menu-title-size-mobile: 3rem;
   --menu-title-size-desktop: 3.5rem;
-  --menu-skyline-opacity-light: 0.07;
-  --menu-skyline-opacity-dark: 0.05;
+  --menu-skyline-opacity-light: 0.14;
+  --menu-skyline-opacity-dark: 0.10;
 
   /* ── R24-C 棋盤環境框 token ──────────────────────────────────────────── */
   /* 木紋桌面背景 (light) */

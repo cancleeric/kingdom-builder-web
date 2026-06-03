@@ -64,19 +64,19 @@ export function KingdomCrest({ size = 'lg', isDark = false, style }: KingdomCres
         fill={shieldBg}
       />
 
-      {/* ── 皇冠（盾上半段中央） ── */}
-      {/* 底座 */}
-      <rect x="40" y="26" width="40" height="8" rx="2" fill={gold} />
-      {/* 左齒 */}
-      <rect x="40" y="16" width="8"  height="12" rx="1" fill={gold} />
-      {/* 中齒（最高） */}
-      <rect x="56" y="12" width="8"  height="16" rx="1" fill={gold} />
-      {/* 右齒 */}
-      <rect x="72" y="16" width="8"  height="12" rx="1" fill={gold} />
-      {/* 三顆珠 */}
-      <circle cx="44" cy="14" r="3" fill={gold} />
-      <circle cx="60" cy="10" r="3" fill={gold} />
-      <circle cx="76" cy="14" r="3" fill={gold} />
+      {/* ── 皇冠（盾上半段中央，尖頂冠 + 寶石 + 明珠） ── */}
+      {/* 冠身：3 尖頂 + 谷（非矩形塊，讀作皇冠） */}
+      <path d="M39 32 L46 18 L53 27 L60 14 L67 27 L74 18 L81 32 Z" fill={gold} />
+      {/* 冠帶 */}
+      <rect x="37" y="31" width="46" height="8" rx="2" fill={gold} />
+      {/* 冠帶寶石（酒紅） */}
+      <circle cx="60" cy="35" r="2.4" fill={wine} />
+      <circle cx="48" cy="35" r="1.5" fill={wine} opacity="0.8" />
+      <circle cx="72" cy="35" r="1.5" fill={wine} opacity="0.8" />
+      {/* 尖頂明珠（金，酒紅細描邊增辨識） */}
+      <circle cx="46" cy="16" r="2.8" fill={gold} stroke={wine} strokeWidth="0.5" />
+      <circle cx="60" cy="12" r="3.2" fill={gold} stroke={wine} strokeWidth="0.5" />
+      <circle cx="74" cy="16" r="2.8" fill={gold} stroke={wine} strokeWidth="0.5" />
 
       {/* ── 盾外框雙線 ── */}
       {/* 外描邊（酒紅，粗） */}
