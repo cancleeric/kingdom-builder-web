@@ -3,6 +3,7 @@ import { Board } from '../../core/board';
 import { AxialCoord, hexEquals, HEX_SIZE, axialToPixel } from '../../core/hex';
 import { HexCell } from './HexCell';
 import { TerrainDefs } from './TerrainDefs';
+import { PieceDefs } from './PieceDefs';
 import { Player, HexCell as HexCellData } from '../../types';
 import { useBoardTransform, Transform } from '../../hooks/useBoardTransform';
 import { useTranslation } from 'react-i18next';
@@ -412,6 +413,9 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           {/* 共用 terrain defs：gradient / motif symbol / feather mask / grain filter
               只注入一次，400 格 HexCell 以 url(#...) / <use> 引用，不 inline 重複定義 */}
           <TerrainDefs />
+          {/* R24-B 棋子 defs：9 種地點 symbol + 共用 drop-shadow filter
+              LocationMarker 以 <use href="#piece-{location}"> 引用 */}
+          <PieceDefs />
           {/* grain-overlay 套在容器層（O(1) 效能方案）：整 SVG 畫布計算一次 feTurbulence，402 格共用 */}
           <g filter="url(#grain-overlay)">
           <g transform={`translate(${gridOffset}, ${gridOffset})`}>
