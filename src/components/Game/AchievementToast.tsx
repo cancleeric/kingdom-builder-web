@@ -28,7 +28,10 @@ export function AchievementToast() {
       aria-live="polite"
       className="fixed bottom-24 left-1/2 -translate-x-1/2 z-50 animate-achievement-bounce-in"
     >
-      <div className="bg-yellow-400 text-yellow-900 rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 max-w-xs">
+      <div
+        className="rounded-2xl shadow-xl px-6 py-4 flex items-center gap-3 max-w-xs"
+        style={{ background: 'var(--color-amber-400)', color: 'var(--color-amber-900)' }}
+      >
         <span className="text-3xl" aria-hidden="true">🏅</span>
         <div>
           <p className="text-xs font-semibold uppercase tracking-wide">
