@@ -121,17 +121,7 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
         opacity={0.9}
       />
 
-      {/* 頂部受光 sheen（hover 高亮時隱藏，避免蓋掉黃色） */}
-      {!isHoverHighlight && (
-        <polygon
-          points={points}
-          fill="url(#sheen-top)"
-          stroke="none"
-          pointerEvents="none"
-        />
-      )}
-
-      {/* 立體地形 motif 層（草叢/林冠/沙丘/花朵/岩裂/波光/雪峰）
+      {/* 扁平地形 motif 層（草叢/林冠/沙丘/花朵/岩裂/波光/雪峰）
           套 center-feather-mask：中心羽化透明，留棋子/icon 空間
           pointerEvents="none" 不擋點擊 */}
       {!isHoverHighlight && (
@@ -142,16 +132,6 @@ export const HexCell: React.FC<HexCellProps> = React.memo(({
           width={52}
           height={60}
           mask="url(#center-feather-mask)"
-          pointerEvents="none"
-        />
-      )}
-
-      {/* Vignette 暗角（邊緣暗角加強立體地塊厚度感，hover 時隱藏） */}
-      {!isHoverHighlight && (
-        <polygon
-          points={points}
-          fill="url(#vignette-grad)"
-          stroke="none"
           pointerEvents="none"
         />
       )}
