@@ -409,9 +409,11 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
           preserveAspectRatio="xMidYMid meet"
           role="none"
         >
-          {/* 共用 terrain defs：gradient / motif symbol / feather mask / vignette filter
+          {/* 共用 terrain defs：gradient / motif symbol / feather mask / grain filter
               只注入一次，400 格 HexCell 以 url(#...) / <use> 引用，不 inline 重複定義 */}
           <TerrainDefs />
+          {/* grain-overlay 套在容器層（O(1) 效能方案）：整 SVG 畫布計算一次 feTurbulence，402 格共用 */}
+          <g filter="url(#grain-overlay)">
           <g transform={`translate(${gridOffset}, ${gridOffset})`}>
             {sortedRows.map(([, rowCells]) => (
               <g key={`row-${rowCells[0]?.coord.r}`} role="row">
@@ -488,6 +490,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
               </g>
             ))}
           </g>
+          </g>{/* end grain-overlay container */}
         </svg>
       </div>
     </div>
