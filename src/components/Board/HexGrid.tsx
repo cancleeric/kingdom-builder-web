@@ -82,6 +82,8 @@ interface HexGridProps {
   onEditCellPaint?: (coord: AxialCoord) => void;
   editMode?: 'paint' | 'pan';
   onInvalidClick?: (coord: AxialCoord) => void;
+  /** R30: "q,r" key of the most-recently invalid-clicked cell; drives shake/flash */
+  invalidClickKey?: string | null;
 }
 
 export const HexGrid: React.FC<HexGridProps> = React.memo(({
@@ -97,6 +99,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   onEditCellPaint,
   editMode = 'paint',
   onInvalidClick,
+  invalidClickKey,
 }) => {
   const { t } = useTranslation();
   // Read-only: detect if current player is a bot for highlight emphasis (R29)
@@ -129,6 +132,17 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
   const svgRef = useRef<SVGSVGElement>(null);
 
   const cells = board.getAllCells();
+
+  // ── R30: track which invalid-clicked cell should shake/flash ─────────────
+  const [invalidFlashKey, setInvalidFlashKey] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!invalidClickKey) return;
+    setInvalidFlashKey(invalidClickKey);
+    const timer = setTimeout(() => setInvalidFlashKey(null), 400);
+    return () => clearTimeout(timer);
+  }, [invalidClickKey]);
+  // ──────────────────────────────────────────────────────────────────────────
 
   // ── UI-only: track the most recently placed settlement cell ────────────────
   // We compare the set of settlement keys before/after board changes.
@@ -457,6 +471,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                   const key = `${cell.coord.q},${cell.coord.r}`;
                   const isEntry = entryCoord !== null && hexEquals(cell.coord, entryCoord);
                   const isRecentlyPlaced = recentlyPlacedKey === key;
+                  const isInvalidFlash = invalidFlashKey === key;
 
                   return (
                     <HexCell
@@ -468,6 +483,7 @@ export const HexGrid: React.FC<HexGridProps> = React.memo(({
                       isFocused={isFocused}
                       isRecentlyPlaced={isRecentlyPlaced}
                       isBotPlacement={isRecentlyPlaced && isCurrentPlayerBot}
+                      isInvalidFlash={isInvalidFlash}
                       playerColor={playerColor}
                       playerName={playerName}
                       tabIndex={isEntry ? 0 : -1}

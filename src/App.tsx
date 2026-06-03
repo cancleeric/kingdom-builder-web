@@ -20,7 +20,7 @@ import { LocationTileCard, LocationTileIcon } from './components/Game/LocationTi
 import { GamePhase } from './types'
 import type { PlayerConfig, GameOptions } from './types'
 import type { Board } from './core/board'
-import { Location } from './core/terrain'
+import { Location, isBuildable } from './core/terrain'
 import { scoreCastle, scoreObjectiveCard } from './core/scoring'
 import { initAudio, playSound, isMuted, setMuted, SoundType } from './utils/soundEngine'
 import { InstallPrompt } from './components/InstallPrompt'
@@ -34,6 +34,7 @@ import { useLeaderboardStore } from './store/leaderboardStore'
 import { ReplayModal } from './components/Game/ReplayModal'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
+import { InvalidHintToast } from './components/Game/InvalidHintToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
 import { SeasonHistory } from './components/Game/SeasonHistory'
@@ -122,6 +123,45 @@ function ScoreRow({ playerId, playerName, playerColor, total, isLeader, summaryT
       </p>
     </div>
   );
+}
+
+/**
+ * R30: Derive a human-readable hint message explaining why a cell is invalid.
+ * Pure function — reads gameStore via getState() (safe in event handler context,
+ * does NOT subscribe and will NOT cause re-renders).
+ * Only imports isBuildable for read-only terrain check; never touches rules.ts actions.
+ */
+function deriveInvalidHint(
+  coord: { q: number; r: number },
+  t: ReturnType<typeof useTranslation>['t'],
+): string {
+  const { board, currentTerrainCard, placementsThisTurn } = useGameStore.getState();
+  if (!board || !currentTerrainCard) return t('hint.invalid.not_valid');
+
+  const cell = board.getCell(coord);
+  if (!cell) return t('hint.invalid.not_valid');
+
+  // Priority 1: cell already occupied
+  if (cell.settlement !== undefined) {
+    return t('hint.invalid.occupied');
+  }
+
+  // Priority 2: unbuildable terrain (Mountain / Water)
+  if (!isBuildable(cell.terrain)) {
+    return t('hint.invalid.terrain_unbuildable', { terrain: tTerrain(t, cell.terrain) });
+  }
+
+  // Priority 3: terrain doesn't match current card
+  if (cell.terrain !== currentTerrainCard.terrain) {
+    return t('hint.invalid.wrong_terrain', { terrain: tTerrain(t, currentTerrainCard.terrain) });
+  }
+
+  // Priority 4: adjacency rule (subsequent placements must be adjacent to earlier ones)
+  if (placementsThisTurn.length > 0) {
+    return t('hint.invalid.must_be_adjacent');
+  }
+
+  return t('hint.invalid.not_valid');
 }
 
 function App() {
@@ -435,17 +475,30 @@ function App() {
     }
   }
 
-  // INVALID: play sound when clicking a non-valid cell during PlaceSettlements
+  // INVALID: play sound + show visual feedback when clicking a non-valid cell
   const invalidClickTimestampRef = useRef(0);
+  const [invalidClickKey, setInvalidClickKey] = useState<string | null>(null);
+  const [invalidHintMsg, setInvalidHintMsg] = useState<string | null>(null);
+  const invalidHintTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const handleInvalidCellClick = (_coord: { q: number; r: number }) => {
+  const handleInvalidCellClick = (coord: { q: number; r: number }) => {
     if (!canControlActions) return;
     if (phase !== GamePhase.PlaceSettlements) return;   // 只在放聚落相響
     const now = Date.now();
     if (now - invalidClickTimestampRef.current < 100) return;
     invalidClickTimestampRef.current = now;
-    console.log('[sound] INVALID click');
+
+    // 1. 保留既有音效
     playSound(SoundType.INVALID);
+
+    // 2. 視覺 shake/flash
+    setInvalidClickKey(`${coord.q},${coord.r}`);
+
+    // 3. hint toast：推導無效原因，1800ms 後自動消失
+    const hint = deriveInvalidHint(coord, t);
+    if (invalidHintTimerRef.current) clearTimeout(invalidHintTimerRef.current);
+    setInvalidHintMsg(hint);
+    invalidHintTimerRef.current = setTimeout(() => setInvalidHintMsg(null), 1800);
   };
 
   const liveScores = players.map(p => ({
@@ -816,6 +869,7 @@ function App() {
                 onCellSelect={selectCell}
                 onEscape={handleEscape}
                 onInvalidClick={handleInvalidCellClick}
+                invalidClickKey={invalidClickKey}
               />
               </div>
             )}
@@ -1372,6 +1426,9 @@ function App() {
 
       {/* Achievement unlock toast notification */}
       <AchievementToast />
+
+      {/* R30: Invalid placement hint toast */}
+      <InvalidHintToast message={invalidHintMsg} />
 
       {/* Quit-to-menu confirmation modal */}
       <QuitToMenuConfirmModal
