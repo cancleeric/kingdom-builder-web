@@ -133,7 +133,7 @@ export function GameSetup({ onStart, onBack }: GameSetupProps) {
       style={{ background: 'var(--texture-parchment)', backgroundColor: 'var(--color-warm-cream-100)' }}
     >
       <div
-        className="rounded-20 w-full max-w-lg p-8"
+        className="rounded-20 w-full max-w-lg p-6 sm:p-8"
         style={{
           backgroundColor: 'var(--card-bg)',
           boxShadow: 'var(--shadow-lifted)',
