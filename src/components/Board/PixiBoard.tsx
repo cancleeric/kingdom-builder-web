@@ -11,11 +11,11 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Application, Graphics, Container, NoiseFilter } from 'pixi.js';
+import { Application, Graphics, Container, NoiseFilter, Assets, Sprite, Texture } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import type { Board } from '../../core/board';
 import type { AxialCoord } from '../../core/hex';
-import { HEX_SIZE, hexToKey, pixelToAxial } from '../../core/hex';
+import { HEX_SIZE, hexToKey, pixelToAxial, axialToPixel } from '../../core/hex';
 import type { Player } from '../../types';
 import { Location } from '../../core/terrain';
 import { getTerrainColor } from '../../core/terrain';
@@ -30,6 +30,7 @@ import {
   drawLocationDot,
 } from './pixiHexUtils';
 import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
+import { MOTIF_DATA_URLS } from './motifTextures';
 import { useTranslation } from 'react-i18next';
 
 // ─── Location indicator colours (functional, not R24 art) ───────────────────
@@ -82,6 +83,11 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
   const locationGfxMap = useRef<Map<string, Graphics>>(new Map());
+
+  // R36 Phase 2b-1: motif Sprite map — keyed by "q,r"
+  const motifSpriteMap = useRef<Map<string, Sprite>>(new Map());
+  // R36 Phase 2b-1: motif Texture map (for cleanup) — keyed by motif key e.g. "Grass-a"
+  const motifTextureMapRef = useRef<Map<string, Texture>>(new Map());
 
   // Board geometry (computed once on mount)
   const worldInfoRef = useRef<{
@@ -145,7 +151,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
 
   // ─── Build initial Pixi scene ─────────────────────────────────────────────
   const buildScene = useCallback(
-    (viewport: Viewport, b: Board, gridOffset: number) => {
+    (viewport: Viewport, b: Board, gridOffset: number, motifTextureMap: Map<string, Texture>) => {
       const hexContainer = new Container();
       // Translate by gridOffset so hex (0,0) is not at the canvas corner
       hexContainer.position.set(gridOffset, gridOffset);
@@ -181,6 +187,22 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         }
         terrainLayer.addChild(tg);
         terrainGfxMap.current.set(key, tg);
+
+        // R36 Phase 2b-1: motif Sprite — inserted after tg, before log
+        // tg 在 terrainLayer 的 index = terrainLayer.children.length - 1（剛加入）
+        const motifKey = `${terrainName}-${variant}`;
+        const motifTex = motifTextureMap.get(motifKey);
+        if (motifTex) {
+          const motifSprite = new Sprite(motifTex);
+          motifSprite.anchor.set(0.5, 0.5);
+          const center = axialToPixel(cell.coord, HEX_SIZE);
+          motifSprite.position.set(center.x, center.y);
+          motifSprite.width = 52;
+          motifSprite.height = 60;
+          // 插在 tg 之後（tg 是 terrainLayer 最後一個 child，indexOf 取其 index + 1）
+          terrainLayer.addChildAt(motifSprite, terrainLayer.children.indexOf(tg) + 1);
+          motifSpriteMap.current.set(key, motifSprite);
+        }
 
         // Light overlay layer (R36 Phase 2a: directional light above terrain)
         const log = new Graphics();
@@ -352,8 +374,38 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         setZoomScale(vp.scaled);
       });
 
+      // R36 Phase 2b-1: 預載 21 個 motif texture
+      const motifTextureMap = new Map<string, Texture>();
+      for (const [key, dataUrl] of Object.entries(MOTIF_DATA_URLS)) {
+        const tex = await Assets.load<Texture>({
+          src: dataUrl,
+          data: {
+            width: 52,
+            height: 60,
+            resolution: window.devicePixelRatio || 1,
+          },
+        });
+        motifTextureMap.set(key, tex);
+      }
+      // StrictMode guard：預載途中如 initializedRef 已被重設，卸載並返回
+      if (!initializedRef.current) {
+        for (const tex of motifTextureMap.values()) {
+          tex.destroy();
+        }
+        for (const [key, dataUrl] of Object.entries(MOTIF_DATA_URLS)) {
+          if (motifTextureMap.has(key)) {
+            Assets.unload(dataUrl).catch(() => { /* suppress */ });
+          }
+        }
+        app.destroy(true, { children: true, texture: true });
+        return;
+      }
+
+      // 存入 ref 供 cleanup 使用
+      motifTextureMapRef.current = motifTextureMap;
+
       // Build scene
-      buildScene(vp, boardRef.current, gridOffset);
+      buildScene(vp, boardRef.current, gridOffset, motifTextureMap);
 
       // Initial overlay render
       updateScene(
@@ -401,6 +453,16 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
     // Cleanup
     return () => {
       initializedRef.current = false;
+      // R36 Phase 2b-1: cleanup motif Sprites
+      motifSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
+      motifSpriteMap.current.clear();
+      // R36 Phase 2b-1: cleanup motif Textures
+      motifTextureMapRef.current.forEach((tex, key) => {
+        try { tex.destroy(); } catch { /* suppress */ }
+        const dataUrl = MOTIF_DATA_URLS[key];
+        if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
+      });
+      motifTextureMapRef.current.clear();
       if (appRef.current) {
         try {
           appRef.current.destroy(true, { children: true, texture: true });
