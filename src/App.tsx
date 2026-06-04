@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState, lazy, Suspense } from 'react'
 import { useShallow } from 'zustand/react/shallow'
 import { useGameStore } from './store/gameStore'
-import { HexGrid } from './components/Board/HexGrid'
+import { PixiBoard } from './components/Board/PixiBoard'
 import { GameOver } from './components/Game/GameOver'
 import { GameLog } from './components/Game/GameLog'
 import { BottomDrawer } from './components/Mobile/BottomDrawer'
@@ -525,10 +525,6 @@ function App() {
   const currentPlayerObjectiveScores =
     liveScores.find(playerScore => playerScore.playerId === currentPlayer?.id)?.objectives ?? []
 
-  const handleEscape = () => {
-    selectCell(null);
-  };
-
   const handleRestart = () => {
     if (isNetworkGame) {
       leaveRoom();
@@ -881,7 +877,7 @@ function App() {
           >
             {players.length > 0 && (
               <div className="w-full h-full" data-tutorial-target="hex-grid">
-              <HexGrid
+              <PixiBoard
                 board={board}
                 validPlacements={
                   activeTile && (activeTile === Location.Paddock || activeTile === Location.Barn)
@@ -892,7 +888,6 @@ function App() {
                 players={players}
                 onCellClick={handleCellClick}
                 onCellSelect={selectCell}
-                onEscape={handleEscape}
                 onInvalidClick={handleInvalidCellClick}
                 invalidClickKey={invalidClickKey}
               />
