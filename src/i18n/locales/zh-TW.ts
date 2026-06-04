@@ -35,7 +35,7 @@ export const zhTW = {
     Tavern: '酒館',
   },
   locationDescription: {
-    Castle: '每個相鄰城堡的聚落可得分（依目標卡計算）。',
+    Castle: '相鄰城堡的每個己方聚落得 3 分（固定計分，一律套用）。',
     Farm: '在任意空的草原格放置 1 個額外聚落。',
     Harbor: '在任意空的可建造且相鄰水域的格子放置 1 個額外聚落。',
     Oasis: '在任意空的沙漠格放置 1 個額外聚落。',

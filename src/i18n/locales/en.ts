@@ -35,7 +35,7 @@ export const en = {
     Tavern: 'Tavern',
   },
   locationDescription: {
-    Castle: 'Settlements adjacent to a Castle score points (per objective card).',
+    Castle: 'Each of your settlements adjacent to a Castle scores 3 points (always applied).',
     Farm: 'Place 1 extra settlement on any empty Grass cell.',
     Harbor: 'Place 1 extra settlement on any empty buildable cell adjacent to Water.',
     Oasis: 'Place 1 extra settlement on any empty Desert cell.',
