@@ -1,10 +1,16 @@
 /**
  * Pixi v8 drawing utilities for hex grid rendering.
  * Wraps core/hex.ts functions — no logic duplication.
+ *
+ * R36 Phase 2a additions:
+ *   - drawHexGradient(): terrain gradient fill (FillGradient, local space)
+ *   - drawHexLightOverlay(): directional light overlay (3-stop gradient)
  */
-import { Graphics } from 'pixi.js';
+import { Graphics, FillGradient } from 'pixi.js';
 import { axialToPixel, hexCorners, HEX_SIZE } from '../../core/hex';
 import type { AxialCoord } from '../../core/hex';
+import type { TerrainGradient } from './terrainArt';
+import { LIGHT_OVERLAY_STOPS } from './terrainArt';
 
 /**
  * CSS hex color string (#rrggbb or #rgb) to Pixi number (0xRRGGBB).
@@ -126,4 +132,92 @@ export function drawLocationDot(g: Graphics, coord: AxialCoord, color: number): 
   g.clear();
   g.circle(center.x, center.y - HEX_SIZE * 0.25, HEX_SIZE * 0.18);
   g.fill({ color, alpha: 0.85 });
+}
+
+// ─── R36 Phase 2a: Gradient drawing utilities ────────────────────────────────
+
+/**
+ * Draw a hex polygon filled with a linear gradient (R36 Phase 2a).
+ *
+ * Uses Pixi v8 FillGradient with textureSpace:'local' so coordinates 0-1
+ * map to the shape's bounding box — exactly matching SVG objectBoundingBox.
+ *
+ * Direction: top-left → bottom-right, matching TerrainDefs.tsx
+ * linearGradient x1="0.15" y1="0" x2="0.85" y2="1"
+ *
+ * @param g       Graphics object (will be cleared first)
+ * @param coord   Axial coordinate
+ * @param grad    Gradient definition with stop0 and stop1 colors
+ */
+export function drawHexGradient(
+  g: Graphics,
+  coord: AxialCoord,
+  grad: TerrainGradient,
+): void {
+  const corners = hexCorners(coord, HEX_SIZE);
+  g.clear();
+
+  // FillGradient v8 new-style API: textureSpace 'local' = coords 0-1 relative to shape bounds
+  // Matches SVG objectBoundingBox: x1=0.15 y1=0 x2=0.85 y2=1
+  const gradient = new FillGradient({
+    type: 'linear',
+    start: { x: 0.15, y: 0 },
+    end:   { x: 0.85, y: 1 },
+    textureSpace: 'local',
+    colorStops: [
+      { offset: 0, color: grad.stop0 },
+      { offset: 1, color: grad.stop1 },
+    ],
+  });
+
+  // Draw hex path with gradient fill + thin dark stroke for cell separation
+  g.setStrokeStyle({ width: 0.3, color: 0x000000, alpha: 0.3 });
+  g.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < 6; i++) {
+    g.lineTo(corners[i].x, corners[i].y);
+  }
+  g.closePath();
+  g.fill({ fill: gradient });
+  g.stroke();
+}
+
+/**
+ * Draw a directional light overlay on a hex cell (R36 Phase 2a).
+ *
+ * Replicates TerrainDefs.tsx `#light-overlay`:
+ *   top-left 18% white → mid 4% white → bottom-right 8% black
+ *
+ * Uses rgba string ColorSource to encode per-stop alpha in FillGradient.
+ * Layered above terrain, below location/overlay/settlement.
+ *
+ * @param g     Graphics object (will be cleared first)
+ * @param coord Axial coordinate
+ */
+export function drawHexLightOverlay(
+  g: Graphics,
+  coord: AxialCoord,
+): void {
+  const corners = hexCorners(coord, HEX_SIZE);
+  g.clear();
+
+  // 3-stop gradient matching TerrainDefs.tsx #light-overlay
+  // ColorSource accepts rgba string for per-stop alpha
+  const gradient = new FillGradient({
+    type: 'linear',
+    start: { x: 0, y: 0 },
+    end:   { x: 1, y: 1 },
+    textureSpace: 'local',
+    colorStops: [
+      { offset: LIGHT_OVERLAY_STOPS[0].offset, color: `rgba(255,255,255,${LIGHT_OVERLAY_STOPS[0].alpha})` },
+      { offset: LIGHT_OVERLAY_STOPS[1].offset, color: `rgba(255,255,255,${LIGHT_OVERLAY_STOPS[1].alpha})` },
+      { offset: LIGHT_OVERLAY_STOPS[2].offset, color: `rgba(0,0,0,${LIGHT_OVERLAY_STOPS[2].alpha})` },
+    ],
+  });
+
+  g.moveTo(corners[0].x, corners[0].y);
+  for (let i = 1; i < 6; i++) {
+    g.lineTo(corners[i].x, corners[i].y);
+  }
+  g.closePath();
+  g.fill({ fill: gradient });
 }
