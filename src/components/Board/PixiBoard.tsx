@@ -17,7 +17,6 @@ import type { Board } from '../../core/board';
 import type { AxialCoord } from '../../core/hex';
 import { HEX_SIZE, hexToKey, pixelToAxial, axialToPixel } from '../../core/hex';
 import type { Player } from '../../types';
-import { Location } from '../../core/terrain';
 import { getTerrainColor } from '../../core/terrain';
 import {
   cssColorToPixi,
@@ -26,25 +25,11 @@ import {
   drawHexGradient,
   drawHexLightOverlay,
   drawSettlementCircle,
-  drawCastleMarker,
-  drawLocationDot,
 } from './pixiHexUtils';
 import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
 import { MOTIF_DATA_URLS } from './motifTextures';
 import { PIECE_DATA_URLS } from './pieceTextures';
 import { useTranslation } from 'react-i18next';
-
-// ─── Location indicator colours (functional, not R24 art) ───────────────────
-const LOCATION_COLORS: Record<string, number> = {
-  [Location.Farm]:    0x8BC34A,
-  [Location.Oasis]:   0x00BCD4,
-  [Location.Tower]:   0x9E9E9E,
-  [Location.Harbor]:  0x1565C0,
-  [Location.Paddock]: 0x795548,
-  [Location.Barn]:    0xF57F17,
-  [Location.Oracle]:  0x7B1FA2,
-  [Location.Tavern]:  0xE53935,
-};
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 export interface PixiBoardProps {
@@ -83,7 +68,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const lightOverlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
-  const locationGfxMap = useRef<Map<string, Graphics>>(new Map());
 
   // R36 Phase 2b-1: motif Sprite map — keyed by "q,r"
   const motifSpriteMap = useRef<Map<string, Sprite>>(new Map());
@@ -524,7 +508,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       lightOverlayGfxMap.current.clear();
       overlayGfxMap.current.clear();
       settlementGfxMap.current.clear();
-      locationGfxMap.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only runs on mount
