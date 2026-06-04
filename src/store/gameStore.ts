@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { saveGame, loadGame } from './persistence';
 import type { SerializableGameState } from './persistence';
-import { Board, createDefaultBoard, createBoardForSize } from '../core/board';
+import { Board, createDefaultBoard, createBoardForSize, createModularBoard } from '../core/board';
 import { TerrainCard, createTerrainDeck, shuffleDeck, drawCard } from '../core/terrain';
 import { isBuildable } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
@@ -266,7 +266,11 @@ export const gameStore = create<GameState>((set, get) => ({
     }));
 
     set({
-      board: customBoard ?? createBoardForSize(resolvedOptions.boardSize),
+      board:
+        customBoard ??
+        (resolvedOptions.boardSize === 'large'
+          ? createModularBoard({ seed: resolvedOptions.mapSeed })
+          : createBoardForSize(resolvedOptions.boardSize)),
       players,
       currentPlayerIndex: 0,
       phase: GamePhase.DrawCard,

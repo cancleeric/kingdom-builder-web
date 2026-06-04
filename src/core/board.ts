@@ -1,6 +1,22 @@
 import { AxialCoord, hexToKey } from './hex';
-import { Terrain, Location } from './terrain';
+import { Terrain, Location, isBuildable } from './terrain';
 import { HexCell, BoardSize } from '../types';
+import {
+  QUADRANT_TEMPLATES,
+  QuadrantInstance,
+  QuadrantRotation,
+  expandAndRotateTemplate,
+} from './quadrants';
+import { setGlobalSeed, getRandom } from '../utils/seededRandom';
+
+// ────────────────────────────────────────────────────────────────
+// BoardMeta — stored for seed replay (does NOT affect gameplay)
+// ────────────────────────────────────────────────────────────────
+
+export interface BoardMeta {
+  mapSeed: number;
+  quadrantInstances: QuadrantInstance[]; // [NW, NE, SW, SE]
+}
 
 /**
  * Board class managing the hex grid
@@ -9,6 +25,8 @@ export class Board {
   public cells: Map<string, HexCell>;
   public readonly width: number;
   public readonly height: number;
+  /** Optional generation metadata — used for seed replay only, not gameplay */
+  public meta?: BoardMeta;
 
   constructor(width: number = 20, height: number = 20) {
     this.width = width;
@@ -91,23 +109,216 @@ export class Board {
 }
 
 /**
- * Serialize a board to a plain object (for JSON persistence)
+ * Serialize a board to a plain object (for JSON persistence).
+ * meta is included as an optional field for seed replay; its absence does
+ * not affect deserialization (old saves remain fully compatible).
  */
-export function serializeBoard(board: Board): { width: number; height: number; cells: [string, HexCell][] } {
+export function serializeBoard(board: Board): {
+  width: number;
+  height: number;
+  cells: [string, HexCell][];
+  meta?: BoardMeta;
+} {
   return {
     width: board.width,
     height: board.height,
     cells: Array.from(board.cells.entries()),
+    ...(board.meta ? { meta: board.meta } : {}),
   };
 }
 
 /**
- * Deserialize a board from a plain object
+ * Deserialize a board from a plain object.
+ * Works with both old saves (no meta) and new saves (with meta).
  */
-export function deserializeBoard(data: { width: number; height: number; cells: [string, HexCell][] }): Board {
+export function deserializeBoard(data: {
+  width: number;
+  height: number;
+  cells: [string, HexCell][];
+  meta?: BoardMeta;
+}): Board {
   const board = new Board(data.width, data.height);
   board.cells = new Map(data.cells);
+  if (data.meta) board.meta = data.meta;
   return board;
+}
+
+// ────────────────────────────────────────────────────────────────
+// createModularBoard — R39 modular quadrant map
+// ────────────────────────────────────────────────────────────────
+
+/** 8 location types distributed evenly across the 4×2 slots, shuffled per game. */
+const ALL_LOCATION_TYPES: Location[] = [
+  Location.Farm,
+  Location.Harbor,
+  Location.Oasis,
+  Location.Tower,
+  Location.Paddock,
+  Location.Barn,
+  Location.Oracle,
+  Location.Tavern,
+];
+
+/** Fisher-Yates shuffle using the global seeded RNG. */
+function seededShuffle<T>(arr: T[]): T[] {
+  const out = [...arr];
+  for (let i = out.length - 1; i > 0; i--) {
+    const j = Math.floor(getRandom() * (i + 1));
+    [out[i], out[j]] = [out[j], out[i]];
+  }
+  return out;
+}
+
+/** Validate that the assembled board is playable. */
+function validateBoardPlayability(board: Board): boolean {
+  const cells = board.getAllCells();
+
+  // 1. Sufficient buildable cells (2 players × 40 settlements)
+  const buildable = cells.filter((c) => isBuildable(c.terrain));
+  if (buildable.length < 200) return false;
+
+  // 2. Each buildable terrain >= 5 cells
+  const buildableTerrains = [
+    Terrain.Grass,
+    Terrain.Forest,
+    Terrain.Desert,
+    Terrain.Flower,
+    Terrain.Canyon,
+  ];
+  for (const t of buildableTerrains) {
+    if (cells.filter((c) => c.terrain === t).length < 5) return false;
+  }
+
+  // 3. Exactly 4 castles present
+  const castles = cells.filter((c) => c.location === Location.Castle);
+  if (castles.length !== 4) return false;
+
+  // 4. Each castle in a different quadrant (NW/NE/SW/SE)
+  const castleQuadrants = new Set(
+    castles.map(
+      (c) =>
+        `${c.coord.q < 10 ? 'W' : 'E'}${c.coord.r < 10 ? 'N' : 'S'}`,
+    ),
+  );
+  if (castleQuadrants.size !== 4) return false;
+
+  // 5. All 8 non-castle location types present
+  const locationTypes = new Set(
+    cells
+      .filter((c) => c.location && c.location !== Location.Castle)
+      .map((c) => c.location),
+  );
+  if (locationTypes.size !== 8) return false;
+
+  return true;
+}
+
+/**
+ * Create a modular 20×20 board by randomly selecting 4 quadrant templates
+ * from the 8 available, rotating each, and assembling them.
+ *
+ * Location assignment uses method (b): after assembly, all 8 location types
+ * are shuffled and assigned to the 8 slots (2 per quadrant) — guaranteeing
+ * every game has all 8 location abilities but in different positions.
+ *
+ * @param options.seed  Deterministic seed for replay. If omitted, uses Date.now().
+ */
+export function createModularBoard(options?: { seed?: number }): Board {
+  const MAX_RETRIES = 5;
+
+  for (let attempt = 0; attempt < MAX_RETRIES; attempt++) {
+    const seed = (options?.seed ?? Date.now()) + attempt;
+    setGlobalSeed(seed);
+
+    // 1. Shuffle templates and pick first 4
+    const shuffledTemplates = seededShuffle(QUADRANT_TEMPLATES);
+    const chosen = shuffledTemplates.slice(0, 4);
+
+    // 2. Pick random rotations for each chosen quadrant
+    const rotations: QuadrantRotation[] = chosen.map(
+      () => Math.floor(getRandom() * 4) as QuadrantRotation,
+    );
+
+    // 3. Shuffle all 8 location types for slot assignment
+    const shuffledLocations = seededShuffle(ALL_LOCATION_TYPES);
+
+    // 4. Assemble board
+    const board = new Board(20, 20);
+
+    const quadrantOffsets = [
+      { offsetQ: 0, offsetR: 0 },   // NW
+      { offsetQ: 10, offsetR: 0 },  // NE
+      { offsetQ: 0, offsetR: 10 },  // SW
+      { offsetQ: 10, offsetR: 10 }, // SE
+    ];
+
+    const instances: QuadrantInstance[] = [];
+
+    for (let qi = 0; qi < 4; qi++) {
+      const template = chosen[qi];
+      const rotation = rotations[qi];
+      const { offsetQ, offsetR } = quadrantOffsets[qi];
+
+      instances.push({ templateId: template.id, rotation });
+
+      const { cells, castle, locationSlots } = expandAndRotateTemplate(
+        template,
+        rotation,
+      );
+
+      // Place terrain cells
+      for (const c of cells) {
+        const coord: AxialCoord = { q: c.q + offsetQ, r: c.r + offsetR };
+        const cell: HexCell = { coord, terrain: c.terrain, settlement: undefined };
+        board.setCell(cell);
+      }
+
+      // Place castle
+      const castleCoord: AxialCoord = {
+        q: castle.q + offsetQ,
+        r: castle.r + offsetR,
+      };
+      const castleCell = board.getCell(castleCoord);
+      if (castleCell) {
+        castleCell.location = Location.Castle;
+        // Castles must be buildable — override Mountain if template placed castle on Mountain
+        if (!isBuildable(castleCell.terrain)) {
+          castleCell.terrain = Terrain.Grass;
+        }
+      }
+
+      // Place the 2 location slots for this quadrant (method b: assigned from shuffled list).
+      // We intentionally allow overwriting non-Castle locations to guarantee all 8 types appear.
+      const slotCoords = [locationSlots[0], locationSlots[1]];
+      for (let si = 0; si < 2; si++) {
+        const locType = shuffledLocations[qi * 2 + si];
+        const slotCoord: AxialCoord = {
+          q: slotCoords[si].q + offsetQ,
+          r: slotCoords[si].r + offsetR,
+        };
+        const slotCell = board.getCell(slotCoord);
+        // Do not overwrite a Castle, but overwrite any other existing location or empty
+        if (slotCell && slotCell.location !== Location.Castle) {
+          slotCell.location = locType;
+          // Location tiles must be on buildable terrain
+          if (!isBuildable(slotCell.terrain)) {
+            slotCell.terrain = Terrain.Grass;
+          }
+        }
+      }
+    }
+
+    // 5. Validate playability
+    if (validateBoardPlayability(board)) {
+      board.meta = { mapSeed: seed, quadrantInstances: instances };
+      return board;
+    }
+  }
+
+  // If all retries exhausted, fall back to createBoardForSize('large') as safety net
+  // (should not happen with well-designed templates)
+  console.warn('[createModularBoard] All retries exhausted, falling back to static board');
+  return createBoardForSize('large');
 }
 
 /**

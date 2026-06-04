@@ -86,6 +86,8 @@ export interface GameOptions {
   boardSize: BoardSize;
   objectiveCount: 1 | 2 | 3;
   enableUndo: boolean;
+  /** Deterministic map seed for large board generation (R39). Omit for random. */
+  mapSeed?: number;
 }
 
 // ────────────────────────────────────────────────────
