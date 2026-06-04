@@ -324,6 +324,7 @@ export const gameStore = create<GameState>((set, get) => ({
         remainingPlacements: SETTLEMENTS_PER_TURN,
         placementsThisTurn: [],
         validPlacements: [],
+        undoStack: [],
       });
       return;
     }
@@ -335,6 +336,7 @@ export const gameStore = create<GameState>((set, get) => ({
       remainingPlacements: SETTLEMENTS_PER_TURN,
       placementsThisTurn: [],
       validPlacements,
+      undoStack: [],
     });
   },
 
