@@ -17,7 +17,6 @@ import type { Board } from '../../core/board';
 import type { AxialCoord } from '../../core/hex';
 import { HEX_SIZE, hexToKey, pixelToAxial, axialToPixel } from '../../core/hex';
 import type { Player } from '../../types';
-import { Location } from '../../core/terrain';
 import { getTerrainColor } from '../../core/terrain';
 import {
   cssColorToPixi,
@@ -26,24 +25,11 @@ import {
   drawHexGradient,
   drawHexLightOverlay,
   drawSettlementCircle,
-  drawCastleMarker,
-  drawLocationDot,
 } from './pixiHexUtils';
 import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
 import { MOTIF_DATA_URLS } from './motifTextures';
+import { PIECE_DATA_URLS } from './pieceTextures';
 import { useTranslation } from 'react-i18next';
-
-// ─── Location indicator colours (functional, not R24 art) ───────────────────
-const LOCATION_COLORS: Record<string, number> = {
-  [Location.Farm]:    0x8BC34A,
-  [Location.Oasis]:   0x00BCD4,
-  [Location.Tower]:   0x9E9E9E,
-  [Location.Harbor]:  0x1565C0,
-  [Location.Paddock]: 0x795548,
-  [Location.Barn]:    0xF57F17,
-  [Location.Oracle]:  0x7B1FA2,
-  [Location.Tavern]:  0xE53935,
-};
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 export interface PixiBoardProps {
@@ -82,12 +68,16 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const lightOverlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
-  const locationGfxMap = useRef<Map<string, Graphics>>(new Map());
 
   // R36 Phase 2b-1: motif Sprite map — keyed by "q,r"
   const motifSpriteMap = useRef<Map<string, Sprite>>(new Map());
   // R36 Phase 2b-1: motif Texture map (for cleanup) — keyed by motif key e.g. "Grass-a"
   const motifTextureMapRef = useRef<Map<string, Texture>>(new Map());
+
+  // R36 Phase 2b-2: piece Sprite map — keyed by "q,r"
+  const pieceSpriteMap = useRef<Map<string, Sprite>>(new Map());
+  // R36 Phase 2b-2: piece Texture map (for cleanup) — keyed by Location enum value
+  const pieceTextureMapRef = useRef<Map<string, Texture>>(new Map());
 
   // Board geometry (computed once on mount)
   const worldInfoRef = useRef<{
@@ -151,7 +141,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
 
   // ─── Build initial Pixi scene ─────────────────────────────────────────────
   const buildScene = useCallback(
-    (viewport: Viewport, b: Board, gridOffset: number, motifTextureMap: Map<string, Texture>) => {
+    (viewport: Viewport, b: Board, gridOffset: number, motifTextureMap: Map<string, Texture>, pieceTextureMap: Map<string, Texture>) => {
       const hexContainer = new Container();
       // Translate by gridOffset so hex (0,0) is not at the canvas corner
       hexContainer.position.set(gridOffset, gridOffset);
@@ -210,17 +200,22 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         terrainLayer.addChild(log);
         lightOverlayGfxMap.current.set(key, log);
 
-        // Location marker layer (static, drawn once) — outside terrainLayer (no grain)
+        // R36 Phase 2b-2: piece Sprite layer — outside terrainLayer (no grain)
+        // Replaces drawCastleMarker / drawLocationDot with 2.5D Sprite
         if (cell.location !== undefined) {
-          const lg = new Graphics();
-          if (cell.location === Location.Castle) {
-            drawCastleMarker(lg, cell.coord);
-          } else {
-            const locColor = LOCATION_COLORS[cell.location] ?? 0xaaaaaa;
-            drawLocationDot(lg, cell.coord, locColor);
+          const locKey = cell.location as string; // e.g. 'Castle'
+          const pieceTex = pieceTextureMap.get(locKey);
+          if (pieceTex) {
+            const ps = new Sprite(pieceTex);
+            ps.anchor.set(0.5, 0.5);
+            const center = axialToPixel(cell.coord, HEX_SIZE);
+            ps.position.set(center.x, center.y);
+            // Display size: HEX_SIZE * 0.7 ≈ 21px (HEX_SIZE = 30)
+            ps.width = HEX_SIZE * 0.7;
+            ps.height = HEX_SIZE * 0.7;
+            hexContainer.addChild(ps);
+            pieceSpriteMap.current.set(key, ps);
           }
-          hexContainer.addChild(lg);
-          locationGfxMap.current.set(key, lg);
         }
 
         // Overlay layer (valid/hover/invalid/selected — updated dynamically) — outside terrainLayer
@@ -374,27 +369,53 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         setZoomScale(vp.scaled);
       });
 
-      // R36 Phase 2b-1: 預載 21 個 motif texture（並行載入，DataURL 互不相依）
-      const motifTextureMap = new Map<string, Texture>();
+      // R36 Phase 2b-1 + 2b-2: 並行預載 motif (21) + piece (9) texture
       const motifEntries = Object.entries(MOTIF_DATA_URLS);
-      const motifTextures = await Promise.all(
-        motifEntries.map(([, dataUrl]) =>
-          Assets.load<Texture>({
-            src: dataUrl,
-            data: {
-              width: 52,
-              height: 60,
-              resolution: window.devicePixelRatio || 1,
-            },
-          }),
+      const pieceEntries = Object.entries(PIECE_DATA_URLS);
+
+      const [motifTextures, pieceTextures] = await Promise.all([
+        Promise.all(
+          motifEntries.map(([, dataUrl]) =>
+            Assets.load<Texture>({
+              src: dataUrl,
+              data: {
+                width: 52,
+                height: 60,
+                resolution: window.devicePixelRatio || 1,
+              },
+            }),
+          ),
         ),
-      );
+        Promise.all(
+          pieceEntries.map(([, dataUrl]) =>
+            Assets.load<Texture>({
+              src: dataUrl,
+              data: {
+                width: 28,
+                height: 28,
+                resolution: window.devicePixelRatio || 1,
+              },
+            }),
+          ),
+        ),
+      ]);
+
+      const motifTextureMap = new Map<string, Texture>();
       motifEntries.forEach(([key], i) => motifTextureMap.set(key, motifTextures[i]));
+
+      const pieceTextureMap = new Map<string, Texture>();
+      pieceEntries.forEach(([key], i) => pieceTextureMap.set(key, pieceTextures[i]));
+
       // StrictMode guard：預載途中如 initializedRef 已被重設，卸載並返回
       if (!initializedRef.current) {
         for (const [key, tex] of motifTextureMap) {
           tex.destroy();
           const dataUrl = MOTIF_DATA_URLS[key];
+          if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
+        }
+        for (const [key, tex] of pieceTextureMap) {
+          tex.destroy();
+          const dataUrl = PIECE_DATA_URLS[key];
           if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
         }
         app.destroy(true, { children: true, texture: true });
@@ -403,9 +424,10 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
 
       // 存入 ref 供 cleanup 使用
       motifTextureMapRef.current = motifTextureMap;
+      pieceTextureMapRef.current = pieceTextureMap;
 
       // Build scene
-      buildScene(vp, boardRef.current, gridOffset, motifTextureMap);
+      buildScene(vp, boardRef.current, gridOffset, motifTextureMap, pieceTextureMap);
 
       // Initial overlay render
       updateScene(
@@ -463,6 +485,16 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
       });
       motifTextureMapRef.current.clear();
+      // R36 Phase 2b-2: cleanup piece Sprites
+      pieceSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
+      pieceSpriteMap.current.clear();
+      // R36 Phase 2b-2: cleanup piece Textures
+      pieceTextureMapRef.current.forEach((tex, key) => {
+        try { tex.destroy(); } catch { /* suppress */ }
+        const dataUrl = PIECE_DATA_URLS[key];
+        if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
+      });
+      pieceTextureMapRef.current.clear();
       if (appRef.current) {
         try {
           appRef.current.destroy(true, { children: true, texture: true });
@@ -476,7 +508,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       lightOverlayGfxMap.current.clear();
       overlayGfxMap.current.clear();
       settlementGfxMap.current.clear();
-      locationGfxMap.current.clear();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only runs on mount
