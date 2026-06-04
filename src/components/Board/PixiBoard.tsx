@@ -11,7 +11,7 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Application, Graphics, Container } from 'pixi.js';
+import { Application, Graphics, Container, NoiseFilter } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import type { Board } from '../../core/board';
 import type { AxialCoord } from '../../core/hex';
@@ -23,10 +23,13 @@ import {
   cssColorToPixi,
   drawHex,
   drawHexBorder,
+  drawHexGradient,
+  drawHexLightOverlay,
   drawSettlementCircle,
   drawCastleMarker,
   drawLocationDot,
 } from './pixiHexUtils';
+import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
 import { useTranslation } from 'react-i18next';
 
 // ─── Location indicator colours (functional, not R24 art) ───────────────────
@@ -75,6 +78,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
 
   // Graphics maps — keyed by "q,r"
   const terrainGfxMap = useRef<Map<string, Graphics>>(new Map());
+  const lightOverlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
   const locationGfxMap = useRef<Map<string, Graphics>>(new Map());
@@ -147,19 +151,44 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       hexContainer.position.set(gridOffset, gridOffset);
       viewport.addChild(hexContainer);
 
+      // R36 Phase 2a: terrainLayer sub-container holds terrain + light overlay.
+      // NoiseFilter is applied to this layer ONLY (not hexContainer),
+      // so grain does not affect location markers / overlay / settlements.
+      const terrainLayer = new Container();
+      hexContainer.addChild(terrainLayer);
+
+      // Grain filter: O(1), applied once to terrainLayer
+      const noiseFilter = new NoiseFilter({ noise: 0.04, seed: 42 });
+      terrainLayer.filters = [noiseFilter];
+
       const cells = b.getAllCells();
       for (const cell of cells) {
         const key = hexToKey(cell.coord);
 
-        // Terrain layer
+        // Terrain gradient layer (R36 Phase 2a: replaces flat colour)
         const tg = new Graphics();
-        const terrainCss = getTerrainColor(cell.terrain);
-        const terrainPx = cssColorToPixi(terrainCss);
-        drawHex(tg, cell.coord, terrainPx, 1.0, 0x000000, 0.3);
-        hexContainer.addChild(tg);
+        const variant = getTerrainVariant(cell.coord.q, cell.coord.r);
+        const terrainName = cell.terrain as string;
+        const gradKey = `${terrainName}-${variant}`;
+        const grad = TERRAIN_GRADIENTS[gradKey];
+        if (grad) {
+          drawHexGradient(tg, cell.coord, grad);
+        } else {
+          // Fallback to flat colour for unknown terrain types
+          const terrainCss = getTerrainColor(cell.terrain);
+          const terrainPx = cssColorToPixi(terrainCss);
+          drawHex(tg, cell.coord, terrainPx, 1.0, 0x000000, 0.3);
+        }
+        terrainLayer.addChild(tg);
         terrainGfxMap.current.set(key, tg);
 
-        // Location marker layer (static, drawn once)
+        // Light overlay layer (R36 Phase 2a: directional light above terrain)
+        const log = new Graphics();
+        drawHexLightOverlay(log, cell.coord);
+        terrainLayer.addChild(log);
+        lightOverlayGfxMap.current.set(key, log);
+
+        // Location marker layer (static, drawn once) — outside terrainLayer (no grain)
         if (cell.location !== undefined) {
           const lg = new Graphics();
           if (cell.location === Location.Castle) {
@@ -172,12 +201,12 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
           locationGfxMap.current.set(key, lg);
         }
 
-        // Overlay layer (valid/hover/invalid/selected — updated dynamically)
+        // Overlay layer (valid/hover/invalid/selected — updated dynamically) — outside terrainLayer
         const ov = new Graphics();
         hexContainer.addChild(ov);
         overlayGfxMap.current.set(key, ov);
 
-        // Settlement marker layer
+        // Settlement marker layer — outside terrainLayer
         const sm = new Graphics();
         hexContainer.addChild(sm);
         settlementGfxMap.current.set(key, sm);
@@ -273,7 +302,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       await app.init({
         canvas: canvasRef.current!,
         resizeTo: containerEl,
-        background: 0x1a1a2e,
+        background: 0x2C1A0E, // R36 Phase 2a: 深木棕（取代深藍黑 0x1a1a2e）
         antialias: true,
         autoDensity: true,
         resolution: window.devicePixelRatio || 1,
@@ -382,6 +411,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       }
       viewportRef.current = null;
       terrainGfxMap.current.clear();
+      lightOverlayGfxMap.current.clear();
       overlayGfxMap.current.clear();
       settlementGfxMap.current.clear();
       locationGfxMap.current.clear();
@@ -474,7 +504,10 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
       ref={containerRef}
       className="w-full h-full relative overflow-hidden select-none"
       style={{
-        background: 'var(--board-inner-bg)',
+        // R36 Phase 2a: 深木棕背景 + 木桌框 CSS MVP（羊皮紙感 border + shadow）
+        background: '#2C1A0E',
+        border: '6px solid #5C3A1E',
+        boxShadow: 'inset 0 0 24px rgba(0,0,0,0.5), 0 4px 16px rgba(0,0,0,0.4)',
         touchAction: 'none',
         cursor: 'grab',
       }}
