@@ -28,7 +28,8 @@ import { useMultiplayerStore } from './store/multiplayerStore'
 import { extractSerializableState } from './multiplayer/stateSerializer'
 import type { MultiplayerAction } from './multiplayer/types'
 import { useTranslation } from 'react-i18next'
-import { tObjective, tPhase, tTerrain } from './i18n/formatters'
+import { tObjective, tPhase, tTerrain, tLocation } from './i18n/formatters'
+import { LocationTooltip } from './components/Board/LocationTooltip'
 import { useLeaderboardStore } from './store/leaderboardStore'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
@@ -267,6 +268,12 @@ function App() {
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
   const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
+
+  // R38a: board pointer position for location tooltip
+  const [boardPointerPos, setBoardPointerPos] = useState<{ x: number; y: number } | null>(null);
+  const [tooltipPinned, setTooltipPinned] = useState(false);
+  const longPressTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const longPressStartPosRef = useRef<{ x: number; y: number } | null>(null);
 
   // Bottom drawer state (mobile only)
   const [drawerOpen, setDrawerOpen] = useState(false)
@@ -876,7 +883,58 @@ function App() {
             }}
           >
             {players.length > 0 && (
-              <div className="w-full h-full" data-tutorial-target="hex-grid">
+              <div
+                className="w-full h-full"
+                data-tutorial-target="hex-grid"
+                onPointerMove={(e) => {
+                  setBoardPointerPos({ x: e.clientX, y: e.clientY });
+                  // Cancel long-press if pointer moves more than 8px
+                  if (longPressStartPosRef.current) {
+                    const dx = e.clientX - longPressStartPosRef.current.x;
+                    const dy = e.clientY - longPressStartPosRef.current.y;
+                    if (Math.sqrt(dx * dx + dy * dy) > 8) {
+                      if (longPressTimerRef.current) {
+                        clearTimeout(longPressTimerRef.current);
+                        longPressTimerRef.current = null;
+                      }
+                      longPressStartPosRef.current = null;
+                    }
+                  }
+                }}
+                onPointerLeave={() => {
+                  // 只在未 pin 時清除位置，否則 long-press pin 的 tooltip 會立刻消失
+                  if (!tooltipPinned) {
+                    setBoardPointerPos(null);
+                  }
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                  longPressStartPosRef.current = null;
+                }}
+                onPointerDown={(e) => {
+                  longPressStartPosRef.current = { x: e.clientX, y: e.clientY };
+                  if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
+                  longPressTimerRef.current = setTimeout(() => {
+                    setTooltipPinned(true);
+                    longPressTimerRef.current = null;
+                  }, 500);
+                }}
+                onPointerUp={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                  longPressStartPosRef.current = null;
+                }}
+                onPointerCancel={() => {
+                  if (longPressTimerRef.current) {
+                    clearTimeout(longPressTimerRef.current);
+                    longPressTimerRef.current = null;
+                  }
+                  longPressStartPosRef.current = null;
+                }}
+              >
               <PixiBoard
                 board={board}
                 validPlacements={
@@ -895,6 +953,29 @@ function App() {
             )}
             {/* 棋盤環境框裝飾 overlay（pointer-events:none，不攔截 pan/zoom） */}
             <BoardFrameOverlay />
+
+            {/* R38a: location hover tooltip */}
+            {(() => {
+              const hoveredCell = selectedCell && board ? board.getCell(selectedCell) : null;
+              const hoveredLocation = hoveredCell?.location;
+              const showTooltip =
+                hoveredLocation !== undefined &&
+                boardPointerPos !== null &&
+                !tooltipPinned;
+              const showPinned =
+                tooltipPinned &&
+                hoveredLocation !== undefined &&
+                boardPointerPos !== null;
+              return (showTooltip || showPinned) && hoveredLocation !== undefined && boardPointerPos ? (
+                <LocationTooltip
+                  location={hoveredLocation}
+                  anchorX={boardPointerPos.x}
+                  anchorY={boardPointerPos.y}
+                  pinned={tooltipPinned}
+                  onDismiss={() => setTooltipPinned(false)}
+                />
+              ) : null;
+            })()}
           </div>
 
           {/* Mobile floating action bar (< md) — safe-area aware */}
@@ -1134,6 +1215,11 @@ function App() {
                             ? t('app.clickHighlightedDestinationToMove')
                             : t('app.clickHighlightedSettlementToMove')
                           : t('app.clickHighlightedCellToPlace')}
+                        {activeTile !== Location.Paddock && activeTile !== Location.Barn && (
+                          <span className="block mt-0.5" style={{ color: 'var(--color-stone-500)' }}>
+                            {t('app.extraPlacementNote', { tileName: tLocation(t, activeTile) })}
+                          </span>
+                        )}
                       </div>
                     )}
                   </div>

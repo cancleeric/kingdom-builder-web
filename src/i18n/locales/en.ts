@@ -35,6 +35,7 @@ export const en = {
     Tavern: 'Tavern',
   },
   locationDescription: {
+    Castle: 'Each of your settlements adjacent to a Castle scores 3 points (always applied).',
     Farm: 'Place 1 extra settlement on any empty Grass cell.',
     Harbor: 'Place 1 extra settlement on any empty buildable cell adjacent to Water.',
     Oasis: 'Place 1 extra settlement on any empty Desert cell.',
@@ -43,6 +44,9 @@ export const en = {
     Barn: 'Move 1 of your settlements to any empty cell with the same terrain type.',
     Oracle: 'Place 1 extra settlement on an empty buildable cell adjacent to your settlements.',
     Tavern: 'Place 1 extra settlement at either end of one of your horizontal settlement rows.',
+  },
+  tooltip: {
+    tapToDismiss: 'Tap to dismiss',
   },
   objective: {
     Fisherman: 'Fisherman',
@@ -145,9 +149,10 @@ export const en = {
     cancel: 'Cancel',
     use: 'Use',
     used: 'Used',
-    clickHighlightedDestinationToMove: 'Click a highlighted destination to move.',
-    clickHighlightedSettlementToMove: 'Click a highlighted settlement to move.',
+    clickHighlightedDestinationToMove: 'Click a destination hex to complete the move',
+    clickHighlightedSettlementToMove: 'Click one of your settlements to move (highlighted)',
     clickHighlightedCellToPlace: 'Click a highlighted cell to place.',
+    extraPlacementNote: '({{tileName}} extra placement — does not count toward your 3 per turn)',
     actions: 'Actions',
     drawTerrainCardAria: 'Draw terrain card to start your turn',
     drawTerrainCard: 'Draw Terrain Card',

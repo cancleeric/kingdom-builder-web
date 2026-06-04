@@ -35,6 +35,7 @@ export const zhTW = {
     Tavern: '酒館',
   },
   locationDescription: {
+    Castle: '相鄰城堡的每個己方聚落得 3 分（固定計分，一律套用）。',
     Farm: '在任意空的草原格放置 1 個額外聚落。',
     Harbor: '在任意空的可建造且相鄰水域的格子放置 1 個額外聚落。',
     Oasis: '在任意空的沙漠格放置 1 個額外聚落。',
@@ -43,6 +44,9 @@ export const zhTW = {
     Barn: '將你的 1 個聚落移動到任意空的相同地形格。',
     Oracle: '在任意空的可建造且相鄰你聚落的格子放置 1 個額外聚落。',
     Tavern: '在你的任一水平聚落列兩端放置 1 個額外聚落。',
+  },
+  tooltip: {
+    tapToDismiss: '點一下關閉',
   },
   objective: {
     Fisherman: '漁夫',
@@ -145,9 +149,10 @@ export const zhTW = {
     cancel: '取消',
     use: '使用',
     used: '已用',
-    clickHighlightedDestinationToMove: '點擊高亮目的地以移動。',
-    clickHighlightedSettlementToMove: '點擊高亮聚落以移動。',
+    clickHighlightedDestinationToMove: '點選目的地格子完成移動',
+    clickHighlightedSettlementToMove: '點選要移動的你的聚落（亮色格）',
     clickHighlightedCellToPlace: '點擊高亮格子以放置。',
+    extraPlacementNote: '（{{tileName}}額外放置，不計入本回合 3 個配額）',
     actions: '操作',
     drawTerrainCardAria: '抽地形卡開始回合',
     drawTerrainCard: '抽地形卡',
