@@ -85,8 +85,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const initializedRef = useRef(false);
 
   // Graphics maps — keyed by "q,r"
-  const terrainGfxMap = useRef<Map<string, Graphics>>(new Map());
-  const lightOverlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
 
@@ -634,8 +632,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         appRef.current = null;
       }
       viewportRef.current = null;
-      terrainGfxMap.current.clear();
-      lightOverlayGfxMap.current.clear();
       overlayGfxMap.current.clear();
       settlementGfxMap.current.clear();
       tileLayerRef.current = null;
