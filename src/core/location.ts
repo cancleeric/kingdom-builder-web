@@ -5,15 +5,16 @@
  * Tiles are acquired when a player places a settlement adjacent to the
  * location hex (each location can only be acquired once).
  *
- * Tile abilities:
- *   Farm    – place 1 extra settlement on any Grass cell
- *   Harbor  – place 1 extra settlement on any cell adjacent to Water
- *   Oasis   – place 1 extra settlement on any Desert cell
- *   Tower   – place 1 extra settlement on any border cell (adjacent to Mountain or board edge)
- *   Paddock – move 1 of your settlements up to 2 hexes away
- *   Barn    – move 1 of your settlements to any cell with the same terrain type
- *   Oracle  – place 1 extra settlement on any cell adjacent to one of your settlements
- *   Tavern  – place 1 extra settlement at the far end of a horizontal row of your settlements
+ * Tile abilities (official rules). [Phase 1] = aligned to official in this PR;
+ * [Phase 2 TODO] = still old behaviour, to be aligned next PR.
+ *   Farm    – [Phase 1] place 1 extra settlement on a Grass cell (adjacent-if-possible)
+ *   Oasis   – [Phase 1] place 1 extra settlement on a Desert cell (adjacent-if-possible)
+ *   Tower   – [Phase 1] place 1 extra settlement on a board-edge cell (adjacent-if-possible)
+ *   Oracle  – [Phase 1] place 1 extra settlement on the terrain shown on your terrain card (adjacent-if-possible)
+ *   Tavern  – [Phase 1] place 1 extra settlement at the end of a horizontal row of ≥3 of your settlements
+ *   Harbor  – [Phase 2 TODO] official: move 1 settlement onto a Water cell; currently still places near water
+ *   Paddock – [Phase 2 TODO] official: move exactly 2 hexes in a straight line; currently moves ≤2 any direction
+ *   Barn    – [Phase 2 TODO] official: move to terrain card's terrain; currently moves to settlement's own terrain
  */
 
 import { AxialCoord, hexNeighbors, hexDistance, hexToKey } from './hex';
@@ -58,17 +59,50 @@ export function checkTileAcquisition(
 }
 
 // ────────────────────────────────────────────────────
+// Adjacent-if-possible helper (used by location tiles)
+// ────────────────────────────────────────────────────
+
+/**
+ * Official rule: if any candidate cell is adjacent to the player's existing
+ * settlements, return only those adjacent candidates; otherwise return all
+ * candidates (fallback – never returns empty when candidates is non-empty).
+ *
+ * ⛔ This helper is ONLY for location tiles.
+ *    Do NOT use it for the main placement (getValidPlacements).
+ */
+export function applyAdjacentIfPossible(
+  board: Board,
+  candidates: AxialCoord[],
+  playerId: number
+): AxialCoord[] {
+  const playerSettlements = board.getPlayerSettlements(playerId);
+  if (playerSettlements.length === 0) return candidates;
+
+  // Build a set of coord-keys that are neighbours of any existing settlement
+  const neighbourKeys = new Set<string>();
+  for (const cell of playerSettlements) {
+    for (const n of hexNeighbors(cell.coord)) {
+      neighbourKeys.add(hexToKey(n));
+    }
+  }
+
+  const adjacent = candidates.filter(c => neighbourKeys.has(hexToKey(c)));
+  return adjacent.length > 0 ? adjacent : candidates;
+}
+
+// ────────────────────────────────────────────────────
 // Tile ability: extra placement helpers
 // ────────────────────────────────────────────────────
 
 /**
- * Farm: any unoccupied Grass cell.
+ * Farm: Grass cells (adjacent-if-possible).
  */
-export function getFarmPlacements(board: Board): AxialCoord[] {
-  return board
+export function getFarmPlacements(board: Board, playerId: number): AxialCoord[] {
+  const candidates = board
     .getCellsByTerrain(Terrain.Grass)
     .filter(cell => cell.settlement === undefined)
     .map(cell => cell.coord);
+  return applyAdjacentIfPossible(board, candidates, playerId);
 }
 
 /**
@@ -86,61 +120,58 @@ export function getHarborPlacements(board: Board): AxialCoord[] {
 }
 
 /**
- * Oasis: any unoccupied Desert cell.
+ * Oasis: Desert cells (adjacent-if-possible).
  */
-export function getOasisPlacements(board: Board): AxialCoord[] {
-  return board
+export function getOasisPlacements(board: Board, playerId: number): AxialCoord[] {
+  const candidates = board
     .getCellsByTerrain(Terrain.Desert)
     .filter(cell => cell.settlement === undefined)
     .map(cell => cell.coord);
+  return applyAdjacentIfPossible(board, candidates, playerId);
 }
 
 /**
- * Tower: any unoccupied buildable cell that is adjacent to a Mountain cell or
- * has at least one missing neighbor (i.e., it is on the map border).
+ * Tower: board-edge cells only (any buildable terrain, adjacent-if-possible).
+ * A cell is on the board edge if at least one hex neighbour lies outside the
+ * map (i.e. board.getCell returns undefined for that neighbour).
+ * ⛔ The old "adjacent to Mountain" condition has been removed per official rules.
  */
-export function getTowerPlacements(board: Board): AxialCoord[] {
-  return board
+export function getTowerPlacements(board: Board, playerId: number): AxialCoord[] {
+  const candidates = board
     .getAllCells()
     .filter(cell => {
       if (!isBuildable(cell.terrain) || cell.settlement !== undefined) return false;
-      const neighbors = hexNeighbors(cell.coord);
-      return neighbors.some(n => {
-        const nCell = board.getCell(n);
-        return !nCell || nCell.terrain === Terrain.Mountain;
-      });
+      // Board edge = at least one neighbour is outside the map
+      return hexNeighbors(cell.coord).some(n => !board.getCell(n));
     })
     .map(cell => cell.coord);
+  return applyAdjacentIfPossible(board, candidates, playerId);
 }
 
 /**
- * Oracle: any unoccupied buildable cell adjacent to at least one of the
- * player's own settlements.
+ * Oracle: cells matching the terrain on the current terrain card
+ * (adjacent-if-possible).
+ *
+ * @param currentTerrain  The terrain shown on the drawn terrain card this turn.
  */
-export function getOraclePlacements(board: Board, playerId: number): AxialCoord[] {
-  const playerSettlements = board.getPlayerSettlements(playerId);
-  const result = new Set<string>();
-
-  for (const cell of playerSettlements) {
-    for (const neighbor of hexNeighbors(cell.coord)) {
-      const nCell = board.getCell(neighbor);
-      if (nCell && isBuildable(nCell.terrain) && nCell.settlement === undefined) {
-        result.add(hexToKey(neighbor));
-      }
-    }
-  }
-
-  return Array.from(result).map(key => {
-    const [q, r] = key.split(',').map(Number);
-    return { q, r };
-  });
+export function getOraclePlacements(
+  board: Board,
+  playerId: number,
+  currentTerrain: Terrain
+): AxialCoord[] {
+  const candidates = board
+    .getCellsByTerrain(currentTerrain)
+    .filter(cell => cell.settlement === undefined && isBuildable(cell.terrain))
+    .map(cell => cell.coord);
+  return applyAdjacentIfPossible(board, candidates, playerId);
 }
 
 /**
  * Tavern: the cell immediately beyond each end of every horizontal run
- * (same r, consecutive q) of the player's settlements.
+ * (same r, consecutive q) of the player's settlements, where the run has
+ * at least 3 settlements.
  *
- * A "run" of length ≥ 1 has two potential end extensions: q_min-1 and q_max+1.
+ * Official rule: only a run of ≥3 consecutive settlements qualifies.
  * Only cells that exist on the board, are buildable, and are unoccupied qualify.
  */
 export function getTavernPlacements(board: Board, playerId: number): AxialCoord[] {
@@ -167,13 +198,17 @@ export function getTavernPlacements(board: Board, playerId: number): AxialCoord[
       const isEnd = i === qs.length || (i > 0 && qs[i] !== qs[i - 1] + 1);
       if (isEnd && i > 0) {
         // run is qs[runStart..i-1]
-        const qMin = qs[runStart];
-        const qMax = qs[i - 1];
+        const runLength = i - runStart;
+        if (runLength >= 3) {
+          // Official rule: only runs of ≥3 consecutive settlements qualify
+          const qMin = qs[runStart];
+          const qMax = qs[i - 1];
 
-        for (const candidate of [{ q: qMin - 1, r }, { q: qMax + 1, r }]) {
-          const cell = board.getCell(candidate);
-          if (cell && isBuildable(cell.terrain) && cell.settlement === undefined) {
-            result.add(hexToKey(candidate));
+          for (const candidate of [{ q: qMin - 1, r }, { q: qMax + 1, r }]) {
+            const cell = board.getCell(candidate);
+            if (cell && isBuildable(cell.terrain) && cell.settlement === undefined) {
+              result.add(hexToKey(candidate));
+            }
           }
         }
 
@@ -191,18 +226,24 @@ export function getTavernPlacements(board: Board, playerId: number): AxialCoord[
 /**
  * Get valid extra-placement positions for a placement-type tile.
  * Returns an empty array for movement tiles (Paddock, Barn).
+ *
+ * @param currentTerrain  Required for Oracle (the terrain shown on the drawn
+ *                        terrain card).  Ignored by other placement tiles.
  */
 export function getExtraPlacementPositions(
   location: Location,
   board: Board,
-  playerId: number
+  playerId: number,
+  currentTerrain?: Terrain
 ): AxialCoord[] {
   switch (location) {
-    case Location.Farm:    return getFarmPlacements(board);
+    case Location.Farm:    return getFarmPlacements(board, playerId);
     case Location.Harbor:  return getHarborPlacements(board);
-    case Location.Oasis:   return getOasisPlacements(board);
-    case Location.Tower:   return getTowerPlacements(board);
-    case Location.Oracle:  return getOraclePlacements(board, playerId);
+    case Location.Oasis:   return getOasisPlacements(board, playerId);
+    case Location.Tower:   return getTowerPlacements(board, playerId);
+    case Location.Oracle:
+      if (currentTerrain === undefined) return [];
+      return getOraclePlacements(board, playerId, currentTerrain);
     case Location.Tavern:  return getTavernPlacements(board, playerId);
     default:               return [];
   }

@@ -3,6 +3,7 @@ import { Board } from './board';
 import { Terrain, Location } from './terrain';
 import {
   checkTileAcquisition,
+  applyAdjacentIfPossible,
   getFarmPlacements,
   getHarborPlacements,
   getOasisPlacements,
@@ -79,24 +80,102 @@ describe('checkTileAcquisition', () => {
 });
 
 // ────────────────────────────────────────────────────
+// applyAdjacentIfPossible helper
+// ────────────────────────────────────────────────────
+
+describe('applyAdjacentIfPossible', () => {
+  it('returns only adjacent candidates when player has adjacent settlements', () => {
+    const board = new Board(10, 10);
+    // Player settlement at (0, 0)
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Adjacent grass (1, 0) and far grass (5, 5)
+    board.setCell(makeCell(1, 0, Terrain.Grass));
+    board.setCell(makeCell(5, 5, Terrain.Grass));
+
+    const candidates = [{ q: 1, r: 0 }, { q: 5, r: 5 }];
+    const result = applyAdjacentIfPossible(board, candidates, 1);
+    expect(result).toHaveLength(1);
+    expect(result[0]).toEqual({ q: 1, r: 0 });
+  });
+
+  it('returns all candidates when no candidate is adjacent to player settlements', () => {
+    const board = new Board(10, 10);
+    // Player settlement at (0, 0)
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Far candidates not adjacent to (0, 0)
+    board.setCell(makeCell(8, 8, Terrain.Grass));
+    board.setCell(makeCell(9, 9, Terrain.Grass));
+
+    const candidates = [{ q: 8, r: 8 }, { q: 9, r: 9 }];
+    const result = applyAdjacentIfPossible(board, candidates, 1);
+    expect(result).toHaveLength(2);
+  });
+
+  it('returns all candidates when player has no settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass));
+    board.setCell(makeCell(1, 0, Terrain.Grass));
+
+    const candidates = [{ q: 0, r: 0 }, { q: 1, r: 0 }];
+    const result = applyAdjacentIfPossible(board, candidates, 1);
+    expect(result).toHaveLength(2);
+  });
+
+  it('returns empty array when candidates is empty', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+
+    const result = applyAdjacentIfPossible(board, [], 1);
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ────────────────────────────────────────────────────
 // Farm placements
 // ────────────────────────────────────────────────────
 
 describe('getFarmPlacements', () => {
-  it('returns all unoccupied grass cells', () => {
+  it('returns only adjacent grass cells when player has adjacent settlements', () => {
+    const board = new Board(10, 10);
+    // Player settlement on non-grass cell
+    board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Grass)); // adjacent to settlement
+    board.setCell(makeCell(5, 5, Terrain.Grass)); // far grass, not adjacent
+
+    const result = getFarmPlacements(board, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('1,0');
+    expect(keys).not.toContain('5,5');
+  });
+
+  it('returns all grass cells when no grass is adjacent to player settlements', () => {
+    const board = new Board(10, 10);
+    // Player settlement at (0, 0), grass cells far away
+    board.setCell(makeCell(0, 0, Terrain.Mountain, undefined, 1)); // not grass; no adjacent grass
+    board.setCell(makeCell(8, 8, Terrain.Grass));
+    board.setCell(makeCell(9, 8, Terrain.Grass));
+
+    const result = getFarmPlacements(board, 1);
+    expect(result.length).toBeGreaterThanOrEqual(2);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,8');
+  });
+
+  it('returns all grass cells when player has no settlements', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass));
-    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1)); // occupied
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1)); // occupied – excluded
     board.setCell(makeCell(2, 0, Terrain.Forest));
 
-    const result = getFarmPlacements(board);
+    const result = getFarmPlacements(board, 2); // player 2 has no settlements
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({ q: 0, r: 0 });
   });
 });
 
 // ────────────────────────────────────────────────────
-// Harbor placements
+// Harbor placements (Phase 2 territory – minimal smoke test, not changed)
 // ────────────────────────────────────────────────────
 
 describe('getHarborPlacements', () => {
@@ -127,13 +206,37 @@ describe('getHarborPlacements', () => {
 // ────────────────────────────────────────────────────
 
 describe('getOasisPlacements', () => {
-  it('returns unoccupied desert cells', () => {
+  it('returns only adjacent desert cells when player has adjacent settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement
+    board.setCell(makeCell(1, 0, Terrain.Desert)); // adjacent desert
+    board.setCell(makeCell(7, 7, Terrain.Desert)); // far desert
+
+    const result = getOasisPlacements(board, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('1,0');
+    expect(keys).not.toContain('7,7');
+  });
+
+  it('returns all desert cells when no desert is adjacent to player settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Mountain, undefined, 1));
+    board.setCell(makeCell(8, 8, Terrain.Desert));
+    board.setCell(makeCell(9, 8, Terrain.Desert));
+
+    const result = getOasisPlacements(board, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,8');
+  });
+
+  it('returns all desert cells when player has no settlements', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Desert));
     board.setCell(makeCell(1, 0, Terrain.Desert, undefined, 1)); // occupied
     board.setCell(makeCell(2, 0, Terrain.Grass));
 
-    const result = getOasisPlacements(board);
+    const result = getOasisPlacements(board, 2);
     expect(result).toHaveLength(1);
     expect(result[0]).toEqual({ q: 0, r: 0 });
   });
@@ -144,32 +247,63 @@ describe('getOasisPlacements', () => {
 // ────────────────────────────────────────────────────
 
 describe('getTowerPlacements', () => {
-  it('returns buildable cells adjacent to mountain', () => {
-    const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Mountain));
-    board.setCell(makeCell(1, 0, Terrain.Grass)); // adjacent to mountain
-    board.setCell(makeCell(5, 5, Terrain.Grass)); // interior
-
-    const result = getTowerPlacements(board);
-    const keys = result.map(hexToKey);
-    expect(keys).toContain('1,0');
-  });
-
   it('returns cells on map border (missing neighbor)', () => {
     const board = new Board(10, 10);
-    // Cell at (0,0) has neighbors that don't exist on the board
+    // Cell at (0,0) has neighbors outside the board
     board.setCell(makeCell(0, 0, Terrain.Grass));
 
-    const result = getTowerPlacements(board);
+    const result = getTowerPlacements(board, 1);
     expect(result.some(c => c.q === 0 && c.r === 0)).toBe(true);
+  });
+
+  it('does NOT return cells that are only adjacent to Mountain but not on edge', () => {
+    const board = new Board(10, 10);
+    // Interior mountain surrounded by other cells – the adjacent cell must NOT
+    // appear in Tower results if it is not on the board edge.
+    // Cell (6,5) is adjacent to mountain at (5,5).
+    // Its 6 neighbours (per HEX_DIRECTIONS):
+    //   E=(7,5)  NE=(7,4)  NW=(6,4)  W=(5,5)  SW=(5,6)  SE=(6,6)
+    // We must set ALL 6 so that board.getCell returns defined for each,
+    // making (6,5) a fully interior (non-edge) cell.
+    board.setCell(makeCell(5, 5, Terrain.Mountain));
+    board.setCell(makeCell(6, 5, Terrain.Grass)); // adjacent to mountain, interior
+    board.setCell(makeCell(7, 5, Terrain.Grass)); // E
+    board.setCell(makeCell(7, 4, Terrain.Grass)); // NE
+    board.setCell(makeCell(6, 4, Terrain.Grass)); // NW
+    // W = (5,5) already set as Mountain above
+    board.setCell(makeCell(5, 6, Terrain.Grass)); // SW
+    board.setCell(makeCell(6, 6, Terrain.Grass)); // SE
+
+    const result = getTowerPlacements(board, 1);
+    // (6,5) should NOT be in result because it has all 6 neighbours defined
+    // (not a border cell)
+    expect(result.some(c => c.q === 6 && c.r === 5)).toBe(false);
   });
 
   it('excludes mountain cells themselves', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Mountain));
 
-    const result = getTowerPlacements(board);
+    const result = getTowerPlacements(board, 1);
     expect(result.some(c => c.q === 0 && c.r === 0)).toBe(false);
+  });
+
+  it('returns only adjacent border cells when player has adjacent settlements', () => {
+    const board = new Board(10, 10);
+    // Put a settlement at (1, 0) – an interior cell
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+    // Border cells adjacent to settlement
+    board.setCell(makeCell(0, 0, Terrain.Grass)); // border (missing neighbours)
+    // Far border cell
+    board.setCell(makeCell(9, 9, Terrain.Grass)); // also border but far
+
+    const candidates = getTowerPlacements(board, 1);
+    const keys = candidates.map(hexToKey);
+    // adjacent-if-possible: (0,0) is a border cell adjacent to the settlement (1,0)
+    // → must be returned; (9,9) is a border cell NOT adjacent → must be excluded.
+    // Unconditional asserts (a prior `if`-wrapped version could pass vacuously).
+    expect(keys).toContain('0,0');
+    expect(keys).not.toContain('9,9');
   });
 });
 
@@ -178,30 +312,58 @@ describe('getTowerPlacements', () => {
 // ────────────────────────────────────────────────────
 
 describe('getOraclePlacements', () => {
-  it('returns buildable unoccupied cells adjacent to player settlements', () => {
+  it('returns cells of currentTerrain type, only adjacent when possible', () => {
     const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // player settlement
-    board.setCell(makeCell(1, 0, Terrain.Grass)); // adjacent, unoccupied
+    // Settlement at (0, 0), forest cell adjacent at (1, 0), far forest at (7, 7)
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Forest)); // adjacent forest
+    board.setCell(makeCell(7, 7, Terrain.Forest)); // far forest
 
-    const result = getOraclePlacements(board, 1);
-    expect(result.some(c => c.q === 1 && c.r === 0)).toBe(true);
+    const result = getOraclePlacements(board, 1, Terrain.Forest);
+    const keys = result.map(hexToKey);
+    // Has adjacent forest → only adjacent forest returned
+    expect(keys).toContain('1,0');
+    expect(keys).not.toContain('7,7');
   });
 
-  it('excludes water cells', () => {
+  it('returns all terrain-card-terrain cells when none are adjacent to settlements', () => {
+    const board = new Board(10, 10);
+    // Settlement at (0, 0), no adjacent desert
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(8, 8, Terrain.Desert));
+    board.setCell(makeCell(9, 8, Terrain.Desert));
+
+    const result = getOraclePlacements(board, 1, Terrain.Desert);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,8');
+  });
+
+  it('returns all terrain cells when player has no settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass));
+    board.setCell(makeCell(1, 0, Terrain.Grass));
+
+    const result = getOraclePlacements(board, 1, Terrain.Grass);
+    expect(result.length).toBeGreaterThanOrEqual(2);
+  });
+
+  it('returns empty list when there are no cells of that terrain', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+
+    const result = getOraclePlacements(board, 1, Terrain.Canyon);
+    expect(result).toHaveLength(0);
+  });
+
+  it('excludes water cells (not buildable) even if currentTerrain were Water', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
     board.setCell(makeCell(1, 0, Terrain.Water));
 
-    const result = getOraclePlacements(board, 1);
+    // Oracle with water terrain → no buildable water cells
+    const result = getOraclePlacements(board, 1, Terrain.Water);
     expect(result.some(c => c.q === 1 && c.r === 0)).toBe(false);
-  });
-
-  it('returns empty list if player has no settlements', () => {
-    const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass));
-
-    const result = getOraclePlacements(board, 1);
-    expect(result).toHaveLength(0);
   });
 });
 
@@ -210,30 +372,56 @@ describe('getOraclePlacements', () => {
 // ────────────────────────────────────────────────────
 
 describe('getTavernPlacements', () => {
-  it('returns cells at the end of a single-settlement row', () => {
+  it('returns NO cells for a single-settlement row (run length 1)', () => {
     const board = new Board(10, 10);
-    // Player settlement at (3, 2)
     board.setCell(makeCell(3, 2, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(2, 2, Terrain.Grass)); // left extension
-    board.setCell(makeCell(4, 2, Terrain.Grass)); // right extension
+    board.setCell(makeCell(2, 2, Terrain.Grass));
+    board.setCell(makeCell(4, 2, Terrain.Grass));
 
     const result = getTavernPlacements(board, 1);
-    const keys = result.map(hexToKey);
-    expect(keys).toContain('2,2');
-    expect(keys).toContain('4,2');
+    // Run length = 1 → does NOT qualify
+    expect(result).toHaveLength(0);
   });
 
-  it('returns cells at ends of a multi-settlement run', () => {
+  it('returns NO cells for a two-settlement row (run length 2)', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(3, 2, Terrain.Grass, undefined, 1));
     board.setCell(makeCell(4, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(2, 2, Terrain.Grass));
+    board.setCell(makeCell(5, 2, Terrain.Grass));
+
+    const result = getTavernPlacements(board, 1);
+    // Run length = 2 → does NOT qualify
+    expect(result).toHaveLength(0);
+  });
+
+  it('returns cells at ends of a 3-settlement consecutive row', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(3, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(4, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(5, 2, Terrain.Grass, undefined, 1));
     board.setCell(makeCell(2, 2, Terrain.Grass)); // left extension
-    board.setCell(makeCell(5, 2, Terrain.Grass)); // right extension
+    board.setCell(makeCell(6, 2, Terrain.Grass)); // right extension
 
     const result = getTavernPlacements(board, 1);
     const keys = result.map(hexToKey);
     expect(keys).toContain('2,2');
-    expect(keys).toContain('5,2');
+    expect(keys).toContain('6,2');
+  });
+
+  it('returns cells at ends of a multi-settlement run (≥3)', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(3, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(4, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(5, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(6, 2, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(2, 2, Terrain.Grass)); // left extension
+    board.setCell(makeCell(7, 2, Terrain.Grass)); // right extension
+
+    const result = getTavernPlacements(board, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('2,2');
+    expect(keys).toContain('7,2');
   });
 
   it('returns empty list if no settlements', () => {
@@ -257,6 +445,20 @@ describe('getExtraPlacementPositions', () => {
     expect(result.some(c => c.q === 0 && c.r === 0)).toBe(true);
   });
 
+  it('returns oracle placements when currentTerrain is provided', () => {
+    const board = new Board(5, 5);
+    board.setCell(makeCell(0, 0, Terrain.Forest));
+    const result = getExtraPlacementPositions(Location.Oracle, board, 1, Terrain.Forest);
+    expect(result.some(c => c.q === 0 && c.r === 0)).toBe(true);
+  });
+
+  it('returns empty for Oracle when currentTerrain is not provided', () => {
+    const board = new Board(5, 5);
+    board.setCell(makeCell(0, 0, Terrain.Grass));
+    const result = getExtraPlacementPositions(Location.Oracle, board, 1);
+    expect(result).toHaveLength(0);
+  });
+
   it('returns empty for movement tiles (Paddock)', () => {
     const board = new Board(5, 5);
     const result = getExtraPlacementPositions(Location.Paddock, board, 1);
@@ -265,7 +467,7 @@ describe('getExtraPlacementPositions', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Paddock destinations
+// Paddock destinations (unchanged in Phase 1 – smoke tests)
 // ────────────────────────────────────────────────────
 
 describe('getPaddockDestinations', () => {
@@ -294,7 +496,7 @@ describe('getPaddockDestinations', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Barn destinations
+// Barn destinations (unchanged in Phase 1 – smoke tests)
 // ────────────────────────────────────────────────────
 
 describe('getBarnDestinations', () => {
