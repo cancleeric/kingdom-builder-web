@@ -374,28 +374,28 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         setZoomScale(vp.scaled);
       });
 
-      // R36 Phase 2b-1: 預載 21 個 motif texture
+      // R36 Phase 2b-1: 預載 21 個 motif texture（並行載入，DataURL 互不相依）
       const motifTextureMap = new Map<string, Texture>();
-      for (const [key, dataUrl] of Object.entries(MOTIF_DATA_URLS)) {
-        const tex = await Assets.load<Texture>({
-          src: dataUrl,
-          data: {
-            width: 52,
-            height: 60,
-            resolution: window.devicePixelRatio || 1,
-          },
-        });
-        motifTextureMap.set(key, tex);
-      }
+      const motifEntries = Object.entries(MOTIF_DATA_URLS);
+      const motifTextures = await Promise.all(
+        motifEntries.map(([, dataUrl]) =>
+          Assets.load<Texture>({
+            src: dataUrl,
+            data: {
+              width: 52,
+              height: 60,
+              resolution: window.devicePixelRatio || 1,
+            },
+          }),
+        ),
+      );
+      motifEntries.forEach(([key], i) => motifTextureMap.set(key, motifTextures[i]));
       // StrictMode guard：預載途中如 initializedRef 已被重設，卸載並返回
       if (!initializedRef.current) {
-        for (const tex of motifTextureMap.values()) {
+        for (const [key, tex] of motifTextureMap) {
           tex.destroy();
-        }
-        for (const [key, dataUrl] of Object.entries(MOTIF_DATA_URLS)) {
-          if (motifTextureMap.has(key)) {
-            Assets.unload(dataUrl).catch(() => { /* suppress */ });
-          }
+          const dataUrl = MOTIF_DATA_URLS[key];
+          if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
         }
         app.destroy(true, { children: true, texture: true });
         return;
