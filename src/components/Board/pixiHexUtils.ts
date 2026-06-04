@@ -134,6 +134,32 @@ export function drawLocationDot(g: Graphics, coord: AxialCoord, color: number): 
   g.fill({ color, alpha: 0.85 });
 }
 
+// ─── R36 Phase 2c: White-house texture for Sprite.tint settlement rendering ───
+
+/**
+ * White-house SVG for settlement Sprite.tint染色。
+ * 灰階明度設計（tint 乘色後保留三層立體感）：
+ *   屋頂頂面 #e8e8e8（最亮）、牆正面 #d0d0d0、屋頂側面 #b8b8b8、牆側面 #909090（最暗）
+ *   門 #1a1a1a（近黑，tint 不影響）、投影橢圓 rgba(0,0,0,0.28)（黑色不受 tint）
+ *
+ * 幾何完全參照 SettlementMarker.tsx R24-B 立體房子多邊形座標。
+ * SVG 屬性 kebab-case（stroke-width 等）。
+ */
+export const HOUSE_SVG = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="-10 -12 20 24" width="28" height="28">
+  <ellipse cx="0" cy="8.5" rx="6" ry="2" fill="rgba(0,0,0,0.28)"/>
+  <rect x="-7" y="0" width="2" height="8" fill="#909090"/>
+  <rect x="-5" y="0" width="11" height="8" fill="#d0d0d0"/>
+  <line x1="-5" y1="8" x2="6" y2="8" stroke="rgba(0,0,0,0.25)" stroke-width="0.8"/>
+  <polygon points="-7,0 -5,0 -5,-9 -7,-7" fill="#b8b8b8"/>
+  <polygon points="-7,-7 -5,-9 7,-9 7,0 -5,0" fill="#e8e8e8"/>
+  <rect x="-1.8" y="3" width="3.6" height="5" rx="0.5" fill="#1a1a1a"/>
+</svg>`;
+
+/**
+ * encodeURIComponent DataURL（⛔ 不用 btoa，與 motif/piece 一致）。
+ */
+export const HOUSE_DATA_URL = `data:image/svg+xml;charset=utf-8,${encodeURIComponent(HOUSE_SVG)}`;
+
 // ─── R36 Phase 2a: Gradient drawing utilities ────────────────────────────────
 
 /**
