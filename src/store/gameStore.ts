@@ -7,7 +7,7 @@ import { isBuildable } from '../core/terrain';
 import { getValidPlacements } from '../core/rules';
 import { Player, PlayerConfig, GamePhase, PlayerScore, BotDifficulty, GameOptions } from '../types';
 import { AxialCoord, hexToKey, HEX_DIRECTIONS } from '../core/hex';
-import { Location } from '../core/terrain';
+import { Location, Terrain } from '../core/terrain';
 import {
   getExtraPlacementPositions,
   getMovementOptions,
@@ -134,9 +134,11 @@ function buildPlayerScores(
 function chooseBotTilePlacement(
   board: Board,
   playerId: number,
-  location: Location
+  location: Location,
+  currentTerrain?: Terrain,
 ): AxialCoord | null {
-  const options = getExtraPlacementPositions(location, board, playerId);
+  // currentTerrain needed for Oracle (places on the played terrain card's terrain).
+  const options = getExtraPlacementPositions(location, board, playerId, currentTerrain);
   if (options.length === 0) return null;
 
   return [...options].sort((a, b) => {
@@ -602,7 +604,12 @@ export const gameStore = create<GameState>((set, get) => ({
           if (latest.phase !== GamePhase.EndTurn && latest.phase !== GamePhase.PlaceSettlements) break;
           if (tile.usedThisTurn || !BOT_PLACEMENT_TILES.has(tile.location)) continue;
 
-          const coord = chooseBotTilePlacement(latest.board, latestPlayer.id, tile.location);
+          const coord = chooseBotTilePlacement(
+            latest.board,
+            latestPlayer.id,
+            tile.location,
+            latest.currentTerrainCard?.terrain,
+          );
           if (!coord) continue;
 
           get().activateTile(tile.location);
