@@ -299,13 +299,11 @@ describe('getTowerPlacements', () => {
 
     const candidates = getTowerPlacements(board, 1);
     const keys = candidates.map(hexToKey);
-    // If (0,0) is adjacent to settlement and also border, it should appear
-    if (keys.includes('9,9') && keys.includes('0,0')) {
-      // Both are border – adjacent-if-possible means only adjacent ones returned
-      // (0,0) is adjacent to (1,0); (9,9) is not
-      expect(keys).toContain('0,0');
-      expect(keys).not.toContain('9,9');
-    }
+    // adjacent-if-possible: (0,0) is a border cell adjacent to the settlement (1,0)
+    // → must be returned; (9,9) is a border cell NOT adjacent → must be excluded.
+    // Unconditional asserts (a prior `if`-wrapped version could pass vacuously).
+    expect(keys).toContain('0,0');
+    expect(keys).not.toContain('9,9');
   });
 });
 

@@ -5,15 +5,16 @@
  * Tiles are acquired when a player places a settlement adjacent to the
  * location hex (each location can only be acquired once).
  *
- * Tile abilities (official rules):
- *   Farm    – place 1 extra settlement on a Grass cell (adjacent-if-possible)
- *   Harbor  – move 1 settlement onto a Water cell (adjacent-if-possible)
- *   Oasis   – place 1 extra settlement on a Desert cell (adjacent-if-possible)
- *   Tower   – place 1 extra settlement on a board-edge cell (adjacent-if-possible)
- *   Paddock – move 1 settlement exactly 2 hexes in a straight line (may jump over cells)
- *   Barn    – move 1 settlement to the terrain shown on your terrain card (adjacent-if-possible)
- *   Oracle  – place 1 extra settlement on the terrain shown on your terrain card (adjacent-if-possible)
- *   Tavern  – place 1 extra settlement at the end of a horizontal row of ≥3 of your settlements
+ * Tile abilities (official rules). [Phase 1] = aligned to official in this PR;
+ * [Phase 2 TODO] = still old behaviour, to be aligned next PR.
+ *   Farm    – [Phase 1] place 1 extra settlement on a Grass cell (adjacent-if-possible)
+ *   Oasis   – [Phase 1] place 1 extra settlement on a Desert cell (adjacent-if-possible)
+ *   Tower   – [Phase 1] place 1 extra settlement on a board-edge cell (adjacent-if-possible)
+ *   Oracle  – [Phase 1] place 1 extra settlement on the terrain shown on your terrain card (adjacent-if-possible)
+ *   Tavern  – [Phase 1] place 1 extra settlement at the end of a horizontal row of ≥3 of your settlements
+ *   Harbor  – [Phase 2 TODO] official: move 1 settlement onto a Water cell; currently still places near water
+ *   Paddock – [Phase 2 TODO] official: move exactly 2 hexes in a straight line; currently moves ≤2 any direction
+ *   Barn    – [Phase 2 TODO] official: move to terrain card's terrain; currently moves to settlement's own terrain
  */
 
 import { AxialCoord, hexNeighbors, hexDistance, hexToKey } from './hex';
