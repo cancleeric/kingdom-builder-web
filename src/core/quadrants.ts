@@ -303,7 +303,7 @@ export const QUADRANT_TEMPLATES: QuadrantTemplate[] = [
     name: '森林湖泊',
     layout: Q5_LAYOUT,
     castle: { q: 2, r: 7 },
-    locationSlots: [{ q: 5, r: 3 }, { q: 7, r: 5 }],
+    locationSlots: [{ q: 6, r: 2 }, { q: 3, r: 5 }],
   },
   {
     id: 'Q6',
