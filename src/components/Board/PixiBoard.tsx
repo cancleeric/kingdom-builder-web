@@ -378,14 +378,17 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
             }
           }
 
-          // R38a: draw player-colour border ring around settlement for attribution clarity
-          if (smGfx && player?.color) {
+          // R38a: draw player-colour border ring around settlement for attribution clarity.
+          // 先無條件 clear（即使 player 為 undefined 的孤兒 settlement 也要清舊環，避免殘留），再條件畫。
+          if (smGfx) {
             smGfx.clear();
-            const center = axialToPixel(cell.coord, HEX_SIZE);
-            const radius = HEX_SIZE * 0.52;
-            smGfx.setStrokeStyle({ width: 2.5, color: cssColorToPixi(player.color), alpha: 0.85 });
-            smGfx.circle(center.x, center.y, radius);
-            smGfx.stroke();
+            if (player?.color) {
+              const center = axialToPixel(cell.coord, HEX_SIZE);
+              const radius = HEX_SIZE * 0.52;
+              smGfx.setStrokeStyle({ width: 2.5, color: cssColorToPixi(player.color), alpha: 0.85 });
+              smGfx.circle(center.x, center.y, radius);
+              smGfx.stroke();
+            }
           }
         } else {
           // 格子無聚落 → 銷毀 Sprite（若有）、清 border ring

@@ -902,7 +902,7 @@ function App() {
                   }
                 }}
                 onPointerLeave={() => {
-                  setBoardPointerPos(null);
+                  // 只在未 pin 時清除位置，否則 long-press pin 的 tooltip 會立刻消失
                   if (!tooltipPinned) {
                     setBoardPointerPos(null);
                   }

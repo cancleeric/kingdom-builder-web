@@ -45,6 +45,9 @@ export const zhTW = {
     Oracle: '在任意空的可建造且相鄰你聚落的格子放置 1 個額外聚落。',
     Tavern: '在你的任一水平聚落列兩端放置 1 個額外聚落。',
   },
+  tooltip: {
+    tapToDismiss: '點一下關閉',
+  },
   objective: {
     Fisherman: '漁夫',
     Miners: '礦工',

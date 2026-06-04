@@ -45,6 +45,9 @@ export const en = {
     Oracle: 'Place 1 extra settlement on an empty buildable cell adjacent to your settlements.',
     Tavern: 'Place 1 extra settlement at either end of one of your horizontal settlement rows.',
   },
+  tooltip: {
+    tapToDismiss: 'Tap to dismiss',
+  },
   objective: {
     Fisherman: 'Fisherman',
     Miners: 'Miners',
