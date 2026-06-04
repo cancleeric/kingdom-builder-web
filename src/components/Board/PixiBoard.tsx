@@ -11,25 +11,46 @@
  */
 
 import React, { useEffect, useRef, useState, useCallback } from 'react';
-import { Application, Graphics, Container, NoiseFilter, Assets, Sprite, Texture } from 'pixi.js';
+import { Application, Graphics, Container, Assets, Sprite, Texture } from 'pixi.js';
 import { Viewport } from 'pixi-viewport';
 import type { Board } from '../../core/board';
 import type { AxialCoord } from '../../core/hex';
 import { HEX_SIZE, hexToKey, pixelToAxial, axialToPixel } from '../../core/hex';
 import type { Player } from '../../types';
-import { getTerrainColor } from '../../core/terrain';
 import {
   cssColorToPixi,
   drawHex,
   drawHexBorder,
-  drawHexGradient,
-  drawHexLightOverlay,
   HOUSE_DATA_URL,
 } from './pixiHexUtils';
-import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
-import { MOTIF_DATA_URLS } from './motifTextures';
 import { PIECE_DATA_URLS } from './pieceTextures';
 import { useTranslation } from 'react-i18next';
+
+// ─── R37a: Kenney Hex Tile mapping ───────────────────────────────────────────
+// 每個地形對應一張 Kenney CC0 2.5D PNG（public/assets/hextiles/）
+// Forest/Flower 用 tileGrass 底板 + 裝飾 Sprite 疊加，實現 7 地形視覺可辨
+const TERRAIN_TILE_MAP: Record<string, string> = {
+  Grass:    '/assets/hextiles/tileGrass.png',
+  Forest:   '/assets/hextiles/tileGrass.png',  // 底板同草地，疊 pine 裝飾
+  Desert:   '/assets/hextiles/tileSand.png',
+  Water:    '/assets/hextiles/tileWater.png',
+  Mountain: '/assets/hextiles/tileStone.png',
+  Canyon:   '/assets/hextiles/tileLava.png',
+  Flower:   '/assets/hextiles/tileGrass.png',  // 底板同草地，疊 flower 裝飾
+};
+
+// R37a: 地形裝飾 Sprite 對應（Forest/Flower 專用，叫 deco）
+// pineGreen_mid: 30×101 原始尺寸；flowerRed: 12×11 原始尺寸
+const TERRAIN_DECO_MAP: Record<string, string> = {
+  Forest: '/assets/hextiles/pineGreen_mid.png',
+  Flower: '/assets/hextiles/flowerRed.png',
+};
+
+// R37a: tile 顯示縮放（65×0.8=52px 寬，配合 HEX_SIZE=30 pointy-top hex 頂面寬）
+const TILE_DISPLAY_SCALE = 0.8;
+// anchor.y：頂面中心在 PNG 中的相對位置（26/89≈0.292）
+// 讓 axialToPixel 中心點對齊 tile 頂面中心（而非 PNG 中心）
+const TILE_ANCHOR_Y = 0.292;
 
 // ─── Props ───────────────────────────────────────────────────────────────────
 export interface PixiBoardProps {
@@ -64,15 +85,27 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const initializedRef = useRef(false);
 
   // Graphics maps — keyed by "q,r"
-  const terrainGfxMap = useRef<Map<string, Graphics>>(new Map());
-  const lightOverlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const overlayGfxMap = useRef<Map<string, Graphics>>(new Map());
   const settlementGfxMap = useRef<Map<string, Graphics>>(new Map());
 
-  // R36 Phase 2b-1: motif Sprite map — keyed by "q,r"
+  // R36: motif Sprite map — keyed by "q,r"（R37a 停止 populate，保留供 cleanup）
   const motifSpriteMap = useRef<Map<string, Sprite>>(new Map());
-  // R36 Phase 2b-1: motif Texture map (for cleanup) — keyed by motif key e.g. "Grass-a"
+  // R36: motif Texture map — keyed by motif key（R37a 停止 populate，保留供 cleanup）
   const motifTextureMapRef = useRef<Map<string, Texture>>(new Map());
+
+  // R37a: tile Sprite map — keyed by "q,r"
+  const tileSpriteMap = useRef<Map<string, Sprite>>(new Map());
+  // R37a: tile Texture map — keyed by URL（for cleanup）
+  const tileTextureMapRef = useRef<Map<string, Texture>>(new Map());
+  // R37a: deco Sprite map — keyed by "q,r"（Forest/Flower 裝飾）
+  const decoSpriteMap = useRef<Map<string, Sprite>>(new Map());
+  // R37a: deco Texture map — keyed by URL（for cleanup）
+  const decoTextureMapRef = useRef<Map<string, Texture>>(new Map());
+  // R37a: layer container refs
+  const tileLayerRef = useRef<Container | null>(null);
+  const pieceLayerRef = useRef<Container | null>(null);
+  const overlayLayerRef = useRef<Container | null>(null);
+  const settlementLayerRef = useRef<Container | null>(null);
 
   // R36 Phase 2b-2: piece Sprite map — keyed by "q,r"
   const pieceSpriteMap = useRef<Map<string, Sprite>>(new Map());
@@ -145,92 +178,117 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   );
 
   // ─── Build initial Pixi scene ─────────────────────────────────────────────
+  // R37a: 改用 Kenney tile Sprite + 2.5D 深度排序
+  // buildScene 現在只需 pieceTextureMap（tile/deco textures 已存入 tileTextureMapRef/decoTextureMapRef）
   const buildScene = useCallback(
-    (viewport: Viewport, b: Board, gridOffset: number, motifTextureMap: Map<string, Texture>, pieceTextureMap: Map<string, Texture>) => {
+    (viewport: Viewport, b: Board, gridOffset: number, pieceTextureMap: Map<string, Texture>) => {
       const hexContainer = new Container();
       // Translate by gridOffset so hex (0,0) is not at the canvas corner
       hexContainer.position.set(gridOffset, gridOffset);
       viewport.addChild(hexContainer);
 
-      // R36 Phase 2a: terrainLayer sub-container holds terrain + light overlay.
-      // NoiseFilter is applied to this layer ONLY (not hexContainer),
-      // so grain does not affect location markers / overlay / settlements.
-      const terrainLayer = new Container();
-      hexContainer.addChild(terrainLayer);
+      // R37a: Container 分層（無 NoiseFilter）
+      // tileLayer: Kenney tile Sprite（深度排序，無 grain）
+      // pieceLayer: location piece Sprite（棋子）
+      // overlayLayer: hover/valid/invalid Graphics
+      // settlementLayer: settlement anchor Graphics
+      const tileLayer = new Container();
+      const pieceLayer = new Container();
+      const overlayLayer = new Container();
+      const settlementLayer = new Container();
+      hexContainer.addChild(tileLayer);
+      hexContainer.addChild(pieceLayer);
+      hexContainer.addChild(overlayLayer);
+      hexContainer.addChild(settlementLayer);
 
-      // Grain filter: O(1), applied once to terrainLayer
-      const noiseFilter = new NoiseFilter({ noise: 0.04, seed: 42 });
-      terrainLayer.filters = [noiseFilter];
+      tileLayerRef.current = tileLayer;
+      pieceLayerRef.current = pieceLayer;
+      overlayLayerRef.current = overlayLayer;
+      settlementLayerRef.current = settlementLayer;
 
-      const cells = b.getAllCells();
-      for (const cell of cells) {
+      // R37a: 深度排序 — r 升序，同 r q 升序
+      // 後 addChild 的在上層，r 大（南方）的後加入 → 正確 2.5D 遮擋
+      const sortedCells = [...b.getAllCells()].sort((ca, cb) => {
+        if (ca.coord.r !== cb.coord.r) return ca.coord.r - cb.coord.r;
+        return ca.coord.q - cb.coord.q;
+      });
+
+      for (const cell of sortedCells) {
         const key = hexToKey(cell.coord);
-
-        // Terrain gradient layer (R36 Phase 2a: replaces flat colour)
-        const tg = new Graphics();
-        const variant = getTerrainVariant(cell.coord.q, cell.coord.r);
+        const center = axialToPixel(cell.coord, HEX_SIZE);
         const terrainName = cell.terrain as string;
-        const gradKey = `${terrainName}-${variant}`;
-        const grad = TERRAIN_GRADIENTS[gradKey];
-        if (grad) {
-          drawHexGradient(tg, cell.coord, grad);
-        } else {
-          // Fallback to flat colour for unknown terrain types
-          const terrainCss = getTerrainColor(cell.terrain);
-          const terrainPx = cssColorToPixi(terrainCss);
-          drawHex(tg, cell.coord, terrainPx, 1.0, 0x000000, 0.3);
-        }
-        terrainLayer.addChild(tg);
-        terrainGfxMap.current.set(key, tg);
 
-        // R36 Phase 2b-1: motif Sprite — inserted after tg, before log
-        // tg 在 terrainLayer 的 index = terrainLayer.children.length - 1（剛加入）
-        const motifKey = `${terrainName}-${variant}`;
-        const motifTex = motifTextureMap.get(motifKey);
-        if (motifTex) {
-          const motifSprite = new Sprite(motifTex);
-          motifSprite.anchor.set(0.5, 0.5);
-          const center = axialToPixel(cell.coord, HEX_SIZE);
-          motifSprite.position.set(center.x, center.y);
-          motifSprite.width = 52;
-          motifSprite.height = 60;
-          // 插在 tg 之後（tg 是 terrainLayer 最後一個 child，indexOf 取其 index + 1）
-          terrainLayer.addChildAt(motifSprite, terrainLayer.children.indexOf(tg) + 1);
-          motifSpriteMap.current.set(key, motifSprite);
+        // R37a: Kenney tile Sprite（底板）
+        const tileUrl = TERRAIN_TILE_MAP[terrainName];
+        const tileTex = tileUrl ? tileTextureMapRef.current.get(tileUrl) : undefined;
+        if (tileTex) {
+          const tileSprite = new Sprite(tileTex);
+          // anchor.y=TILE_ANCHOR_Y：讓頂面中心對齊 axialToPixel 返回的 hex 幾何中心
+          tileSprite.anchor.set(0.5, TILE_ANCHOR_Y);
+          tileSprite.width  = 65 * TILE_DISPLAY_SCALE;  // 52px
+          tileSprite.height = 89 * TILE_DISPLAY_SCALE;  // 71.2px
+          tileSprite.position.set(center.x, center.y);
+          // Forest 底板染深綠色調以區分 Grass；Flower 底板保持原色（花裝飾自帶辨識）
+          if (terrainName === 'Forest') {
+            tileSprite.tint = 0x7aad5c;  // 深草綠，讓 Forest 底板略深於 Grass
+          }
+          tileLayer.addChild(tileSprite);
+          tileSpriteMap.current.set(key, tileSprite);
         }
 
-        // Light overlay layer (R36 Phase 2a: directional light above terrain)
-        const log = new Graphics();
-        drawHexLightOverlay(log, cell.coord);
-        terrainLayer.addChild(log);
-        lightOverlayGfxMap.current.set(key, log);
+        // R37a: 裝飾 Sprite（Forest=pine, Flower=flower）疊在 tileLayer 同深度位置
+        // 讓裝飾跟 tile 同深度排序（同在 tileLayer 內，緊接底板後）
+        const decoUrl = TERRAIN_DECO_MAP[terrainName];
+        const decoTex = decoUrl ? decoTextureMapRef.current.get(decoUrl) : undefined;
+        if (decoTex) {
+          const decoSprite = new Sprite(decoTex);
+          if (terrainName === 'Forest') {
+            // pineGreen_mid: 30×101 原始尺寸
+            // 顯示高 = HEX_SIZE * 1.8 ≈ 54px（讓松樹明顯超出頂面往上長）
+            // anchor.y = 底座在 PNG 底部對齊 hex 頂面中心（讓樹往上長）
+            // 底座位置：hex 頂面中心稍下（+8px，讓樹根紮在 tile 頂面）
+            const decoH = HEX_SIZE * 1.8;
+            const decoW = decoH * (30 / 101);
+            decoSprite.anchor.set(0.5, 1.0); // anchor 底部
+            decoSprite.width  = decoW;
+            decoSprite.height = decoH;
+            decoSprite.position.set(center.x, center.y + 8);
+          } else {
+            // flowerRed: 12×11 原始尺寸
+            // 顯示 = HEX_SIZE * 0.7 ≈ 21px（小花，坐在頂面中心）
+            const decoS = HEX_SIZE * 0.7;
+            decoSprite.anchor.set(0.5, 0.5);
+            decoSprite.width  = decoS;
+            decoSprite.height = decoS * (11 / 12);
+            decoSprite.position.set(center.x, center.y);
+          }
+          tileLayer.addChild(decoSprite);
+          decoSpriteMap.current.set(key, decoSprite);
+        }
 
-        // R36 Phase 2b-2: piece Sprite layer — outside terrainLayer (no grain)
-        // Replaces drawCastleMarker / drawLocationDot with 2.5D Sprite
+        // R37a: piece Sprite（location marker）— 在 pieceLayer（tileLayer 之上）
         if (cell.location !== undefined) {
-          const locKey = cell.location as string; // e.g. 'Castle'
+          const locKey = cell.location as string;
           const pieceTex = pieceTextureMap.get(locKey);
           if (pieceTex) {
             const ps = new Sprite(pieceTex);
             ps.anchor.set(0.5, 0.5);
-            const center = axialToPixel(cell.coord, HEX_SIZE);
             ps.position.set(center.x, center.y);
-            // Display size: HEX_SIZE * 0.7 ≈ 21px (HEX_SIZE = 30)
-            ps.width = HEX_SIZE * 0.7;
+            ps.width  = HEX_SIZE * 0.7;
             ps.height = HEX_SIZE * 0.7;
-            hexContainer.addChild(ps);
+            pieceLayer.addChild(ps);
             pieceSpriteMap.current.set(key, ps);
           }
         }
 
-        // Overlay layer (valid/hover/invalid/selected — updated dynamically) — outside terrainLayer
+        // R37a: overlay Graphics — 在 overlayLayer
         const ov = new Graphics();
-        hexContainer.addChild(ov);
+        overlayLayer.addChild(ov);
         overlayGfxMap.current.set(key, ov);
 
-        // Settlement marker layer — outside terrainLayer
+        // R37a: settlement anchor Graphics — 在 settlementLayer
         const sm = new Graphics();
-        hexContainer.addChild(sm);
+        settlementLayer.addChild(sm);
         settlementGfxMap.current.set(key, sm);
       }
     },
@@ -403,77 +461,76 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         setZoomScale(vp.scaled);
       });
 
-      // R36 Phase 2b-1 + 2b-2 + 2c: 並行預載 motif (21) + piece (9) + house texture
-      const motifEntries = Object.entries(MOTIF_DATA_URLS);
+      // R37a: 並行預載 tile PNG（去重）+ piece + house texture
+      // motif 預載停用（MOTIF_DATA_URLS 不再載）
       const pieceEntries = Object.entries(PIECE_DATA_URLS);
-      const dpr = window.devicePixelRatio || 1;
 
-      const [motifTextures, pieceTextures, houseTex] = await Promise.all([
-        Promise.all(
-          motifEntries.map(([, dataUrl]) =>
-            Assets.load<Texture>({
-              src: dataUrl,
-              data: {
-                width: 52,
-                height: 60,
-                resolution: dpr,
-              },
-            }),
-          ),
-        ),
+      // tile URL 去重（多個 terrain 共用同一 PNG）
+      const uniqueTileUrls = [...new Set(Object.values(TERRAIN_TILE_MAP))];
+      // deco URL 去重（Forest/Flower 用不同 PNG）
+      const uniqueDecoUrls = [...new Set(Object.values(TERRAIN_DECO_MAP))];
+
+      const [tileTextures, decoTextures, pieceTextures, houseTex] = await Promise.all([
+        // tile PNG（靜態路徑，直接 Assets.load URL）
+        Promise.all(uniqueTileUrls.map(url => Assets.load<Texture>(url))),
+        // deco PNG（pine/flower）
+        Promise.all(uniqueDecoUrls.map(url => Assets.load<Texture>(url))),
+        // piece DataURL（棋子 SVG）
         Promise.all(
           pieceEntries.map(([, dataUrl]) =>
             Assets.load<Texture>({
               src: dataUrl,
-              data: {
-                width: 28,
-                height: 28,
-                resolution: dpr,
-              },
+              data: { width: 28, height: 28, resolution: window.devicePixelRatio || 1 },
             }),
           ),
         ),
-        // R36 Phase 2c: white-house texture (shared, single)
+        // R36 Phase 2c: white-house texture（聚落小房子）
         Assets.load<Texture>({
           src: HOUSE_DATA_URL,
-          data: { width: 28, height: 28, resolution: dpr },
+          data: { width: 28, height: 28, resolution: window.devicePixelRatio || 1 },
         }),
       ]);
 
-      const motifTextureMap = new Map<string, Texture>();
-      motifEntries.forEach(([key], i) => motifTextureMap.set(key, motifTextures[i]));
+      // 建 tile/deco texture map（URL → Texture）
+      const tileTextureMap = new Map<string, Texture>();
+      uniqueTileUrls.forEach((url, i) => tileTextureMap.set(url, tileTextures[i]));
+
+      const decoTextureMap = new Map<string, Texture>();
+      uniqueDecoUrls.forEach((url, i) => decoTextureMap.set(url, decoTextures[i]));
 
       const pieceTextureMap = new Map<string, Texture>();
       pieceEntries.forEach(([key], i) => pieceTextureMap.set(key, pieceTextures[i]));
 
       // StrictMode guard：預載途中如 initializedRef 已被重設，卸載並返回
       if (!initializedRef.current) {
-        for (const [key, tex] of motifTextureMap) {
-          tex.destroy();
-          const dataUrl = MOTIF_DATA_URLS[key];
-          if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
+        for (const [url, tex] of tileTextureMap) {
+          try { tex.destroy(); } catch { /* suppress */ }
+          Assets.unload(url).catch(() => { /* suppress */ });
+        }
+        for (const [url, tex] of decoTextureMap) {
+          try { tex.destroy(); } catch { /* suppress */ }
+          Assets.unload(url).catch(() => { /* suppress */ });
         }
         for (const [key, tex] of pieceTextureMap) {
           tex.destroy();
           const dataUrl = PIECE_DATA_URLS[key];
           if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
         }
-        // R36 Phase 2c: house texture cleanup on StrictMode double-invoke
         try { houseTex.destroy(); } catch { /* suppress */ }
         Assets.unload(HOUSE_DATA_URL).catch(() => { /* suppress */ });
         app.destroy(true, { children: true, texture: true });
         return;
       }
 
-      // R36 Phase 2c: store house texture ref
+      // 存入 ref 供 buildScene + cleanup 使用
+      tileTextureMapRef.current = tileTextureMap;
+      decoTextureMapRef.current = decoTextureMap;
       houseTextureRef.current = houseTex;
-
-      // 存入 ref 供 cleanup 使用
-      motifTextureMapRef.current = motifTextureMap;
       pieceTextureMapRef.current = pieceTextureMap;
+      // motifTextureMapRef 保持空（cleanup 仍會 forEach，空 map 無害）
 
       // Build scene
-      buildScene(vp, boardRef.current, gridOffset, motifTextureMap, pieceTextureMap);
+      buildScene(vp, boardRef.current, gridOffset, pieceTextureMap);
 
       // Initial overlay render
       updateScene(
@@ -521,14 +578,30 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
     // Cleanup
     return () => {
       initializedRef.current = false;
-      // R36 Phase 2b-1: cleanup motif Sprites
+      // R37a: cleanup tile Sprites
+      tileSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
+      tileSpriteMap.current.clear();
+      // R37a: cleanup tile Textures
+      tileTextureMapRef.current.forEach((tex, url) => {
+        try { tex.destroy(); } catch { /* suppress */ }
+        Assets.unload(url).catch(() => { /* suppress */ });
+      });
+      tileTextureMapRef.current.clear();
+      // R37a: cleanup deco Sprites
+      decoSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
+      decoSpriteMap.current.clear();
+      // R37a: cleanup deco Textures
+      decoTextureMapRef.current.forEach((tex, url) => {
+        try { tex.destroy(); } catch { /* suppress */ }
+        Assets.unload(url).catch(() => { /* suppress */ });
+      });
+      decoTextureMapRef.current.clear();
+      // R36: cleanup motif Sprites（R37a 空 map，無害保留）
       motifSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
       motifSpriteMap.current.clear();
-      // R36 Phase 2b-1: cleanup motif Textures
-      motifTextureMapRef.current.forEach((tex, key) => {
+      // R36: cleanup motif Textures（R37a 空 map，無害保留）
+      motifTextureMapRef.current.forEach((tex) => {
         try { tex.destroy(); } catch { /* suppress */ }
-        const dataUrl = MOTIF_DATA_URLS[key];
-        if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
       });
       motifTextureMapRef.current.clear();
       // R36 Phase 2b-2: cleanup piece Sprites
@@ -559,10 +632,12 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         appRef.current = null;
       }
       viewportRef.current = null;
-      terrainGfxMap.current.clear();
-      lightOverlayGfxMap.current.clear();
       overlayGfxMap.current.clear();
       settlementGfxMap.current.clear();
+      tileLayerRef.current = null;
+      pieceLayerRef.current = null;
+      overlayLayerRef.current = null;
+      settlementLayerRef.current = null;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Only runs on mount
