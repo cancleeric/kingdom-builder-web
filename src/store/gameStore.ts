@@ -648,7 +648,8 @@ export const gameStore = create<GameState>((set, get) => ({
         validPlacements: getExtraPlacementPositions(
           location,
           state.board,
-          currentPlayer.id
+          currentPlayer.id,
+          state.currentTerrainCard?.terrain
         ),
         tileMoveSources: [],
         tileMoveFrom: null,
