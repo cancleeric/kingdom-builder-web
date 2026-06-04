@@ -9,6 +9,13 @@ export default defineConfig({
     rollupOptions: {
       output: {
         manualChunks(id) {
+          // vendor-pixi: WebGL 渲染引擎（大體積，獨立 chunk，棋盤畫面才載入）
+          if (
+            id.includes('node_modules/pixi.js/') ||
+            id.includes('node_modules/pixi-viewport/')
+          ) {
+            return 'vendor-pixi'
+          }
           // vendor-react: react core 三件套（緊耦合，務必同組避免拆散導致 undefined export 白屏）
           if (
             id.includes('node_modules/react-dom/') ||
