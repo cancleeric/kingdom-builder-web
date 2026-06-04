@@ -24,11 +24,10 @@ export interface GameAction {
 }
 
 /**
- * Internal snapshot used to reverse the last action (undo support).
- * One snapshot is stored at most, covering the most recent undoable action
- * in the current turn. A new snapshot is only created when `undoUsedThisTurn`
- * is false; once the player has consumed their undo for the turn the snapshot
- * is set to null and `canUndo` stays false for the remainder of that turn.
+ * Internal snapshot used to reverse a single undoable action.
+ * Stored in a stack (undoStack) in GameState; the top of the stack is the most
+ * recent action. Popping and reversing allows the player to step back one
+ * action at a time until the stack is empty (start of the current turn).
  */
 export interface UndoSnapshot {
   type: GameActionType;
@@ -59,4 +58,11 @@ export interface UndoSnapshot {
   tileUsedIndex?: number;
   /** Settlement index in player.settlements that was removed (TILE_MOVE only) */
   movedSettlementIdx?: number;
+  /**
+   * Snapshot of placementsThisTurn BEFORE this action was applied.
+   * Restored when undoing to support correct adjacency-rule recalculation.
+   * Backwards-compat: old snapshots lack this field → fallback to
+   * state.placementsThisTurn.slice(0, -1) when undefined.
+   */
+  previousPlacementsThisTurn?: AxialCoord[];
 }

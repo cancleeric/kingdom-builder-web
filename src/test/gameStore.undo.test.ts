@@ -4,8 +4,8 @@
  * These tests exercise:
  *  - history accumulates on each placement
  *  - undoLastAction restores board & player state
- *  - each turn allows only 1 undo
- *  - canUndo is reset correctly on endTurn
+ *  - multi-step undo: can undo every action back to start of turn
+ *  - canUndo is reset correctly on endTurn / new game
  */
 
 import { describe, it, expect, beforeEach } from 'vitest';
@@ -115,29 +115,34 @@ describe('History & Undo', () => {
       expect(useGameStore.getState().canUndo).toBe(true);
     });
 
-    it('is false after undo is consumed', () => {
+    it('is false after all actions are undone back to start of turn', () => {
       useGameStore.getState().placeSettlement(firstValidPlacement());
       useGameStore.getState().undoLastAction();
       expect(useGameStore.getState().canUndo).toBe(false);
     });
 
-    it('remains false for subsequent placements after undo is used', () => {
-      // Use the 1 undo allowance
+    it('remains true after partial undo when more actions remain on stack', () => {
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      // Stack has 2 snapshots; after 1 undo still 1 left
+      useGameStore.getState().undoLastAction();
+      expect(useGameStore.getState().canUndo).toBe(true);
+    });
+
+    it('is true after placement even if undo was already used earlier this turn', () => {
+      // Phase B: undo does NOT consume the turn allowance — stack-based
       useGameStore.getState().placeSettlement(firstValidPlacement());
       useGameStore.getState().undoLastAction();
 
-      // Place another settlement – no more undo available this turn
+      // Place again — canUndo should become true again
       useGameStore.getState().placeSettlement(firstValidPlacement());
-      expect(useGameStore.getState().canUndo).toBe(false);
+      expect(useGameStore.getState().canUndo).toBe(true);
     });
 
     it('resets to false at the start of the next turn', () => {
-      // Use undo this turn
       useGameStore.getState().placeSettlement(firstValidPlacement());
-      useGameStore.getState().undoLastAction();
-
       // Complete the turn
-      for (let i = 0; i < 3; i++) {
+      for (let i = 0; i < 2; i++) {
         useGameStore.getState().placeSettlement(firstValidPlacement());
       }
       useGameStore.getState().endTurn();
@@ -216,31 +221,79 @@ describe('History & Undo', () => {
     });
   });
 
-  // ── 1 undo per turn enforcement ──────────────────────────────────────────
+  // ── Multi-step undo ──────────────────────────────────────────────────────
 
-  describe('1-undo-per-turn rule', () => {
-    it('allows exactly 1 undo per turn', () => {
+  describe('multi-step undo', () => {
+    it('allows undo of every action in the turn (3 placements → 3 undos)', () => {
+      const coords: ReturnType<typeof firstValidPlacement>[] = [];
+      for (let i = 0; i < 3; i++) {
+        const coord = firstValidPlacement();
+        coords.push(coord);
+        useGameStore.getState().placeSettlement(coord);
+      }
+      expect(useGameStore.getState().undoStack.length).toBe(3);
+
+      // Undo each one
+      for (let i = 2; i >= 0; i--) {
+        useGameStore.getState().undoLastAction();
+        expect(useGameStore.getState().board.getSettlement(coords[i])).toBeUndefined();
+      }
+      expect(useGameStore.getState().undoStack.length).toBe(0);
+      expect(useGameStore.getState().canUndo).toBe(false);
+    });
+
+    it('second placement after undo is also undoable', () => {
       const coord1 = firstValidPlacement();
       useGameStore.getState().placeSettlement(coord1);
 
-      // First undo: allowed
+      // Undo first placement
       useGameStore.getState().undoLastAction();
-      expect(useGameStore.getState().canUndo).toBe(false);
+      expect(useGameStore.getState().board.getSettlement(coord1)).toBeUndefined();
 
-      // Place again – undo quota consumed
+      // Place again — new snapshot pushed
       const coord2 = firstValidPlacement();
       useGameStore.getState().placeSettlement(coord2);
-      expect(useGameStore.getState().canUndo).toBe(false);
+      expect(useGameStore.getState().canUndo).toBe(true);
 
-      // Second undo attempt: should be ignored
+      // Undo second placement
       useGameStore.getState().undoLastAction();
-      const { board } = useGameStore.getState();
-      // Settlement at coord2 must still be on the board
-      expect(board.getSettlement(coord2)).toBe(1);
+      expect(useGameStore.getState().board.getSettlement(coord2)).toBeUndefined();
+      expect(useGameStore.getState().canUndo).toBe(false);
     });
 
-    it('refreshes the undo allowance after endTurn', () => {
-      // Player 1: consume undo, complete turn
+    it('undoStack is empty after endTurn', () => {
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().endTurn();
+      expect(useGameStore.getState().undoStack).toHaveLength(0);
+      expect(useGameStore.getState().canUndo).toBe(false);
+    });
+
+    it('undo restores remainingPlacements correctly after each step', () => {
+      const initial = useGameStore.getState().remainingPlacements;
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      expect(useGameStore.getState().remainingPlacements).toBe(initial - 2);
+
+      useGameStore.getState().undoLastAction();
+      expect(useGameStore.getState().remainingPlacements).toBe(initial - 1);
+
+      useGameStore.getState().undoLastAction();
+      expect(useGameStore.getState().remainingPlacements).toBe(initial);
+    });
+
+    it('canUndo becomes true again after new placement following undo', () => {
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      useGameStore.getState().undoLastAction();
+      expect(useGameStore.getState().canUndo).toBe(false);
+
+      useGameStore.getState().placeSettlement(firstValidPlacement());
+      expect(useGameStore.getState().canUndo).toBe(true);
+    });
+
+    it('refreshes undoStack after endTurn', () => {
+      // Player 1: undo some, complete turn
       useGameStore.getState().placeSettlement(firstValidPlacement());
       useGameStore.getState().undoLastAction();
       for (let i = 0; i < 3; i++) {
@@ -252,6 +305,7 @@ describe('History & Undo', () => {
       useGameStore.getState().drawTerrainCard();
       useGameStore.getState().placeSettlement(firstValidPlacement());
       expect(useGameStore.getState().canUndo).toBe(true);
+      expect(useGameStore.getState().undoStack).toHaveLength(1);
     });
   });
 
@@ -264,11 +318,11 @@ describe('History & Undo', () => {
       expect(useGameStore.getState().history).toHaveLength(0);
     });
 
-    it('resets canUndo and undoSnapshot on new game', () => {
+    it('resets canUndo and undoStack on new game', () => {
       useGameStore.getState().placeSettlement(firstValidPlacement());
       useGameStore.getState().initGame(2);
       expect(useGameStore.getState().canUndo).toBe(false);
-      expect(useGameStore.getState().undoSnapshot).toBeNull();
+      expect(useGameStore.getState().undoStack).toHaveLength(0);
     });
   });
 
@@ -287,6 +341,33 @@ describe('History & Undo', () => {
       expect(useGameStore.getState().board.getSettlement(coord)).toBe(1);
 
       useGameStore.getState().undoLastAction();
+      expect(useGameStore.getState().board.getSettlement(coord)).toBeUndefined();
+    });
+  });
+
+  // ── Old snapshot backwards-compat ───────────────────────────────────────
+
+  describe('old snapshot backwards-compat (no previousPlacementsThisTurn)', () => {
+    it('does not crash when undoing a snapshot lacking previousPlacementsThisTurn', () => {
+      const coord = firstValidPlacement();
+      useGameStore.getState().placeSettlement(coord);
+
+      // Simulate an old-format snapshot (pre-Phase-B) that lacks the new field
+      useGameStore.setState(() => ({
+        undoStack: [
+          {
+            type: 'PLACE_SETTLEMENT' as const,
+            coord,
+            previousRemainingPlacements: 3,
+            previousPhase: GamePhase.PlaceSettlements,
+            acquiredLocationKeys: [],
+            acquiredTileLocs: [],
+            // previousPlacementsThisTurn intentionally absent
+          },
+        ],
+      }));
+
+      expect(() => useGameStore.getState().undoLastAction()).not.toThrow();
       expect(useGameStore.getState().board.getSettlement(coord)).toBeUndefined();
     });
   });

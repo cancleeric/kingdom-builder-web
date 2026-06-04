@@ -64,9 +64,8 @@ describe('fix #125 — duplicate location tile undo', () => {
             }
       ),
       canUndo: true,
-      undoUsedThisTurn: false,
       // Snapshot targets the SECOND tile (index 1)
-      undoSnapshot: makeTilePlacementSnapshot(1, 'Farm'),
+      undoStack: [makeTilePlacementSnapshot(1, 'Farm')],
     }));
 
     useGameStore.getState().undoLastAction();
@@ -95,8 +94,7 @@ describe('fix #125 — duplicate location tile undo', () => {
             }
       ),
       canUndo: true,
-      undoUsedThisTurn: false,
-      undoSnapshot: makeTilePlacementSnapshot(0, 'Farm'),
+      undoStack: [makeTilePlacementSnapshot(0, 'Farm')],
     }));
 
     useGameStore.getState().undoLastAction();
@@ -125,8 +123,7 @@ describe('fix #125 — duplicate location tile undo', () => {
             }
       ),
       canUndo: true,
-      undoUsedThisTurn: false,
-      undoSnapshot: makeTilePlacementSnapshot(0, 'Farm'),
+      undoStack: [makeTilePlacementSnapshot(0, 'Farm')],
     }));
 
     useGameStore.getState().undoLastAction();
