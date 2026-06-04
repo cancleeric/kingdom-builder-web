@@ -24,7 +24,7 @@ import {
   drawHexBorder,
   drawHexGradient,
   drawHexLightOverlay,
-  drawSettlementCircle,
+  HOUSE_DATA_URL,
 } from './pixiHexUtils';
 import { TERRAIN_GRADIENTS, getTerrainVariant } from './terrainArt';
 import { MOTIF_DATA_URLS } from './motifTextures';
@@ -78,6 +78,11 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
   const pieceSpriteMap = useRef<Map<string, Sprite>>(new Map());
   // R36 Phase 2b-2: piece Texture map (for cleanup) — keyed by Location enum value
   const pieceTextureMapRef = useRef<Map<string, Texture>>(new Map());
+
+  // R36 Phase 2c: settlement Sprite map — keyed by "q,r" (dynamic, add/remove per placement)
+  const settlementSpriteMap = useRef<Map<string, Sprite>>(new Map());
+  // R36 Phase 2c: white-house texture (shared by all settlement Sprites)
+  const houseTextureRef = useRef<Texture | null>(null);
 
   // Board geometry (computed once on mount)
   const worldInfoRef = useRef<{
@@ -279,16 +284,45 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
           }
         }
 
-        // ── Settlement ────────────────────────────────────────────────────
-        const sm = settlementGfxMap.current.get(key);
-        if (sm) {
-          if (cell.settlement !== undefined) {
-            const player = pls.find(p => p.id === cell.settlement);
-            if (player?.color) {
-              drawSettlementCircle(sm, cell.coord, cssColorToPixi(player.color));
-            }
+        // ── Settlement (R36 Phase 2c: Sprite.tint 2.5D 小房子) ───────────
+        const existingSprite = settlementSpriteMap.current.get(key);
+
+        if (cell.settlement !== undefined) {
+          const player = pls.find(p => p.id === cell.settlement);
+          const tint = player?.color ? cssColorToPixi(player.color) : 0xffffff;
+
+          if (existingSprite) {
+            // 已有 Sprite → 只更新 tint（O(1)，不重建）
+            existingSprite.tint = tint;
           } else {
-            sm.clear();
+            // 新聚落 → 建 Sprite
+            const tex = houseTextureRef.current;
+            if (tex) {
+              const sprite = new Sprite(tex);
+              sprite.anchor.set(0.5, 0.5);
+              const center = axialToPixel(cell.coord, HEX_SIZE);
+              sprite.position.set(center.x, center.y);
+              sprite.width = HEX_SIZE * 0.9;
+              sprite.height = HEX_SIZE * 0.95;
+              sprite.tint = tint;
+              // 插入 hexContainer 的 sm 錨點位置（非尾端），確保 overlay 高亮層仍在聚落之上、
+              // hover/valid/invalid 回饋不被小房子遮住（dev-manager #173 z-order 修正）。
+              // container 為 null 則跳過建立，避免孤兒 Sprite 洩漏（dev-manager #173 防呆）。
+              const smGfx = settlementGfxMap.current.get(key);
+              const container = smGfx?.parent;
+              if (container) {
+                container.addChildAt(sprite, container.getChildIndex(smGfx));
+                settlementSpriteMap.current.set(key, sprite);
+              } else {
+                sprite.destroy();
+              }
+            }
+          }
+        } else {
+          // 格子無聚落 → 銷毀 Sprite（若有）
+          if (existingSprite) {
+            existingSprite.destroy();
+            settlementSpriteMap.current.delete(key);
           }
         }
       }
@@ -369,11 +403,12 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         setZoomScale(vp.scaled);
       });
 
-      // R36 Phase 2b-1 + 2b-2: 並行預載 motif (21) + piece (9) texture
+      // R36 Phase 2b-1 + 2b-2 + 2c: 並行預載 motif (21) + piece (9) + house texture
       const motifEntries = Object.entries(MOTIF_DATA_URLS);
       const pieceEntries = Object.entries(PIECE_DATA_URLS);
+      const dpr = window.devicePixelRatio || 1;
 
-      const [motifTextures, pieceTextures] = await Promise.all([
+      const [motifTextures, pieceTextures, houseTex] = await Promise.all([
         Promise.all(
           motifEntries.map(([, dataUrl]) =>
             Assets.load<Texture>({
@@ -381,7 +416,7 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
               data: {
                 width: 52,
                 height: 60,
-                resolution: window.devicePixelRatio || 1,
+                resolution: dpr,
               },
             }),
           ),
@@ -393,11 +428,16 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
               data: {
                 width: 28,
                 height: 28,
-                resolution: window.devicePixelRatio || 1,
+                resolution: dpr,
               },
             }),
           ),
         ),
+        // R36 Phase 2c: white-house texture (shared, single)
+        Assets.load<Texture>({
+          src: HOUSE_DATA_URL,
+          data: { width: 28, height: 28, resolution: dpr },
+        }),
       ]);
 
       const motifTextureMap = new Map<string, Texture>();
@@ -418,9 +458,15 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
           const dataUrl = PIECE_DATA_URLS[key];
           if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
         }
+        // R36 Phase 2c: house texture cleanup on StrictMode double-invoke
+        try { houseTex.destroy(); } catch { /* suppress */ }
+        Assets.unload(HOUSE_DATA_URL).catch(() => { /* suppress */ });
         app.destroy(true, { children: true, texture: true });
         return;
       }
+
+      // R36 Phase 2c: store house texture ref
+      houseTextureRef.current = houseTex;
 
       // 存入 ref 供 cleanup 使用
       motifTextureMapRef.current = motifTextureMap;
@@ -495,6 +541,15 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         if (dataUrl) Assets.unload(dataUrl).catch(() => { /* suppress */ });
       });
       pieceTextureMapRef.current.clear();
+      // R36 Phase 2c: cleanup settlement Sprites
+      settlementSpriteMap.current.forEach(s => { try { s.destroy(); } catch { /* suppress */ } });
+      settlementSpriteMap.current.clear();
+      // R36 Phase 2c: cleanup house texture
+      if (houseTextureRef.current) {
+        try { houseTextureRef.current.destroy(); } catch { /* suppress */ }
+        Assets.unload(HOUSE_DATA_URL).catch(() => { /* suppress */ });
+        houseTextureRef.current = null;
+      }
       if (appRef.current) {
         try {
           appRef.current.destroy(true, { children: true, texture: true });
