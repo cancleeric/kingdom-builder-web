@@ -305,10 +305,17 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
               sprite.width = HEX_SIZE * 0.9;
               sprite.height = HEX_SIZE * 0.95;
               sprite.tint = tint;
-              // 插入 hexContainer（從 settlementGfxMap 的 parent 拿參照）
+              // 插入 hexContainer 的 sm 錨點位置（非尾端），確保 overlay 高亮層仍在聚落之上、
+              // hover/valid/invalid 回饋不被小房子遮住（dev-manager #173 z-order 修正）。
+              // container 為 null 則跳過建立，避免孤兒 Sprite 洩漏（dev-manager #173 防呆）。
               const smGfx = settlementGfxMap.current.get(key);
-              smGfx?.parent?.addChild(sprite);
-              settlementSpriteMap.current.set(key, sprite);
+              const container = smGfx?.parent;
+              if (container) {
+                container.addChildAt(sprite, container.getChildIndex(smGfx));
+                settlementSpriteMap.current.set(key, sprite);
+              } else {
+                sprite.destroy();
+              }
             }
           }
         } else {
