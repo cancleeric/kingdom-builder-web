@@ -32,8 +32,12 @@ export interface SerializableGameState {
   tileMoveDestinations: AxialCoord[];
   history: GameAction[];
   canUndo: boolean;
-  undoSnapshot: UndoSnapshot | null;
-  undoUsedThisTurn: boolean;
+  /**
+   * Multi-step undo stack (Phase B). Replaces the old undoSnapshot/undoUsedThisTurn
+   * fields. SAVE_VERSION is intentionally kept at 1; loadGame() handles old saves
+   * via the backwards-compat fallback below.
+   */
+  undoStack: UndoSnapshot[];
   turnNumber: number;
 }
 
@@ -63,7 +67,11 @@ export function loadGame(): SerializableGameState | null {
   if (!raw) return null;
 
   try {
-    const parsed: SaveSchema = JSON.parse(raw) as SaveSchema;
+    // Parse as a loose type so we can read both old and new fields
+    const parsed = JSON.parse(raw) as {
+      saveVersion: number;
+      state: Record<string, unknown>;
+    };
     if (parsed.saveVersion !== SAVE_VERSION) {
       clearSave();
       return null;
@@ -73,9 +81,21 @@ export function loadGame(): SerializableGameState | null {
     const boardData = parsed.state.board as unknown as ReturnType<typeof serializeBoard>;
     const board = deserializeBoard(boardData);
 
+    // Backwards-compat: old saves (pre-Phase-B) have undoSnapshot / undoUsedThisTurn
+    // instead of undoStack. Migrate gracefully without clearing the save.
+    const rawState = parsed.state as Record<string, unknown> & {
+      undoStack?: UndoSnapshot[];
+      undoSnapshot?: UndoSnapshot | null;
+      undoUsedThisTurn?: boolean;
+    };
+    const undoStack: UndoSnapshot[] =
+      rawState.undoStack ??
+      (rawState.undoSnapshot ? [rawState.undoSnapshot] : []);
+
     return {
-      ...parsed.state,
+      ...(rawState as unknown as SerializableGameState),
       board,
+      undoStack,
     };
   } catch {
     clearSave();

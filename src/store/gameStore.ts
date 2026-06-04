@@ -50,10 +50,13 @@ interface GameState {
   history: GameAction[];
   /** Whether the current player may still undo this turn */
   canUndo: boolean;
-  /** Snapshot used to reverse the most recent undoable action */
-  undoSnapshot: UndoSnapshot | null;
-  /** Tracks whether the undo has already been consumed this turn */
-  undoUsedThisTurn: boolean;
+  /**
+   * Stack of undo snapshots for the current turn (LIFO).
+   * Each undoable action pushes one snapshot; undoLastAction pops the top.
+   * Cleared on endTurn / initGame / drawTerrainCard so cross-turn undo is
+   * impossible.
+   */
+  undoStack: UndoSnapshot[];
   /** Running turn counter (incremented when a new turn begins) */
   turnNumber: number;
 
@@ -217,8 +220,7 @@ export const gameStore = create<GameState>((set, get) => ({
   tileMoveDestinations: [],
   history: [],
   canUndo: false,
-  undoSnapshot: null,
-  undoUsedThisTurn: false,
+  undoStack: [],
   turnNumber: 1,
   gameOptions: { boardSize: 'large', objectiveCount: 3, enableUndo: true },
 
@@ -278,8 +280,7 @@ export const gameStore = create<GameState>((set, get) => ({
       validPlacements: [],
       history: [],
       canUndo: false,
-      undoSnapshot: null,
-      undoUsedThisTurn: false,
+      undoStack: [],
       turnNumber: 1,
       gameOptions: resolvedOptions,
       ...resetTileState(),
@@ -323,6 +324,7 @@ export const gameStore = create<GameState>((set, get) => ({
         remainingPlacements: SETTLEMENTS_PER_TURN,
         placementsThisTurn: [],
         validPlacements: [],
+        undoStack: [],
       });
       return;
     }
@@ -334,6 +336,7 @@ export const gameStore = create<GameState>((set, get) => ({
       remainingPlacements: SETTLEMENTS_PER_TURN,
       placementsThisTurn: [],
       validPlacements,
+      undoStack: [],
     });
   },
 
@@ -380,7 +383,7 @@ export const gameStore = create<GameState>((set, get) => ({
       timestamp: Date.now(),
     };
 
-    // Build undo snapshot (only the first action per turn is undoable)
+    // Build undo snapshot for this action and push onto the stack
     const snapshot: UndoSnapshot = {
       type: 'PLACE_SETTLEMENT',
       coord,
@@ -388,7 +391,11 @@ export const gameStore = create<GameState>((set, get) => ({
       previousPhase: state.phase,
       acquiredLocationKeys,
       acquiredTileLocs,
+      previousPlacementsThisTurn: state.placementsThisTurn,
     };
+
+    const newUndoStack = [...state.undoStack, snapshot];
+    const enableUndo = state.gameOptions.enableUndo;
 
     if (newRemaining === 0) {
       set({
@@ -399,8 +406,8 @@ export const gameStore = create<GameState>((set, get) => ({
         selectedCell: null,
         acquiredLocations: updatedAcquiredLocations,
         history: [...state.history, action],
-        undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-        canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+        undoStack: newUndoStack,
+        canUndo: enableUndo,
         ...resetTileState(),
       });
     } else {
@@ -421,8 +428,8 @@ export const gameStore = create<GameState>((set, get) => ({
           selectedCell: null,
           acquiredLocations: updatedAcquiredLocations,
           history: [...state.history, action],
-          undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-          canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+          undoStack: newUndoStack,
+          canUndo: enableUndo,
           ...resetTileState(),
         });
       } else {
@@ -433,8 +440,8 @@ export const gameStore = create<GameState>((set, get) => ({
           selectedCell: null,
           acquiredLocations: updatedAcquiredLocations,
           history: [...state.history, action],
-          undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-          canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+          undoStack: newUndoStack,
+          canUndo: enableUndo,
         });
       }
     }
@@ -478,8 +485,7 @@ export const gameStore = create<GameState>((set, get) => ({
         validPlacements: [],
         finalScores,
         canUndo: false,
-        undoSnapshot: null,
-        undoUsedThisTurn: false,
+        undoStack: [],
         turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
@@ -505,8 +511,7 @@ export const gameStore = create<GameState>((set, get) => ({
         currentTerrainCard: null,
         validPlacements: [],
         canUndo: false,
-        undoSnapshot: null,
-        undoUsedThisTurn: false,
+        undoStack: [],
         turnNumber: nextTurnNumber,
         ...resetTileState(),
       });
@@ -713,13 +718,14 @@ export const gameStore = create<GameState>((set, get) => ({
       acquiredTileLocs,
       tileUsed: tileLocation,
       tileUsedIndex: tileIdx !== -1 ? tileIdx : undefined,
+      previousPlacementsThisTurn: state.placementsThisTurn,
     };
 
     set({
       acquiredLocations: updatedAcquiredLocations,
       history: [...state.history, action],
-      undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-      canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+      undoStack: [...state.undoStack, snapshot],
+      canUndo: state.gameOptions.enableUndo,
       ...resetTileState(),
       validPlacements: restoredValid,
     });
@@ -798,12 +804,13 @@ export const gameStore = create<GameState>((set, get) => ({
       tileUsed: tileLocation,
       tileUsedIndex: tileIdx !== -1 ? tileIdx : undefined,
       movedSettlementIdx: idx !== -1 ? idx : undefined,
+      previousPlacementsThisTurn: state.placementsThisTurn,
     };
 
     set({
       history: [...state.history, action],
-      undoSnapshot: state.undoUsedThisTurn ? null : snapshot,
-      canUndo: state.gameOptions.enableUndo && !state.undoUsedThisTurn,
+      undoStack: [...state.undoStack, snapshot],
+      canUndo: state.gameOptions.enableUndo,
       ...resetTileState(),
       validPlacements: restoredValid,
     });
@@ -812,10 +819,13 @@ export const gameStore = create<GameState>((set, get) => ({
   // ── Undo last action ───────────────────────────────
   undoLastAction: () => {
     const state = get();
-    if (!state.canUndo || !state.undoSnapshot || state.undoUsedThisTurn) return;
+    if (!state.canUndo || state.undoStack.length === 0) return;
 
-    const snap = state.undoSnapshot;
+    // Pop the top snapshot (most recent action)
+    const snap = state.undoStack[state.undoStack.length - 1];
+    const newStack = state.undoStack.slice(0, -1);
     const currentPlayer = state.players[state.currentPlayerIndex];
+    const enableUndo = state.gameOptions.enableUndo;
 
     if (snap.type === 'PLACE_SETTLEMENT' && snap.coord) {
       // Remove settlement from board
@@ -842,13 +852,18 @@ export const gameStore = create<GameState>((set, get) => ({
         key => !snap.acquiredLocationKeys.includes(key)
       );
 
-      // Restore validPlacements
+      // Restore placementsThisTurn (backwards-compat: old snapshots lack the field)
+      const restoredPlacementsThisTurn =
+        snap.previousPlacementsThisTurn ?? state.placementsThisTurn.slice(0, -1);
+
+      // Restore validPlacements using the restored placementsThisTurn
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
             state.board,
             state.currentTerrainCard.terrain,
-            currentPlayer.id
+            currentPlayer.id,
+            restoredPlacementsThisTurn
           )
           : [];
 
@@ -856,10 +871,10 @@ export const gameStore = create<GameState>((set, get) => ({
         remainingPlacements: snap.previousRemainingPlacements,
         phase: snap.previousPhase,
         acquiredLocations: restoredAcquired,
+        placementsThisTurn: restoredPlacementsThisTurn,
         validPlacements: restoredValid,
-        canUndo: false,
-        undoSnapshot: null,
-        undoUsedThisTurn: true,
+        undoStack: newStack,
+        canUndo: enableUndo && newStack.length > 0,
         history: state.history.slice(0, -1),
         selectedCell: null,
       });
@@ -899,12 +914,16 @@ export const gameStore = create<GameState>((set, get) => ({
         key => !snap.acquiredLocationKeys.includes(key)
       );
 
+      const restoredPlacementsThisTurn =
+        snap.previousPlacementsThisTurn ?? state.placementsThisTurn;
+
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
             state.board,
             state.currentTerrainCard.terrain,
-            currentPlayer.id
+            currentPlayer.id,
+            restoredPlacementsThisTurn
           )
           : [];
 
@@ -912,10 +931,10 @@ export const gameStore = create<GameState>((set, get) => ({
         remainingPlacements: snap.previousRemainingPlacements,
         phase: snap.previousPhase,
         acquiredLocations: restoredAcquired,
+        placementsThisTurn: restoredPlacementsThisTurn,
         validPlacements: restoredValid,
-        canUndo: false,
-        undoSnapshot: null,
-        undoUsedThisTurn: true,
+        undoStack: newStack,
+        canUndo: enableUndo && newStack.length > 0,
         history: state.history.slice(0, -1),
         selectedCell: null,
       });
@@ -947,22 +966,26 @@ export const gameStore = create<GameState>((set, get) => ({
         if (usedTile) usedTile.usedThisTurn = false;
       }
 
+      const restoredPlacementsThisTurn =
+        snap.previousPlacementsThisTurn ?? state.placementsThisTurn;
+
       const restoredValid =
         state.currentTerrainCard
           ? getValidPlacements(
             state.board,
             state.currentTerrainCard.terrain,
-            currentPlayer.id
+            currentPlayer.id,
+            restoredPlacementsThisTurn
           )
           : [];
 
       set({
         remainingPlacements: snap.previousRemainingPlacements,
         phase: snap.previousPhase,
+        placementsThisTurn: restoredPlacementsThisTurn,
         validPlacements: restoredValid,
-        canUndo: false,
-        undoSnapshot: null,
-        undoUsedThisTurn: true,
+        undoStack: newStack,
+        canUndo: enableUndo && newStack.length > 0,
         history: state.history.slice(0, -1),
         selectedCell: null,
       });
