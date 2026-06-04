@@ -343,7 +343,9 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
         }
 
         // ── Settlement (R36 Phase 2c: Sprite.tint 2.5D 小房子) ───────────
+        // R38a: settlementGfxMap 兼作玩家色邊框環（clear/redraw on every updateScene）
         const existingSprite = settlementSpriteMap.current.get(key);
+        const smGfx = settlementGfxMap.current.get(key);
 
         if (cell.settlement !== undefined) {
           const player = pls.find(p => p.id === cell.settlement);
@@ -366,7 +368,6 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
               // 插入 hexContainer 的 sm 錨點位置（非尾端），確保 overlay 高亮層仍在聚落之上、
               // hover/valid/invalid 回饋不被小房子遮住（dev-manager #173 z-order 修正）。
               // container 為 null 則跳過建立，避免孤兒 Sprite 洩漏（dev-manager #173 防呆）。
-              const smGfx = settlementGfxMap.current.get(key);
               const container = smGfx?.parent;
               if (container) {
                 container.addChildAt(sprite, container.getChildIndex(smGfx));
@@ -376,12 +377,23 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
               }
             }
           }
+
+          // R38a: draw player-colour border ring around settlement for attribution clarity
+          if (smGfx && player?.color) {
+            smGfx.clear();
+            const center = axialToPixel(cell.coord, HEX_SIZE);
+            const radius = HEX_SIZE * 0.52;
+            smGfx.setStrokeStyle({ width: 2.5, color: cssColorToPixi(player.color), alpha: 0.85 });
+            smGfx.circle(center.x, center.y, radius);
+            smGfx.stroke();
+          }
         } else {
-          // 格子無聚落 → 銷毀 Sprite（若有）
+          // 格子無聚落 → 銷毀 Sprite（若有）、清 border ring
           if (existingSprite) {
             existingSprite.destroy();
             settlementSpriteMap.current.delete(key);
           }
+          if (smGfx) smGfx.clear();
         }
       }
     },
