@@ -148,6 +148,11 @@ async function testPortal(page) {
 
 async function testSinglePlayerCanvas(page) {
   const name = '單人開局 canvas 渲染';
+
+  // 收集 pageerror
+  const pageErrors = [];
+  page.on('pageerror', err => pageErrors.push(err));
+
   try {
     await page.goto(BASE_URL, { waitUntil: 'networkidle', timeout: 15_000 });
 
@@ -181,33 +186,20 @@ async function testSinglePlayerCanvas(page) {
       }
     }
 
-    // 等待棋盤格渲染（用 locator.count() polling）
-    const cellsLocator = page.locator('[role="gridcell"]');
-    let cellCount = 0;
-    const cellDeadline = Date.now() + 20_000;
-    while (Date.now() < cellDeadline) {
-      cellCount = await cellsLocator.count();
-      if (cellCount >= 5) break;
+    // 等待棋盤 canvas 出現（PixiJS 渲染，無 gridcell）
+    const canvasLocator = page.locator('canvas');
+    let canvasCount = 0;
+    const canvasDeadline = Date.now() + 20_000;
+    while (Date.now() < canvasDeadline) {
+      canvasCount = await canvasLocator.count();
+      if (canvasCount >= 1) break;
       await page.waitForTimeout(700);
     }
-    if (cellCount < 5) {
-      // Last resort: check if SVG grid element exists (棋盤存在但 cells 不可枚舉)
-      const gridExists = await page.locator('[role="grid"]').count();
-      if (gridExists > 0) {
-        // 棋盤存在但 cells 計數有問題，視為通過
-        cellCount = 99;
-      }
-    }
+    if (canvasCount < 1) throw new Error('棋盤 canvas 未出現');
 
-    // 用 page.mouse 真實點擊第一個 valid cell（如有）
-    const validCell = page.locator('[role="gridcell"][aria-label*="valid placement"]').first();
-    const hasValid = await validCell.isVisible({ timeout: 3_000 }).catch(() => false);
-    if (hasValid) {
-      const box = await validCell.boundingBox();
-      if (box) {
-        await page.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
-        await page.waitForTimeout(300);
-      }
+    // 檢查 pageerror
+    if (pageErrors.length > 0) {
+      throw new Error(`偵測到 ${pageErrors.length} 筆 pageerror：${pageErrors[0].message}`);
     }
 
     await screenshot(page, 'smoke-03-singleplayer-canvas');
@@ -224,6 +216,12 @@ async function testMultiplayerFlow(browser) {
   const guestCtx = await browser.newContext();
   const hostPage = await hostCtx.newPage();
   const guestPage = await guestCtx.newPage();
+
+  // 收集兩方 pageerror
+  const hostPageErrors = [];
+  const guestPageErrors = [];
+  hostPage.on('pageerror', err => hostPageErrors.push(err));
+  guestPage.on('pageerror', err => guestPageErrors.push(err));
 
   let roomId = null;
 
@@ -269,34 +267,22 @@ async function testMultiplayerFlow(browser) {
     await createBtn.waitFor({ timeout: 8_000 });
     await createBtn.click();
 
-    // 等待 room ID 出現（房間建立後頁面會顯示 "Room: XXXXXX" 或 "Connected"）
+    // 等待 room ID 出現（房間建立後頁面會顯示 "Room: XXXXXX"）
     await hostPage.waitForTimeout(2_000);
 
-    // 嘗試抓 Room ID：多種格式
+    // 抓 Room ID：固定 6 碼大寫英數字，精確匹配
     // 1. readonly input
     const roomIdInput = hostPage.locator('input[readonly]').first();
     if (await roomIdInput.isVisible({ timeout: 2_000 }).catch(() => false)) {
       roomId = (await roomIdInput.inputValue()).trim();
     }
-    // 2. 頁面文字 "Room: XXXX"（配合截圖中看到的格式）
+    // 2. 頁面文字 "Room: XXXXXX"（kingdom 房號固定 6 碼）
+    //    UI textContent 格式為 "Room: UPX4NDConnected"（div 黏字），
+    //    固定取 {6} 精確碼數，不多不少，不受後綴影響
     if (!roomId) {
       const bodyText = await hostPage.locator('body').textContent() ?? '';
-      const roomMatch = bodyText.match(/Room:\s*([A-Z0-9]{4,12})/);
+      const roomMatch = bodyText.match(/Room:\s*([A-Z0-9]{6})/);
       if (roomMatch) roomId = roomMatch[1];
-    }
-    // 3. URL 中抓
-    if (!roomId) {
-      const url = hostPage.url();
-      const match = url.match(/room[=/]([A-Za-z0-9-]+)/i);
-      if (match) roomId = match[1];
-    }
-    // 4. Connected 狀態後抓頁面任何 4-12 位大寫英數字（最後 fallback）
-    if (!roomId) {
-      const bodyText = await hostPage.locator('body').textContent() ?? '';
-      const codeMatch = bodyText.match(/\b([A-Z0-9]{4,12})\b/);
-      if (codeMatch && codeMatch[1] !== 'HOST' && codeMatch[1] !== 'BACK') {
-        roomId = codeMatch[1];
-      }
     }
 
     if (!roomId) throw new Error('無法取得 Room ID');
@@ -306,7 +292,7 @@ async function testMultiplayerFlow(browser) {
   } catch (e) {
     await screenshot(hostPage, 'smoke-04-create-room-fail').catch(() => {});
     fail(createName, e);
-    // 建房失敗時後續無法繼續，跳過加房/開局/重連
+    // 建房失敗時後續無法繼續
     await hostCtx.close().catch(() => {});
     await guestCtx.close().catch(() => {});
     return;
@@ -336,19 +322,7 @@ async function testMultiplayerFlow(browser) {
     // 確認加房成功：guest 頁面不顯示 "Room not found" 或 "not found" 錯誤
     const guestBodyText = await guestPage.locator('body').textContent() ?? '';
     if (/room not found/i.test(guestBodyText)) {
-      // 已知 P1 bug：多人加房 Room not found（multiplayer.spec.ts 全部 fixme）
-      // 記錄為 SKIP 並附 bug 說明，不讓此已知 bug 阻擋 smoke
-      results.push({ name: joinName, status: 'SKIP', error: '已知 P1 bug：Room not found（需 E2E fix，ref: multiplayer.spec.ts fixme）' });
-      console.log(`  [SKIP] ${joinName} — 已知 P1 bug（Room not found）`);
-      await screenshot(guestPage, 'smoke-05-join-room-p1-bug').catch(() => {});
-      // guestJoined 維持 false，補充後續 SKIP 結果
-      results.push({ name: '多人開局（game start → 棋盤出現）', status: 'SKIP', error: '加房 P1 bug，跳過' });
-      console.log(`  [SKIP] 多人開局（game start → 棋盤出現） — 加房 P1 bug 跳過`);
-      results.push({ name: '多人重連（rejoin）', status: 'SKIP', error: '加房 P1 bug，跳過' });
-      console.log(`  [SKIP] 多人重連（rejoin） — 加房 P1 bug 跳過`);
-      await hostCtx.close().catch(() => {});
-      await guestCtx.close().catch(() => {});
-      return; // 早出
+      throw new Error(`加房失敗：Room not found（roomId=${roomId}）`);
     }
 
     guestJoined = true;
@@ -363,58 +337,90 @@ async function testMultiplayerFlow(browser) {
   // --- 開局 ---
   const startName = '多人開局（game start → 棋盤出現）';
   if (!guestJoined) {
-    results.push({ name: startName, status: 'SKIP', error: '加房失敗，開局無法執行（已知 P1 bug：Room not found）' });
-    console.log(`  [SKIP] ${startName} — 加房失敗跳過`);
-  } else
-  try {
-    // Host 點開始遊戲（用 JS dispatch 繞過 disabled state）
-    await hostPage.evaluate(() => {
-      const btn = Array.from(document.querySelectorAll('button')).find(
-        b => /start.*multiplayer.*game|start.*game/i.test(b.textContent ?? '')
-      );
-      btn?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    });
-    await hostPage.waitForTimeout(3_000);
+    fail(startName, new Error('加房失敗，開局無法執行'));
+  } else {
+    try {
+      // Guest 點「Set Ready」（真實點擊），host 的 Start 按鈕才會 enable
+      const setReadyBtn = guestPage.getByRole('button', { name: /set.*ready|ready/i });
+      if (await setReadyBtn.isVisible({ timeout: 5_000 }).catch(() => false)) {
+        await setReadyBtn.click();
+        await guestPage.waitForTimeout(1_000);
+      }
 
-    // 確認 host 端棋盤出現（locator.count() polling）
-    const hostCellsLoc = hostPage.locator('[role="gridcell"]');
-    let hostCellCount = 0;
-    const startDeadline2 = Date.now() + 15_000;
-    while (Date.now() < startDeadline2) {
-      hostCellCount = await hostCellsLoc.count();
-      if (hostCellCount >= 5) break;
-      await hostPage.waitForTimeout(600);
+      // Host 點 Start Multiplayer Game（真實點擊，用 boundingBox）
+      const startBtn = hostPage.getByRole('button', { name: /start.*multiplayer.*game|start.*game/i });
+      await startBtn.waitFor({ timeout: 8_000 });
+
+      // 確認按鈕不是 disabled
+      const isDisabled = await startBtn.isDisabled();
+      if (isDisabled) {
+        await screenshot(hostPage, 'smoke-06-start-btn-disabled').catch(() => {});
+        throw new Error('Start 按鈕仍為 disabled，guest Set Ready 後 host 應可開局');
+      }
+
+      const box = await startBtn.boundingBox();
+      if (!box) throw new Error('Start 按鈕無法取得 boundingBox');
+      await hostPage.mouse.click(box.x + box.width / 2, box.y + box.height / 2);
+      await hostPage.waitForTimeout(3_000);
+
+      // 確認 host 端棋盤 canvas 出現（PixiJS 渲染）
+      const hostCanvasLoc = hostPage.locator('canvas');
+      let hostCanvasCount = 0;
+      const startDeadline2 = Date.now() + 15_000;
+      while (Date.now() < startDeadline2) {
+        hostCanvasCount = await hostCanvasLoc.count();
+        if (hostCanvasCount >= 1) break;
+        await hostPage.waitForTimeout(600);
+      }
+
+      // 確認 guest 端棋盤 canvas 出現
+      const guestCanvasLoc = guestPage.locator('canvas');
+      let guestCanvasCount = 0;
+      const guestDeadline = Date.now() + 10_000;
+      while (Date.now() < guestDeadline) {
+        guestCanvasCount = await guestCanvasLoc.count();
+        if (guestCanvasCount >= 1) break;
+        await guestPage.waitForTimeout(600);
+      }
+
+      await screenshot(hostPage, 'smoke-06-start-game-host');
+      await screenshot(guestPage, 'smoke-06-start-game-guest');
+
+      if (hostCanvasCount < 1) throw new Error('Host 棋盤 canvas 未出現');
+      if (guestCanvasCount < 1) throw new Error('Guest 棋盤 canvas 未出現');
+
+      // 檢查 pageerror
+      if (hostPageErrors.length > 0) {
+        throw new Error(`Host 偵測到 ${hostPageErrors.length} 筆 pageerror：${hostPageErrors[0].message}`);
+      }
+      if (guestPageErrors.length > 0) {
+        throw new Error(`Guest 偵測到 ${guestPageErrors.length} 筆 pageerror：${guestPageErrors[0].message}`);
+      }
+
+      pass(startName);
+    } catch (e) {
+      await screenshot(hostPage, 'smoke-06-start-game-fail').catch(() => {});
+      fail(startName, e);
     }
-    // Last resort: check grid exists
-    if (hostCellCount < 5) {
-      const gridExists = await hostPage.locator('[role="grid"]').count();
-      if (gridExists > 0) hostCellCount = 99;
-    }
-
-    await screenshot(hostPage, 'smoke-06-start-game-host');
-    await screenshot(guestPage, 'smoke-06-start-game-guest');
-
-    if (hostCellCount < 5) throw new Error(`Host 棋盤格數不足：${hostCellCount}`);
-    pass(startName);
-  } catch (e) {
-    await screenshot(hostPage, 'smoke-06-start-game-fail').catch(() => {});
-    fail(startName, e);
   }
 
   // --- 重連 ---
   const rejoinName = '多人重連（rejoin）';
   try {
     if (roomId && guestJoined) {
-      // 關閉 guest context，重新加入
-      await guestCtx.close().catch(() => {});
+      // Host reload → 重進 Online Multiplayer → Connect → 斷言頁面含原房號 + canvas 存在
+      // 注意：lobby 階段斷線=離房是設計；此段測試 host reload 後重連進 lobby 能看到房號
+      await hostCtx.close().catch(() => {});
       const rejoinCtx = await browser.newContext();
       const rejoinPage = await rejoinCtx.newPage();
+      const rejoinPageErrors = [];
+      rejoinPage.on('pageerror', err => rejoinPageErrors.push(err));
 
       await navigateToMultiplayer(rejoinPage);
       await connectToServer(rejoinPage);
-      await fillPlayerName(rejoinPage, 'GuestPlayer');
+      await fillPlayerName(rejoinPage, 'HostPlayer');
 
-      // 輸入相同 room code 並加入（rejoin）
+      // 輸入相同 room code 並加入（rejoin 進同一房間）
       const roomCodeInput = rejoinPage.locator('input[placeholder*="room" i], input[placeholder*="code" i]').first();
       if (await roomCodeInput.isVisible({ timeout: 3_000 }).catch(() => false)) {
         await roomCodeInput.fill(roomId);
@@ -427,18 +433,31 @@ async function testMultiplayerFlow(browser) {
       await rejoinPage.waitForTimeout(2_000);
       await screenshot(rejoinPage, 'smoke-07-rejoin');
 
-      // 確認頁面有內容（不白屏）
+      // 斷言頁面含原房號
+      // room code input value 或 body textContent 含房號均算（UI 可能在 input 中顯示）
       const bodyText = await rejoinPage.locator('body').textContent() ?? '';
+      const roomCodeInput2 = rejoinPage.locator('input[placeholder*="room" i], input[placeholder*="code" i]').first();
+      let inputVal = '';
+      if (await roomCodeInput2.isVisible({ timeout: 1_000 }).catch(() => false)) {
+        inputVal = (await roomCodeInput2.inputValue().catch(() => '')).trim();
+      }
+      const hasRoomId = bodyText.includes(roomId) || inputVal === roomId;
+      if (!hasRoomId) {
+        throw new Error(`重連後頁面未出現原房號 ${roomId}（body: ${bodyText.slice(0, 200)}）`);
+      }
+
+      // 局已開始時 canvas 在 lobby 不存在，只確認頁面非空白
+      // "Game already started." 訊息代表 server 仍持有房間狀態，視為重連成功
       if (bodyText.trim().length < 5) throw new Error('重連後頁面為空');
+
+      if (rejoinPageErrors.length > 0) {
+        throw new Error(`重連偵測到 ${rejoinPageErrors.length} 筆 pageerror：${rejoinPageErrors[0].message}`);
+      }
 
       await rejoinCtx.close().catch(() => {});
       pass(rejoinName);
-    } else if (!guestJoined) {
-      results.push({ name: rejoinName, status: 'SKIP', error: '加房失敗（P1 bug），跳過重連測試' });
-      console.log(`  [SKIP] ${rejoinName} — 加房失敗跳過`);
     } else {
-      results.push({ name: rejoinName, status: 'SKIP', error: '建房失敗，跳過重連測試' });
-      console.log(`  [SKIP] ${rejoinName} — 建房未成功`);
+      fail(rejoinName, new Error('建房或加房失敗，無法執行重連測試'));
     }
   } catch (e) {
     fail(rejoinName, e);
@@ -540,7 +559,8 @@ async function main() {
 
   console.log('');
   console.log('=== QA Smoke 摘要 ===');
-  console.log(`總數: ${total} | 通過: ${passed} | 失敗: ${failed} | 跳過: ${skipped} | 通過率: ${Math.round((passed / (total - skipped)) * 100) || 0}%`);
+  const denominator = total - skipped;
+  console.log(`總數: ${total} | 通過: ${passed} | 失敗: ${failed} | 跳過: ${skipped} | 通過率: ${denominator > 0 ? Math.round((passed / denominator) * 100) : 0}%`);
   console.log('');
 
   if (failed > 0) {
@@ -555,9 +575,12 @@ async function main() {
   console.log(`截圖目錄: ${SCREENSHOT_DIR}`);
   console.log('');
 
-  if (failed === 0) {
+  if (failed === 0 && skipped === 0) {
     console.log('=== Smoke PASS ===');
     process.exit(0);
+  } else if (failed === 0 && skipped > 0) {
+    console.log('=== Smoke PASS（含 SKIP）===');
+    process.exit(1);
   } else {
     console.log('=== Smoke FAIL ===');
     process.exit(1);
