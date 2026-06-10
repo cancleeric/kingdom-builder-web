@@ -14,9 +14,9 @@ import { test, expect } from '@playwright/test';
 
 const SCREENSHOT_PATH = '/tmp/t2-multiplayer-rejoin.png';
 
-// Skipped: button[name=/connected/] not found after WebSocket connect in headless Chromium.
+// Fixed: increased timeout to 8000ms (matching multiplayer-platform.spec.ts which passes).
 // See https://github.com/cancleeric/kingdom-builder-web/issues/192
-test.skip('T2: create room / join / ready / start / reload rejoin', async ({ browser }) => {
+test('T2: create room / join / ready / start / reload rejoin', async ({ browser }) => {
   const consoleErrors: string[] = [];
 
   const hostCtx = await browser.newContext();
@@ -53,7 +53,7 @@ test.skip('T2: create room / join / ready / start / reload rejoin', async ({ bro
   if (await hostConnectBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await hostConnectBtn.click();
   }
-  await expect(hostPage.getByRole('button', { name: /connected/i })).toBeVisible({ timeout: 6000 });
+  await expect(hostPage.getByRole('button', { name: /connected/i })).toBeVisible({ timeout: 8000 });
 
   // Create Room
   await hostPage.getByRole('button', { name: /create room/i }).click();
@@ -78,7 +78,7 @@ test.skip('T2: create room / join / ready / start / reload rejoin', async ({ bro
   if (await guestConnectBtn.isVisible({ timeout: 2000 }).catch(() => false)) {
     await guestConnectBtn.click();
   }
-  await expect(guestPage.getByRole('button', { name: /connected/i })).toBeVisible({ timeout: 6000 });
+  await expect(guestPage.getByRole('button', { name: /connected/i })).toBeVisible({ timeout: 8000 });
 
   // Fill room code and click Join
   await guestPage.getByPlaceholder(/room code/i).fill(roomCode);

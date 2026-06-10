@@ -97,9 +97,9 @@ test.beforeEach(async ({ page }) => {
   });
 });
 
-// Skipped: gamePage.validCells uses getByRole('gridcell') which no longer exists
-// since PixiBoard migration (R35). See issue #190.
-test.skip('location tile activation: Farm use highlights grass cells and marks the tile used', async ({ page }) => {
+// Fixed: validCells DOM check replaced with store-based getValidPlacementCount()
+// and clickValidCell() uses placeSettlement() directly. See issue #190.
+test('location tile activation: Farm use highlights grass cells and marks the tile used', async ({ page }) => {
   const setupPage = new SetupPage(page);
   const gamePage = new GamePage(page);
 
@@ -115,7 +115,8 @@ test.skip('location tile activation: Farm use highlights grass cells and marks t
   expect(activated.activeTile).toBe('Farm');
   expect(activated.validCount).toBeGreaterThan(0);
   expect(activated.allValidAreGrass).toBe(true);
-  await expect(gamePage.validCells.first()).toBeVisible();
+  // Verify valid placements via store (no DOM gridcells in PixiBoard)
+  expect(await gamePage.getValidPlacementCount()).toBeGreaterThan(0);
 
   await gamePage.clickValidCell();
 
