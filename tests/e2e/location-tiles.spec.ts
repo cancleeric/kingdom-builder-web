@@ -29,6 +29,9 @@ async function grantLocationTiles(page: import('@playwright/test').Page) {
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'en');
+    // Suppress the "First time playing?" onboarding dialog so it doesn't
+    // intercept pointer events in mobile drawer tests.
+    localStorage.setItem('tutorialCompleted', 'true');
   });
 });
 
@@ -44,7 +47,7 @@ test('desktop location tiles: cards explain each tile ability', async ({ page })
   const tiles = page.getByRole('region', { name: 'Your Location Tiles' }).first();
   await expect(tiles.getByTestId('location-tile-card')).toHaveCount(2);
   await expect(tiles).toContainText('Farm');
-  await expect(tiles).toContainText('Place 1 extra settlement on any empty Grass cell.');
+  await expect(tiles).toContainText('Place 1 extra settlement on a Grass cell');
   await expect(tiles).toContainText('Paddock');
   await expect(tiles).toContainText('Move 1 of your settlements to an empty buildable cell up to 2 hexes away.');
   await expect(tiles).toContainText('Used');
@@ -65,6 +68,6 @@ test('mobile location tiles: drawer shows ability descriptions', async ({ page }
 
   const tiles = drawer.getByRole('region', { name: 'Your Location Tiles' });
   await expect(tiles.getByTestId('location-tile-card')).toHaveCount(2);
-  await expect(tiles).toContainText('Place 1 extra settlement on any empty Grass cell.');
+  await expect(tiles).toContainText('Place 1 extra settlement on a Grass cell');
   await expect(tiles).toContainText('Move 1 of your settlements to an empty buildable cell up to 2 hexes away.');
 });

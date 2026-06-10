@@ -6,6 +6,9 @@ test.beforeEach(async ({ page }) => {
   await page.setViewportSize({ width: 375, height: 812 });
   await page.addInitScript(() => {
     localStorage.setItem('i18nextLng', 'en');
+    // Suppress the "First time playing?" onboarding dialog so it doesn't
+    // intercept pointer events when clicking "Open game panel".
+    localStorage.setItem('tutorialCompleted', 'true');
   });
 });
 

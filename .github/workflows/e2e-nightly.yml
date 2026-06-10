@@ -1,0 +1,45 @@
+name: E2E Nightly (Playwright / Chromium)
+
+# Manual dispatch only (scheduled run disabled per boss directive 2026-06-10).
+# Deliberately NOT on every PR push — keeps PR CI fast.
+# Manual trigger: Actions → "E2E Nightly" → Run workflow
+# 排程觸發已停用（老闆 2026-06-10 指示關閉 CI 自動通知）；僅手動觸發
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  e2e:
+    name: E2E Tests (Playwright / Chromium)
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Playwright browsers (Chromium only)
+        run: npx playwright install --with-deps chromium
+
+      - name: Start WebSocket server (multiplayer)
+        run: npm run server &
+
+      - name: Run E2E tests (Chromium)
+        run: npm run test:e2e:chromium
+
+      - name: Upload Playwright report
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 30
