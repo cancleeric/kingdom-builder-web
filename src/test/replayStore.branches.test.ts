@@ -130,6 +130,26 @@ describe('isValidReplayRecord — each field validation branch', () => {
     expect(stored).toHaveLength(1);
   });
 
+  it('rejects record missing winnerName — old-format record without winnerName is filtered out', () => {
+    // Simulates a localStorage entry from before winnerName was added to ReplayRecord
+    const { winnerName: _omit, ...oldRecord } = goodRecord;
+    localStorage.setItem(LOCAL_KEY, JSON.stringify([oldRecord]));
+    useReplayStore.getState().saveReplay(makeRecord({ winnerName: 'NewEntry' }));
+    // The old record must be filtered; only the newly saved record should remain
+    const stored: unknown[] = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? '[]');
+    expect(stored).toHaveLength(1);
+    expect((stored[0] as Record<string, unknown>).winnerName).toBe('NewEntry');
+  });
+
+  it('rejects record where winnerName is not a string (number)', () => {
+    const bad = { ...goodRecord, winnerName: 42 };
+    localStorage.setItem(LOCAL_KEY, JSON.stringify([bad]));
+    useReplayStore.getState().saveReplay(makeRecord({ winnerName: 'Valid' }));
+    const stored: unknown[] = JSON.parse(localStorage.getItem(LOCAL_KEY) ?? '[]');
+    expect(stored).toHaveLength(1);
+    expect((stored[0] as Record<string, unknown>).winnerName).toBe('Valid');
+  });
+
   it('rejects null entry in array — saveReplay output contains only valid records', () => {
     // Write mixed valid/invalid entries, then saveReplay
     // saveReplay merges from in-memory state (already clean) + persists

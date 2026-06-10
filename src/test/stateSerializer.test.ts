@@ -2,7 +2,7 @@ import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { Board, serializeBoard } from '../core/board';
 import { Terrain } from '../core/terrain';
 import type { HexCell } from '../types';
-import type { SerializableGameState } from '../store/persistence';
+import type { WireGameState } from '../store/persistence';
 
 // Mock the gameStore to avoid zustand / React environment issues in unit tests
 let capturedState: unknown = null;
@@ -59,7 +59,7 @@ describe('hydrateSerializableState – board hydration', () => {
       players: [],
       currentPlayerIndex: 0,
       phase: 'playing',
-    } as unknown as SerializableGameState;
+    } as unknown as WireGameState;
 
     hydrateSerializableState(fakeState);
 
@@ -85,7 +85,7 @@ describe('hydrateSerializableState – board hydration', () => {
       currentPlayerIndex: 2,
       phase: 'game_over',
       players: [{ id: 1, name: 'Alice' }],
-    } as unknown as SerializableGameState;
+    } as unknown as WireGameState;
 
     hydrateSerializableState(fakeState);
 
@@ -103,7 +103,7 @@ describe('hydrateSerializableState – board hydration', () => {
     board.setCell({ coord: { q: 0, r: 1 }, terrain: Terrain.Desert, settlement: 2 });
 
     const wireBoard = JSON.parse(JSON.stringify(serializeBoard(board)));
-    const fakeState = { board: wireBoard } as unknown as SerializableGameState;
+    const fakeState = { board: wireBoard } as unknown as WireGameState;
 
     hydrateSerializableState(fakeState);
 
@@ -111,5 +111,48 @@ describe('hydrateSerializableState – board hydration', () => {
     expect(stored.getPlayerSettlements(1)).toHaveLength(2);
     expect(stored.getPlayerSettlements(2)).toHaveLength(1);
     expect(stored.getPlayerSettlements(3)).toHaveLength(0);
+  });
+
+  it('wire round-trip preserves gameOptions and placementsThisTurn', () => {
+    const board = new Board(5, 5);
+    const wireBoard = JSON.parse(JSON.stringify(serializeBoard(board)));
+
+    const fakeState: WireGameState = {
+      board: wireBoard,
+      gameOptions: { boardSize: 'medium', objectiveCount: 2, enableUndo: false },
+      placementsThisTurn: [{ q: 1, r: 0 }, { q: 2, r: -1 }],
+      players: [],
+      currentPlayerIndex: 0,
+      phase: 'PlaceSettlements' as import('../types').GamePhase,
+      currentTerrainCard: null,
+      remainingPlacements: 1,
+      deck: [],
+      acquiredLocations: [],
+      objectiveCards: [],
+      finalScores: [],
+      selectedCell: null,
+      validPlacements: [],
+      activeTile: null,
+      tileMoveSources: [],
+      tileMoveFrom: null,
+      tileMoveDestinations: [],
+      history: [],
+      canUndo: false,
+      undoStack: [],
+      turnNumber: 3,
+    };
+
+    // Simulate JSON wire round-trip
+    const onWire = JSON.parse(JSON.stringify(fakeState)) as WireGameState;
+    hydrateSerializableState(onWire);
+
+    const stored = capturedState as Record<string, unknown>;
+    expect(stored.gameOptions).toEqual({
+      boardSize: 'medium',
+      objectiveCount: 2,
+      enableUndo: false,
+    });
+    expect(stored.placementsThisTurn).toEqual([{ q: 1, r: 0 }, { q: 2, r: -1 }]);
+    expect(stored.turnNumber).toBe(3);
   });
 });

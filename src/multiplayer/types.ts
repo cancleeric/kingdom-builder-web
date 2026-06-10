@@ -1,4 +1,4 @@
-import type { SerializableGameState } from '../store/persistence';
+import type { WireGameState } from '../store/persistence';
 import type { AxialCoord } from '../core/hex';
 import type {
   ClientToServerMessage as KitClientToServerMessage,
@@ -21,6 +21,8 @@ export type MultiplayerAction =
   | { type: 'undo_last_action' }
   | { type: 'select_cell'; coord: AxialCoord | null };
 
-// Concrete message types for Kingdom Builder, specialising the kit generics
-export type ClientToServerMessage = KitClientToServerMessage<MultiplayerAction, SerializableGameState>;
-export type ServerToClientMessage = KitServerToClientMessage<MultiplayerAction, SerializableGameState>;
+// Concrete message types for Kingdom Builder, specialising the kit generics.
+// WireGameState (not SerializableGameState) is used here because the wire
+// payload has board serialised to [key, HexCell][] rather than a Board instance.
+export type ClientToServerMessage = KitClientToServerMessage<MultiplayerAction, WireGameState>;
+export type ServerToClientMessage = KitServerToClientMessage<MultiplayerAction, WireGameState>;
