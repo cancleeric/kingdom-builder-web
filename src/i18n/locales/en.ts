@@ -87,6 +87,11 @@ export const en = {
     replayLibrary: 'Replay Library',
     settings: 'Settings',
     back: 'Back',
+    otherGames: 'More Games',
+    herbalism: 'Gress Herbalism',
+    herbalismDesc: 'Herbal Board Game',
+    sudoku: 'Sudoku',
+    sudokuDesc: 'Number Puzzle',
   },
   settings: {
     heading: 'Settings',

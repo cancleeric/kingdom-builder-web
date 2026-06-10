@@ -332,6 +332,76 @@ export function MainMenu({
           )}
         </div>
 
+        {/* Other Games portal */}
+        <div className="w-full" style={{ borderTop: '1px solid var(--card-border)', paddingTop: '1rem' }}>
+          <p
+            className="text-center text-label font-body mb-3"
+            style={{
+              color: 'var(--color-stone-500)',
+              letterSpacing: '0.1em',
+              textTransform: 'uppercase',
+            }}
+          >
+            {t('menu.otherGames')}
+          </p>
+          <div className="w-full flex gap-3">
+            {/* Gress Herbalism */}
+            <a
+              href="#herbalism"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
+              style={{
+                backgroundColor: 'var(--color-warm-cream-200)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--color-stone-700)',
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-300)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-wine-400)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-200)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--card-border)';
+              }}
+            >
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">🌿</span>
+              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)' }}>
+                {t('menu.herbalism')}
+              </span>
+              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)' }}>
+                {t('menu.herbalismDesc')}
+              </span>
+            </a>
+            {/* Sudoku */}
+            <a
+              href="#sudoku"
+              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
+              style={{
+                backgroundColor: 'var(--color-warm-cream-200)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--color-stone-700)',
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-300)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-wine-400)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-200)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--card-border)';
+              }}
+            >
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">🔢</span>
+              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)' }}>
+                {t('menu.sudoku')}
+              </span>
+              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)' }}>
+                {t('menu.sudokuDesc')}
+              </span>
+            </a>
+          </div>
+        </div>
+
         {/* Clear save (if exists) */}
         {hasSave && (
           <button

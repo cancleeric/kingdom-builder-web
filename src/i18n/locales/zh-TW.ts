@@ -87,6 +87,11 @@ export const zhTW = {
     replayLibrary: '回放記錄',
     settings: '設定',
     back: '返回',
+    otherGames: '更多遊戲',
+    herbalism: '本草棋遊',
+    herbalismDesc: '中草藥桌遊',
+    sudoku: '數獨',
+    sudokuDesc: '數字謎題',
   },
   settings: {
     heading: '設定',
