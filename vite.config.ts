@@ -1,25 +1,10 @@
 /// <reference types="vitest" />
-import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
-  resolve: {
-    // RoomManager in @hd/game-kit uses node:crypto (server-only).
-    // Kingdom Builder only uses WsTransport and type exports, never RoomManager.
-    // Stub node:crypto so the unused import does not break the browser bundle.
-    alias: {
-      'node:crypto': fileURLToPath(new URL('./src/multiplayer/nodeCryptoStub.ts', import.meta.url)),
-    },
-  },
-  optimizeDeps: {
-    // @hd/game-kit contains node:crypto imports (RoomManager, server-only).
-    // Excluding from esbuild pre-bundling lets vite's own alias resolution
-    // handle the node:crypto stub instead of esbuild failing at its scan step.
-    exclude: ['@hd/game-kit'],
-  },
   build: {
     rollupOptions: {
       output: {
