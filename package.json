@@ -13,7 +13,8 @@
     "test:coverage": "vitest run --coverage",
     "test:coverage:ui": "vitest --coverage --ui",
     "test:e2e": "playwright test",
-    "test:e2e:chromium": "playwright test --project=chromium"
+    "test:e2e:chromium": "playwright test --project=chromium",
+    "qa:smoke": "node scripts/qa-smoke.mjs"
   },
   "dependencies": {
     "@hd/game-kit": "github:cancleeric/hd-game-kit#v0.1.1",

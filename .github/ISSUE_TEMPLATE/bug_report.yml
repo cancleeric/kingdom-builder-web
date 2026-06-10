@@ -1,0 +1,78 @@
+name: Bug Report
+description: 回報 kingdom-builder-web 功能異常
+title: "[Bug] "
+labels: ["bug"]
+body:
+  - type: dropdown
+    id: severity
+    attributes:
+      label: 嚴重程度
+      description: 選擇此 bug 的影響等級
+      options:
+        - "P0 — 遊戲完全無法進行（白屏/崩潰/無法開局）"
+        - "P1 — 重要功能異常（落子失效/多人斷線/Undo 錯誤）"
+        - "P2 — 輕微問題（UI 排版/文字錯誤/美術瑕疵）"
+    validations:
+      required: true
+
+  - type: textarea
+    id: steps
+    attributes:
+      label: 重現步驟
+      description: 請依序列出能穩定重現此 bug 的步驟
+      placeholder: |
+        1. 進入 http://localhost:4173
+        2. 點擊「多人遊戲」
+        3. 建立房間後點擊「開始遊戲」
+        4. 預期：棋盤出現
+        5. 實際：白屏，console 顯示 TypeError: Cannot read properties of undefined
+    validations:
+      required: true
+
+  - type: input
+    id: environment
+    attributes:
+      label: 環境
+      description: 瀏覽器版本 / OS / 螢幕解析度
+      placeholder: "Chrome 125.0 / macOS 15.2 / 1440x900"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: env_type
+    attributes:
+      label: 環境類型
+      options:
+        - "本機 localhost (npm run dev / preview)"
+        - "本機 192.168.0.83"
+        - "其他（請在步驟中說明）"
+    validations:
+      required: true
+
+  - type: textarea
+    id: console_error
+    attributes:
+      label: Console Error
+      description: 貼上 DevTools Console 的錯誤訊息（F12 > Console）
+      render: shell
+      placeholder: |
+        TypeError: Cannot read properties of undefined (reading 'tiles')
+            at GameBoard.tsx:142
+    validations:
+      required: false
+
+  - type: textarea
+    id: screenshots
+    attributes:
+      label: 截圖
+      description: 拖曳截圖到此處，或貼上圖片路徑
+    validations:
+      required: false
+
+  - type: textarea
+    id: additional
+    attributes:
+      label: 補充說明
+      description: 其他相關資訊（網路狀況、特殊操作順序、是否可穩定重現等）
+    validations:
+      required: false
