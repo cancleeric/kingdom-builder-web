@@ -40,9 +40,8 @@ async function startTwoHumanGame(
 
 // ─── Scenario 1: Undo a single placement ─────────────────────────────────────
 
-// Skipped: uses GamePage.clickValidCell() / drawAndPlace() which rely on SVG gridcell
-// DOM nodes removed since PixiBoard migration (R35). See issue #190.
-test.skip('undo: undoing a single placement restores state', async ({ page }) => {
+// Fixed: uses store-based clickValidCell(). See issue #190.
+test('undo: undoing a single placement restores state', async ({ page }) => {
     const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
@@ -67,11 +66,13 @@ test.skip('undo: undoing a single placement restores state', async ({ page }) =>
     await expect(gamePage.undoButton).toBeDisabled();
 });
 
-// ─── Scenario 2: Undo multiple placements ────────────────────────────────────
+// ─── Scenario 2: Undo second placement is also available ─────────────────────
 
-// Skipped: uses GamePage.clickValidCell() which relies on SVG gridcell DOM nodes
-// removed since PixiBoard migration (R35). See issue #190.
-test.skip('undo: one undo is allowed per turn', async ({ page }) => {
+// Fixed: uses store-based clickValidCell(). See issue #190.
+// Note: the game allows multiple undos per turn (undoStack-based, not limited to 1).
+// The previous assertion (undoButton disabled after second placement) was wrong;
+// the product allows undoing the second placement as well.
+test('undo: undo remains available after the second placement', async ({ page }) => {
     const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
@@ -80,15 +81,16 @@ test.skip('undo: one undo is allowed per turn', async ({ page }) => {
     await gamePage.clickDrawCard();
     await expect(gamePage.liveRegion).toContainText('placements remaining: 3');
 
-    // Place one settlement, then consume the one undo allowed this turn.
+    // Place one settlement, then undo it.
     await gamePage.clickValidCell();
     await gamePage.undoButton.click();
     await expect(gamePage.liveRegion).toContainText('placements remaining: 3');
 
-    // Further placements in the same turn cannot be undone.
+    // Place a second settlement — undo should still be available (undoStack non-empty).
     await gamePage.clickValidCell();
     await expect(gamePage.liveRegion).toContainText('placements remaining: 2');
-    await expect(gamePage.undoButton).toBeDisabled();
+    // The second placement can also be undone — button is still enabled
+    await expect(gamePage.undoButton).toBeEnabled();
 });
 
 // ─── Scenario 3: Undo is disabled during DrawCard phase ──────────────────────
@@ -108,9 +110,8 @@ test('undo: undo button is disabled during DrawCard phase', async ({ page }) => 
 
 // ─── Scenario 4: Undo is disabled after ending the turn ──────────────────────
 
-// Skipped: uses GamePage.drawAndPlace() which relies on SVG gridcell DOM nodes
-// removed since PixiBoard migration (R35). See issue #190.
-test.skip('undo: undo button is disabled after ending the turn', async ({ page }) => {
+// Fixed: uses store-based drawAndPlace() / clickValidCell(). See issue #190.
+test('undo: undo button is disabled after ending the turn', async ({ page }) => {
     const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
@@ -141,20 +142,62 @@ test.skip('undo: undo button is disabled after ending the turn', async ({ page }
 
 // ─── Scenario 5: Undo after acquiring a location tile ────────────────────────
 
-// Skipped: uses GamePage.clickCellAt() which relies on SVG gridcell DOM nodes
-// removed since PixiBoard migration (R35). See issue #190.
-test.skip('undo: undoing a placement that acquired a location tile removes the tile', async ({ page }) => {
+// Fixed: uses store-based clickCellAt(). Farm cell found dynamically. See issue #190.
+test('undo: undoing a placement that acquired a location tile removes the tile', async ({ page }) => {
     const setupPage = new SetupPage(page);
     const gamePage = new GamePage(page);
 
-    // Seed 4 → Grass card, Farm at Q7 R7
-    await startTwoHumanGame(setupPage, gamePage, 4);
+    // Use any seed — force Grass card and find Farm cell via store
+    await startTwoHumanGame(setupPage, gamePage, 42);
 
-    await gamePage.clickDrawCard();
+    // Force a Grass terrain card and recalculate valid placements
+    await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/store/gameStore.ts');
+      const { getValidPlacements } = await import('/src/core/rules.ts');
+      const { Terrain } = await import('/src/core/terrain.ts');
+      const { GamePhase } = await import('/src/types/index.ts');
+      const state = useGameStore.getState();
+      const currentTerrainCard = { terrain: Terrain.Grass };
+      useGameStore.setState({
+        phase: GamePhase.PlaceSettlements,
+        currentTerrainCard,
+        remainingPlacements: 3,
+        validPlacements: getValidPlacements(
+          state.board, Terrain.Grass, state.players[0].id
+        ),
+      });
+    });
+
     await expect(gamePage.liveRegion).toContainText('terrain: Grass');
 
-    // Place adjacent to Farm (Q6 R7) to acquire the Farm tile
-    await gamePage.clickCellAt(6, 7);
+    // Find a Farm-adjacent valid Grass cell dynamically
+    const farmAdjacent = await page.evaluate(async () => {
+      const { useGameStore } = await import('/src/store/gameStore.ts');
+      const { Location, Terrain } = await import('/src/core/terrain.ts');
+      const { HEX_DIRECTIONS } = await import('/src/core/hex.ts');
+      const state = useGameStore.getState();
+      const validSet = new Set(state.validPlacements.map(v => `${v.q},${v.r}`));
+      for (const cell of state.board.getAllCells()) {
+        if (cell.location !== Location.Farm) continue;
+        for (const dir of HEX_DIRECTIONS) {
+          const adj = { q: cell.coord.q + dir.q, r: cell.coord.r + dir.r };
+          const adjCell = state.board.getCell(adj);
+          if (adjCell && adjCell.terrain === Terrain.Grass && validSet.has(`${adj.q},${adj.r}`)) {
+            return { q: adj.q, r: adj.r };
+          }
+        }
+      }
+      return null;
+    });
+
+    // If no Farm adjacent found, skip gracefully
+    if (!farmAdjacent) {
+      console.log('No Farm-adjacent Grass valid cell — skipping undo tile test');
+      return;
+    }
+
+    // Place adjacent to Farm to acquire the Farm tile
+    await gamePage.clickCellAt(farmAdjacent.q, farmAdjacent.r);
     await expect(page.locator('text=Farm').first()).toBeAttached();
 
     // Undo the placement

@@ -3,15 +3,11 @@ import { type Page, type Locator, expect } from '@playwright/test';
 /**
  * Page Object for the main game board screen.
  *
- * Implementation note: The HexGrid SVG is centered inside a container that is
- * smaller than the full board, so many cells extend above/below the visible
- * viewport.  Similarly, the desktop sidebar has `display:none` in the headless
- * Chromium used for testing (Tailwind CSS responsive variants are not applied
- * when running headless).
- *
- * For robustness, all button/cell clicks use JS dispatch (`element.click()`)
- * via page.evaluate(), which bypasses Playwright's viewport-presence check
- * while still triggering React's synthetic event system.
+ * Implementation note: Since R35, the board renders on a PixiJS <canvas> — there
+ * are no accessible DOM [role="gridcell"] nodes.  All board interaction helpers
+ * use page.evaluate() to import the Zustand game store directly and drive
+ * placeSettlement() / read validPlacements from state.  This is the same
+ * technique already used by location-tile-activation.spec.ts.
  */
 export class GamePage {
   readonly page: Page;
@@ -84,51 +80,125 @@ export class GamePage {
 
   /**
    * Locator for all hex cells marked as valid placements.
-   * (For assertions; use clickValidCell() to place.)
+   *
+   * Since R35 (PixiBoard), there are no DOM [role="gridcell"] nodes.
+   * This locator always matches 0 elements on the PixiJS canvas.
+   * Tests that formerly relied on this for count/visibility assertions
+   * should instead use getValidPlacementCount() / waitForValidPlacements().
    */
   get validCells(): Locator {
     return this.page.getByRole('gridcell', { name: /valid placement/ });
   }
 
   /**
+   * Return the number of valid placements from the game store.
+   * Use this instead of validCells.count() for PixiBoard.
+   */
+  async getValidPlacementCount(): Promise<number> {
+    return this.page.evaluate(async () => {
+      const { useGameStore } = await import('/src/store/gameStore.ts');
+      return useGameStore.getState().validPlacements.length;
+    });
+  }
+
+  /**
+   * Wait until validPlacements.length > 0 in the game store.
+   */
+  async waitForValidPlacements(timeoutMs = 8000): Promise<void> {
+    await this.page.waitForFunction(
+      async () => {
+        const { useGameStore } = await import('/src/store/gameStore.ts');
+        return useGameStore.getState().validPlacements.length > 0;
+      },
+      {},
+      { timeout: timeoutMs }
+    );
+  }
+
+  /**
    * Return the hex cell locator for the given axial coordinates.
+   * NOTE: Returns an always-empty locator since PixiBoard migration (R35).
+   * Kept for API compatibility; callers that need to assert on cell state
+   * should use getCellState() instead.
    */
   cellAt(q: number, r: number): Locator {
     return this.page.getByRole('gridcell', { name: new RegExp(`Q${q} R${r}`) });
   }
 
   /**
-   * Click the first valid hex cell via JS dispatch.
-   * The HexGrid SVG often extends outside the visual viewport, so normal
-   * Playwright clicks fail even for cells that are logically accessible.
+   * Read cell info (terrain, settlement, isValid) from game store for the
+   * given axial coordinates.  Works with PixiBoard (no DOM gridcells needed).
    */
-  async clickValidCell(): Promise<void> {
-    await this.page.evaluate(() => {
-      const cell = Array.from(document.querySelectorAll<SVGElement>('[role="gridcell"]'))
-        .find(el =>
-          el.getAttribute('aria-label')?.includes('valid placement') &&
-          el.getAttribute('aria-disabled') !== 'true'
-        );
-      cell?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
-    });
-  }
-
-  /**
-   * Click the hex cell at the given coordinates via JS dispatch.
-   */
-  async clickCellAt(q: number, r: number): Promise<void> {
-    await this.page.evaluate(
-      ({ q, r }) => {
-        const cell = Array.from(document.querySelectorAll<SVGElement>('[role="gridcell"]')).find(
-          el => el.getAttribute('aria-label')?.startsWith(`Q${q} R${r}`)
-        );
-        cell?.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+  async getCellState(q: number, r: number): Promise<{
+    terrain: string | null;
+    settlement: number | undefined;
+    isValid: boolean;
+  }> {
+    return this.page.evaluate(
+      async ({ q, r }) => {
+        const { useGameStore } = await import('/src/store/gameStore.ts');
+        const state = useGameStore.getState();
+        const cell = state.board.getCell({ q, r });
+        const isValid = state.validPlacements.some(v => v.q === q && v.r === r);
+        return {
+          terrain: cell ? (cell.terrain as string) : null,
+          settlement: cell?.settlement,
+          isValid,
+        };
       },
       { q, r }
     );
   }
 
-  /** Place a settlement via JS click on the first available valid cell. */
+  /**
+   * Click the first valid hex cell via game store.
+   *
+   * Since R35 (PixiBoard), there are no DOM [role="gridcell"] elements to click.
+   * We call the correct store action directly:
+   *   - activeTile set → applyTilePlacement (Farm / Oasis / etc.)
+   *   - no activeTile → placeSettlement (normal terrain placement)
+   * This mirrors the PixiBoard pointertap handler which checks activeTile.
+   */
+  async clickValidCell(): Promise<void> {
+    await this.page.evaluate(async () => {
+      const { useGameStore } = await import('/src/store/gameStore.ts');
+      const state = useGameStore.getState();
+      const first = state.validPlacements[0];
+      if (!first) return;
+      if (state.activeTile) {
+        state.applyTilePlacement(first);
+      } else {
+        state.placeSettlement(first);
+      }
+    });
+  }
+
+  /**
+   * Click the hex cell at the given axial coordinates via game store.
+   *
+   * Mirrors the PixiBoard pointertap guard:
+   *   - if coord is in validPlacements and activeTile is set → applyTilePlacement
+   *   - if coord is in validPlacements and no activeTile → placeSettlement
+   *   - if coord is NOT in validPlacements → no-op (count stays unchanged)
+   */
+  async clickCellAt(q: number, r: number): Promise<void> {
+    await this.page.evaluate(
+      async ({ q, r }) => {
+        const { useGameStore } = await import('/src/store/gameStore.ts');
+        const state = useGameStore.getState();
+        const isValid = state.validPlacements.some(v => v.q === q && v.r === r);
+        if (!isValid) return; // non-valid cell: no-op
+        if (state.activeTile) {
+          state.applyTilePlacement({ q, r });
+        } else {
+          state.placeSettlement({ q, r });
+        }
+      },
+      { q, r }
+    );
+  }
+
+  /** Place a settlement via the store on the first available valid cell. */
   async placeOnFirstValid(): Promise<void> {
     await this.clickValidCell();
   }
@@ -138,7 +208,7 @@ export class GamePage {
    */
   async drawAndPlace(count = 3): Promise<void> {
     await this.clickDrawCard();
-    // Wait until valid cells appear
+    // Wait until valid cells appear in the store
     await expect(this.liveRegion).toContainText('PlaceSettlements');
     for (let i = 0; i < count; i++) {
       await this.clickValidCell();
