@@ -10,7 +10,8 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "qa:smoke": "node scripts/qa-smoke.mjs"
   },
   "dependencies": {
     "@hd/game-kit": "github:cancleeric/hd-game-kit#v0.1.1",
