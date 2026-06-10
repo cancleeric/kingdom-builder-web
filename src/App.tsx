@@ -522,6 +522,15 @@ function App() {
     invalidHintTimerRef.current = setTimeout(() => setInvalidHintMsg(null), 1800);
   };
 
+  // E2E test hook (DEV only): exposes handleInvalidCellClick for Playwright tests
+  // that need to trigger invalid-click feedback without a real Pixi canvas click.
+  useEffect(() => {
+    if (import.meta.env.DEV) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any -- DEV-only test hook
+      (window as any).__testInvalidClick = handleInvalidCellClick;
+    }
+  });
+
   const liveScores = players.map(p => ({
     playerId: p.id,
     castle: board ? scoreCastle(board, p.id) : 0,
