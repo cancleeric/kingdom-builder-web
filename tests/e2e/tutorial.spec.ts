@@ -18,7 +18,7 @@ test.beforeEach(async ({ page }) => {
 //
 // Evidence: test-results screenshot shows "tutorial-spotlight intercepts pointer events"
 // See https://github.com/cancleeric/kingdom-builder-web/issues/191
-test.skip('tutorial: highlighted draw card action advances the tutorial', async ({ page }) => {
+test('tutorial: highlighted draw card action advances the tutorial', async ({ page }) => {
   const setupPage = new SetupPage(page);
   const gamePage = new GamePage(page);
 

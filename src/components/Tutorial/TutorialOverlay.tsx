@@ -141,7 +141,7 @@ export function TutorialOverlay() {
         <div
           data-testid="tutorial-spotlight"
           aria-hidden="true"
-          className="fixed rounded-xl border-4 border-yellow-300 shadow-[0_0_0_9999px_rgba(0,0,0,0.5),0_0_24px_rgba(250,204,21,0.9)] transition-all duration-200 z-[60]"
+          className="fixed rounded-xl border-4 border-yellow-300 shadow-[0_0_0_9999px_rgba(0,0,0,0.5),0_0_24px_rgba(250,204,21,0.9)] transition-all duration-200 z-[60] pointer-events-none"
           style={spotlightRect}
         />
       )}
