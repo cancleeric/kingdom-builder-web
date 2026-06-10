@@ -9,3 +9,7 @@
 export function randomBytes(_size: number): Uint8Array {
   throw new Error('node:crypto is not available in the browser');
 }
+
+export function timingSafeEqual(_a: Uint8Array, _b: Uint8Array): boolean {
+  throw new Error('node:crypto is not available in the browser');
+}
