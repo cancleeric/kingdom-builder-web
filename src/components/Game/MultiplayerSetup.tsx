@@ -5,6 +5,7 @@ import { useGameStore } from '../../store/gameStore';
 import { useMultiplayerStore } from '../../store/multiplayerStore';
 import { extractSerializableState } from '../../multiplayer/stateSerializer';
 import { useTranslation } from 'react-i18next';
+import type { RoomPlayer } from '../../multiplayer/types';
 
 interface MultiplayerSetupProps {
   onBack: () => void;
@@ -43,15 +44,15 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
   } = useMultiplayerStore();
 
   const sortedPlayers = useMemo(() => {
-    return room?.players.slice().sort((a, b) => a.id - b.id) ?? [];
+    return room?.players.slice().sort((a: RoomPlayer, b: RoomPlayer) => a.id - b.id) ?? [];
   }, [room]);
 
   const isHost = room && localPlayerId === room.hostPlayerId;
-  const me = sortedPlayers.find((p) => p.id === localPlayerId);
+  const me = sortedPlayers.find((p: RoomPlayer) => p.id === localPlayerId);
   const canHostStart =
     !!room &&
     sortedPlayers.length >= 2 &&
-    sortedPlayers.every((p) => p.id === room.hostPlayerId || p.ready);
+    sortedPlayers.every((p: RoomPlayer) => p.id === room.hostPlayerId || p.ready);
 
   useEffect(() => {
     if (mode === 'in_game') {
@@ -79,8 +80,8 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
     if (!room) return;
     const configs: PlayerConfig[] = room.players
       .slice()
-      .sort((a, b) => a.id - b.id)
-      .map((p) => ({
+      .sort((a: RoomPlayer, b: RoomPlayer) => a.id - b.id)
+      .map((p: RoomPlayer) => ({
         name: p.name,
         type: 'human',
         difficulty: BotDifficulty.Medium,
@@ -202,7 +203,7 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
             </div>
 
             <div className="space-y-2 mb-4">
-              {sortedPlayers.map((p) => (
+              {sortedPlayers.map((p: RoomPlayer) => (
                 <div
                   key={p.id}
                   className="flex items-center justify-between p-2 rounded-8"
