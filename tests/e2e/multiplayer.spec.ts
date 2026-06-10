@@ -3,20 +3,22 @@ import { SetupPage } from '../pages/SetupPage';
 import { GamePage } from '../pages/GamePage';
 
 /**
- * Multiplayer E2E tests.
+ * Multiplayer E2E tests — legacy file (superseded).
  *
- * NOTE: These tests require a WebSocket server running on ws://localhost:3000
- * to enable real-time synchronization between multiple browser contexts.
- * Currently, playwright.config.ts only starts the Vite dev server (HTTP),
- * not the WebSocket server (npm run server).
+ * Both fixme scenarios below are now covered by multiplayer-platform.spec.ts (R42-T3):
  *
- * Until the webServer configuration is updated to spawn both the Vite dev
- * server and the WebSocket server, these tests are marked as fixme.
+ *   Scenario 1 (host creates room + guest joins):
+ *     → Superseded by multiplayer-platform.spec.ts scenarios 1 + 2
+ *       ("host creates room and room ID appears" + "guest joins room and lobby shows 2 players")
  *
- * To enable:
- * 1. Update playwright.config.ts webServer.command to:
- *    "npm run dev & npm run server"
- * 2. Remove test.fixme() wrappers.
+ *   Scenario 2 (board state synchronization):
+ *     → Covered structurally by multiplayer-platform.spec.ts scenario 3
+ *       ("host starts game and canvas renders with zero pageerrors").
+ *       Full bidirectional placement-sync E2E requires dedicated WS E2E infra
+ *       (both Vite dev + npm run server in webServer) — tracked separately.
+ *
+ * The fixme blocks are retained below as historical record but will not run.
+ * See multiplayer-platform.spec.ts for the active, passing coverage.
  */
 
 test.beforeEach(async ({ page }) => {
