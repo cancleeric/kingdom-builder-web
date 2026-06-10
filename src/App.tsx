@@ -81,6 +81,7 @@ function usePrevious<T>(value: T): T | undefined {
   useEffect(() => {
     ref.current = value;
   });
+  // eslint-disable-next-line react-hooks/refs -- intentional: usePrevious reads stale ref during render (React docs pattern)
   return ref.current;
 }
 

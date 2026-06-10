@@ -21,7 +21,8 @@
 
 import { test, expect } from '@playwright/test';
 
-const WS_URL = 'ws://localhost:8787';
+// WS_URL kept for documentation; actual connection is managed by the server under test
+const _WS_URL = 'ws://localhost:8787';
 
 // Helper: suppress known non-critical console noise (missing assets, etc.)
 function isNonCriticalError(msg: string): boolean {

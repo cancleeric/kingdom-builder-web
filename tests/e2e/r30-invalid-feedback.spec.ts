@@ -33,7 +33,7 @@ test.describe.skip('R30 invalid placement visual feedback', () => {
     const { shakeDetected, hintToastText } = await page.evaluate(async () => {
       return new Promise<{ shakeDetected: boolean; hintToastText: string }>((resolve) => {
         let shakeFound = false;
-        const deadline = setTimeout(() => {
+        setTimeout(() => {
           observer.disconnect();
           // Check for hint toast text at timeout
           const statuses = document.querySelectorAll('[role="status"][aria-live="polite"]');

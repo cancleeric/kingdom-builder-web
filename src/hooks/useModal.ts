@@ -27,6 +27,7 @@ export function useModal({ isOpen, onClose, disableEscClose = false }: UseModalO
   const panelRef = useRef<HTMLDivElement>(null);
   // Stable reference so event listener can always call the latest onClose
   const onCloseRef = useRef(onClose);
+  // eslint-disable-next-line react-hooks/refs -- intentional: stable-ref pattern to capture latest callback without re-subscribing
   onCloseRef.current = onClose;
 
   // ESC key handler
