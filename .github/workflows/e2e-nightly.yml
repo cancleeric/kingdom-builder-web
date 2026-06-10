@@ -1,11 +1,10 @@
 name: E2E Nightly (Playwright / Chromium)
 
-# Runs nightly at 02:00 UTC and on manual dispatch.
+# Manual dispatch only (scheduled run disabled per boss directive 2026-06-10).
 # Deliberately NOT on every PR push — keeps PR CI fast.
 # Manual trigger: Actions → "E2E Nightly" → Run workflow
+# 排程觸發已停用（老闆 2026-06-10 指示關閉 CI 自動通知）；僅手動觸發
 on:
-  schedule:
-    - cron: '0 2 * * *'
   workflow_dispatch:
 
 permissions:
