@@ -5,6 +5,14 @@ import react from '@vitejs/plugin-react'
 // https://vite.dev/config/
 export default defineConfig({
   plugins: [react()],
+  resolve: {
+    // RoomManager in @hd/game-kit uses node:crypto (server-only).
+    // Kingdom Builder only uses WsTransport and type exports, never RoomManager.
+    // Stub node:crypto so the unused import does not break the browser bundle.
+    alias: {
+      'node:crypto': '/src/multiplayer/nodeCryptoStub.ts',
+    },
+  },
   build: {
     rollupOptions: {
       output: {
