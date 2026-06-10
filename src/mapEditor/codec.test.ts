@@ -91,7 +91,7 @@ describe('decode — security guards', () => {
   });
 
   it('invalid terrain → null', () => {
-    const bad: any = {
+    const bad: Record<string, unknown> = {
       v: 1,
       w: 12,
       h: 12,
@@ -105,7 +105,7 @@ describe('decode — security guards', () => {
   });
 
   it('invalid location → null', () => {
-    const bad: any = {
+    const bad: Record<string, unknown> = {
       v: 1,
       w: 12,
       h: 12,
@@ -119,7 +119,7 @@ describe('decode — security guards', () => {
   });
 
   it('cells not array → null', () => {
-    const bad: any = { v: 1, w: 12, h: 12, cells: 'not-array' };
+    const bad: Record<string, unknown> = { v: 1, w: 12, h: 12, cells: 'not-array' };
     const json = JSON.stringify(bad);
     const bytes = new TextEncoder().encode(json);
     const binary = String.fromCharCode(...bytes);
@@ -128,7 +128,7 @@ describe('decode — security guards', () => {
   });
 
   it('null as any → null (no throw)', () => {
-    expect(() => decode(null as any)).not.toThrow();
-    expect(decode(null as any)).toBeNull();
+    expect(() => decode(null as unknown as string)).not.toThrow();
+    expect(decode(null as unknown as string)).toBeNull();
   });
 });

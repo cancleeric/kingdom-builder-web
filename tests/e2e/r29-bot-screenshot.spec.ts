@@ -6,7 +6,8 @@ import { test, expect } from '@playwright/test';
 import { SetupPage } from '../pages/SetupPage';
 import { GamePage } from '../pages/GamePage';
 
-const BASE = 'http://localhost:5174';
+// BASE was hardcoded for manual dev; Playwright webServer config uses port 5173
+const _BASE = 'http://localhost:5174';
 
 test.beforeEach(async ({ page }) => {
   await page.addInitScript(() => {
@@ -29,11 +30,11 @@ test('R29: screenshot TurnBanner bot indicator', async ({ page }) => {
   // Set bot turn active via setState so we can screenshot
   await page.evaluate(async () => {
     const { useGameStore } = await import('/src/store/gameStore.ts');
-    const state = useGameStore.getState();
+    const { GamePhase } = await import('/src/types/index.ts');
     // Switch to player 2 (bot) in DrawCard phase
     useGameStore.setState({
       currentPlayerIndex: 1,
-      phase: 'DrawCard' as any,
+      phase: GamePhase.DrawCard,
     });
   });
 

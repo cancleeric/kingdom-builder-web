@@ -111,6 +111,7 @@ test.skip('R29: bot turn timing and banner indicator', async ({ page }) => {
       so.observe(svg, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     }
 
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only debug property on window
     (window as any).__r29log = log;
   });
 
@@ -128,6 +129,7 @@ test.skip('R29: bot turn timing and banner indicator', async ({ page }) => {
 
   // Mark time before ending turn
   await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only debug property on window
     (window as any).__r29turnEndAt = Date.now();
     console.log('[R29] Player 1 ending turn...');
   });
@@ -144,7 +146,7 @@ test.skip('R29: bot turn timing and banner indicator', async ({ page }) => {
       b => b.textContent?.includes('End Turn')
     );
     if (byText) { byText.click(); return; }
-    // Fallback: useGameStore via window
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only fallback via window globals
     const store = (window as any).__zustand_store ?? (window as any).useGameStore;
     if (store) store.getState().endTurn();
   });
@@ -173,9 +175,10 @@ test.skip('R29: bot turn timing and banner indicator', async ({ page }) => {
   await page.screenshot({ path: 'test-results/r29-after-bot.png' });
 
   // ── 4. Collect and analyze log ──────────────────────────────────────────
-  const events = await page.evaluate(() =>
-    (window as any).__r29log as Array<{ time: number; event: string }>
-  );
+  const events = await page.evaluate(() => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any -- test-only debug property on window
+    return (window as any).__r29log as Array<{ time: number; event: string }>;
+  });
 
   console.log('\n=== R29 Observer Log ===');
   for (const e of events) {
