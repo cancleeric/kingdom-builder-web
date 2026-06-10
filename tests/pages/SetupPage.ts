@@ -53,7 +53,8 @@ export class SetupPage {
 
   /** Set a player's type to 'human' or 'bot' (0-based index). */
   async setPlayerType(index: number, type: 'human' | 'bot'): Promise<void> {
-    const label = type === 'human' ? '🧑 Human' : '🤖 Computer';
+    // Button labels no longer include emoji (emoji moved to <img> inside button).
+    const label = type === 'human' ? 'Human' : 'Computer';
     await this.page.getByRole('button', { name: label }).nth(index).click();
   }
 
