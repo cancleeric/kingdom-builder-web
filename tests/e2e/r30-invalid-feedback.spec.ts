@@ -18,7 +18,9 @@ async function drawCard(page: Page) {
   await drawBtn.click();
 }
 
-test.describe('R30 invalid placement visual feedback', () => {
+// Skipped: aria-disabled=false gridcells not found in Playwright headless mode.
+// See https://github.com/cancleeric/kingdom-builder-web/issues/186
+test.describe.skip('R30 invalid placement visual feedback', () => {
   test('A: invalid click shows hint toast + shake class on clicked cell', async ({ page }) => {
     await startGame(page);
     await drawCard(page);

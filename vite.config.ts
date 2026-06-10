@@ -13,6 +13,12 @@ export default defineConfig({
       'node:crypto': '/src/multiplayer/nodeCryptoStub.ts',
     },
   },
+  optimizeDeps: {
+    // @hd/game-kit contains node:crypto imports (RoomManager, server-only).
+    // Excluding from esbuild pre-bundling lets vite's own alias resolution
+    // handle the node:crypto stub instead of esbuild failing at its scan step.
+    exclude: ['@hd/game-kit'],
+  },
   build: {
     rollupOptions: {
       output: {
