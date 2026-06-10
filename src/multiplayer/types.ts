@@ -1,20 +1,14 @@
 import type { SerializableGameState } from '../store/persistence';
 import type { AxialCoord } from '../core/hex';
+import type {
+  ClientToServerMessage as KitClientToServerMessage,
+  ServerToClientMessage as KitServerToClientMessage,
+} from '@hd/game-kit';
 
-export interface RoomPlayer {
-  id: number;
-  name: string;
-  ready: boolean;
-  connected: boolean;
-}
+// Re-export generic room/connection types from @hd/game-kit
+export type { RoomPlayer, RoomInfo, ConnectionStatus } from '@hd/game-kit';
 
-export interface RoomInfo {
-  id: string;
-  hostPlayerId: number;
-  gameStarted: boolean;
-  players: RoomPlayer[];
-}
-
+// Kingdom-specific action union (game-agnostic kit has no knowledge of this)
 export type MultiplayerAction =
   | { type: 'draw_terrain_card' }
   | { type: 'place_settlement'; coord: AxialCoord }
@@ -27,35 +21,6 @@ export type MultiplayerAction =
   | { type: 'undo_last_action' }
   | { type: 'select_cell'; coord: AxialCoord | null };
 
-export type ClientToServerMessage =
-  | { type: 'create_room'; playerName: string }
-  | { type: 'join_room'; roomId: string; playerName: string; playerToken?: string }
-  | { type: 'reconnect'; roomId: string; playerToken: string }
-  | { type: 'set_ready'; ready: boolean }
-  | { type: 'leave_room' }
-  | { type: 'start_game'; gameState: SerializableGameState }
-  | { type: 'state_update'; gameState: SerializableGameState }
-  | { type: 'player_action'; action: MultiplayerAction };
-
-export type ServerToClientMessage =
-  | { type: 'connected' }
-  | {
-      type: 'room_created';
-      room: RoomInfo;
-      yourPlayerId: number;
-      yourPlayerToken: string;
-    }
-  | {
-      type: 'room_joined';
-      room: RoomInfo;
-      yourPlayerId: number;
-      yourPlayerToken: string;
-      gameState: SerializableGameState | null;
-    }
-  | { type: 'room_update'; room: RoomInfo }
-  | { type: 'game_started'; room: RoomInfo; gameState: SerializableGameState | null }
-  | { type: 'state_update'; gameState: SerializableGameState | null }
-  | { type: 'action_request'; playerId: number; action: MultiplayerAction }
-  | { type: 'error'; message: string };
-
-export type ConnectionStatus = 'disconnected' | 'connecting' | 'connected';
+// Concrete message types for Kingdom Builder, specialising the kit generics
+export type ClientToServerMessage = KitClientToServerMessage<MultiplayerAction, SerializableGameState>;
+export type ServerToClientMessage = KitServerToClientMessage<MultiplayerAction, SerializableGameState>;
