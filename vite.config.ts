@@ -1,4 +1,5 @@
 /// <reference types="vitest" />
+import { fileURLToPath } from 'node:url'
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 
@@ -10,7 +11,7 @@ export default defineConfig({
     // Kingdom Builder only uses WsTransport and type exports, never RoomManager.
     // Stub node:crypto so the unused import does not break the browser bundle.
     alias: {
-      'node:crypto': '/src/multiplayer/nodeCryptoStub.ts',
+      'node:crypto': fileURLToPath(new URL('./src/multiplayer/nodeCryptoStub.ts', import.meta.url)),
     },
   },
   build: {
