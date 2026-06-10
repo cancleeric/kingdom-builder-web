@@ -90,6 +90,8 @@ export const en = {
     otherGames: 'More Games',
     herbalism: 'Gress Herbalism',
     herbalismDesc: 'Herbal Board Game',
+    evolution: 'Evolution',
+    evolutionDesc: 'Biology Evolution Board Game',
     sudoku: 'Sudoku',
     sudokuDesc: 'Number Puzzle',
   },

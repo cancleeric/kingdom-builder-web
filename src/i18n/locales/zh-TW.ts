@@ -90,6 +90,8 @@ export const zhTW = {
     otherGames: '更多遊戲',
     herbalism: '本草棋遊',
     herbalismDesc: '中草藥桌遊',
+    evolution: '演化論',
+    evolutionDesc: '生物演化桌遊',
     sudoku: '數獨',
     sudokuDesc: '數字謎題',
   },

@@ -344,11 +344,20 @@ export function MainMenu({
           >
             {t('menu.otherGames')}
           </p>
-          <div className="w-full flex gap-3">
+          <div
+            className="w-full"
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(3, 1fr)',
+              gap: '0.5rem',
+            }}
+          >
             {/* Gress Herbalism */}
             <a
-              href="#herbalism"
-              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
+              href={import.meta.env.VITE_URL_HERBALISM ?? 'http://192.168.50.83:8085/lobby/herbalism'}
+              target="_blank"
+              rel="noopener"
+              className="flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
               style={{
                 backgroundColor: 'var(--color-warm-cream-200)',
                 border: '1px solid var(--card-border)',
@@ -365,17 +374,48 @@ export function MainMenu({
               }}
             >
               <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">🌿</span>
-              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)' }}>
+              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)', textAlign: 'center' }}>
                 {t('menu.herbalism')}
               </span>
-              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)' }}>
+              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)', textAlign: 'center' }}>
                 {t('menu.herbalismDesc')}
+              </span>
+            </a>
+            {/* Evolution */}
+            <a
+              href={import.meta.env.VITE_URL_EVOLUTION ?? 'http://192.168.50.83:8085/lobby/evolution'}
+              target="_blank"
+              rel="noopener"
+              className="flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
+              style={{
+                backgroundColor: 'var(--color-warm-cream-200)',
+                border: '1px solid var(--card-border)',
+                color: 'var(--color-stone-700)',
+                textDecoration: 'none',
+              }}
+              onMouseEnter={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-300)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--color-wine-400)';
+              }}
+              onMouseLeave={(e) => {
+                (e.currentTarget as HTMLAnchorElement).style.backgroundColor = 'var(--color-warm-cream-200)';
+                (e.currentTarget as HTMLAnchorElement).style.borderColor = 'var(--card-border)';
+              }}
+            >
+              <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">🧬</span>
+              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)', textAlign: 'center' }}>
+                {t('menu.evolution')}
+              </span>
+              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)', textAlign: 'center' }}>
+                {t('menu.evolutionDesc')}
               </span>
             </a>
             {/* Sudoku */}
             <a
-              href="#sudoku"
-              className="flex-1 flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
+              href={import.meta.env.VITE_URL_SUDOKU ?? 'http://192.168.50.83:8089/'}
+              target="_blank"
+              rel="noopener"
+              className="flex flex-col items-center gap-1 py-3 px-2 rounded-14 transition"
               style={{
                 backgroundColor: 'var(--color-warm-cream-200)',
                 border: '1px solid var(--card-border)',
@@ -392,10 +432,10 @@ export function MainMenu({
               }}
             >
               <span style={{ fontSize: '1.25rem', lineHeight: 1 }} aria-hidden="true">🔢</span>
-              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)' }}>
+              <span className="font-body font-semibold" style={{ fontSize: 'var(--type-body-sm)', textAlign: 'center' }}>
                 {t('menu.sudoku')}
               </span>
-              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)' }}>
+              <span className="font-body" style={{ fontSize: 'var(--type-label)', color: 'var(--color-stone-500)', textAlign: 'center' }}>
                 {t('menu.sudokuDesc')}
               </span>
             </a>
