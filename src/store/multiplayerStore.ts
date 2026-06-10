@@ -7,7 +7,7 @@ import type {
   RoomInfo,
   ServerToClientMessage,
 } from '../multiplayer/types';
-import type { SerializableGameState } from './persistence';
+import type { WireGameState } from './persistence';
 import { hydrateSerializableState } from '../multiplayer/stateSerializer';
 import { useGameStore } from './gameStore';
 
@@ -66,9 +66,9 @@ interface MultiplayerState {
   joinRoom: (roomId: string, playerName: string) => void;
   setReady: (ready: boolean) => void;
   leaveRoom: () => void;
-  startGame: (initialState: SerializableGameState) => void;
+  startGame: (initialState: WireGameState) => void;
   sendPlayerAction: (action: MultiplayerAction) => void;
-  sendStateUpdate: (gameState: SerializableGameState) => void;
+  sendStateUpdate: (gameState: WireGameState) => void;
 }
 
 let listenersBound = false;

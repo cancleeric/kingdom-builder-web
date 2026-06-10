@@ -1,6 +1,6 @@
 import { Board, serializeBoard, deserializeBoard } from '../core/board';
 import { TerrainCard } from '../core/terrain';
-import { Player, GamePhase, PlayerScore } from '../types';
+import { Player, GamePhase, PlayerScore, GameOptions } from '../types';
 import { AxialCoord } from '../core/hex';
 import { Location } from '../core/terrain';
 import { ObjectiveCard } from '../core/scoring';
@@ -26,6 +26,8 @@ export interface SerializableGameState {
   finalScores: PlayerScore[];
   selectedCell: AxialCoord | null;
   validPlacements: AxialCoord[];
+  /** Settlements placed so far in the current turn (for adjacency rule). */
+  placementsThisTurn: AxialCoord[];
   activeTile: Location | null;
   tileMoveSources: AxialCoord[];
   tileMoveFrom: AxialCoord | null;
@@ -39,11 +41,22 @@ export interface SerializableGameState {
    */
   undoStack: UndoSnapshot[];
   turnNumber: number;
+  /** Options chosen at setup time (boardSize, objectiveCount, enableUndo, mapSeed). */
+  gameOptions: GameOptions;
 }
+
+/**
+ * Wire / storage format for board: cells serialised to [key, HexCell][] tuples
+ * instead of a Map so it survives JSON.stringify → JSON.parse round-trips.
+ * Used by stateSerializer (multiplayer wire) and saveGame (localStorage).
+ */
+export type WireGameState = Omit<SerializableGameState, 'board'> & {
+  board: ReturnType<typeof serializeBoard>;
+};
 
 export interface SaveSchema {
   saveVersion: number;
-  state: SerializableGameState;
+  state: WireGameState;
 }
 
 // ────────────────────────────────────────────────────
@@ -55,8 +68,9 @@ export function saveGame(state: SerializableGameState): void {
     saveVersion: SAVE_VERSION,
     state: {
       ...state,
-      // Serialize Board instance to plain object
-      board: serializeBoard(state.board) as unknown as Board,
+      // Serialize Board instance to a plain [key, HexCell][] structure so the
+      // payload survives JSON.stringify → JSON.parse without losing the Map.
+      board: serializeBoard(state.board),
     },
   };
   localStorage.setItem(STORAGE_KEY, JSON.stringify(payload));
@@ -87,15 +101,28 @@ export function loadGame(): SerializableGameState | null {
       undoStack?: UndoSnapshot[];
       undoSnapshot?: UndoSnapshot | null;
       undoUsedThisTurn?: boolean;
+      gameOptions?: GameOptions;
+      placementsThisTurn?: AxialCoord[];
     };
     const undoStack: UndoSnapshot[] =
       rawState.undoStack ??
       (rawState.undoSnapshot ? [rawState.undoSnapshot] : []);
 
+    // Backwards-compat: old saves lack gameOptions / placementsThisTurn.
+    // Provide sensible defaults so pre-PR saves continue to load correctly.
+    const gameOptions: GameOptions = rawState.gameOptions ?? {
+      boardSize: 'large',
+      objectiveCount: 3,
+      enableUndo: true,
+    };
+    const placementsThisTurn: AxialCoord[] = rawState.placementsThisTurn ?? [];
+
     return {
       ...(rawState as unknown as SerializableGameState),
       board,
       undoStack,
+      gameOptions,
+      placementsThisTurn,
     };
   } catch {
     clearSave();

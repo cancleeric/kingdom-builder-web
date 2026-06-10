@@ -68,7 +68,7 @@ vi.mock('../store/gameStore', () => ({
 // ── Import AFTER mocks ────────────────────────────────────────────────────────
 import { useMultiplayerStore } from '../store/multiplayerStore';
 import type { RoomInfo } from '../multiplayer/types';
-import type { SerializableGameState } from '../store/persistence';
+import type { SerializableGameState, WireGameState } from '../store/persistence';
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
@@ -459,7 +459,7 @@ describe('useMultiplayerStore.sendStateUpdate', () => {
   beforeEach(resetStore);
 
   it('wraps gameState in state_update message', () => {
-    const gs = { board: {} } as unknown as SerializableGameState;
+    const gs = { board: {} } as unknown as WireGameState;
     useMultiplayerStore.getState().sendStateUpdate(gs);
     expect(mockWsClient.send).toHaveBeenCalledWith({ type: 'state_update', gameState: gs });
   });
@@ -469,7 +469,7 @@ describe('useMultiplayerStore.startGame', () => {
   beforeEach(resetStore);
 
   it('wraps initialState in start_game message', () => {
-    const gs = { board: {} } as unknown as SerializableGameState;
+    const gs = { board: {} } as unknown as WireGameState;
     useMultiplayerStore.getState().startGame(gs);
     expect(mockWsClient.send).toHaveBeenCalledWith({ type: 'start_game', gameState: gs });
   });
