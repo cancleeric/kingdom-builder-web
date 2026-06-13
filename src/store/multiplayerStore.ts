@@ -1,6 +1,7 @@
 import { create } from 'zustand';
 import { Location } from '../core/terrain';
 import { wsClient } from '../multiplayer/wsClient';
+import { resolveWsUrl } from '../utils/wsUrl';
 import type {
   ConnectionStatus,
   MultiplayerAction,
@@ -92,7 +93,7 @@ export const useMultiplayerStore = create<MultiplayerState>((set, get) => {
 
   return {
     connectionStatus: 'disconnected',
-    serverUrl: import.meta.env.VITE_WS_SERVER_URL ?? 'ws://localhost:8787',
+    serverUrl: resolveWsUrl(import.meta.env.VITE_WS_SERVER_URL ?? 'ws://localhost:8787'),
     room: null,
     localPlayerId: null,
     localPlayerToken: storedToken,

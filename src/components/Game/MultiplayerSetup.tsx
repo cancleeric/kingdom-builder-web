@@ -6,6 +6,7 @@ import { useMultiplayerStore } from '../../store/multiplayerStore';
 import { extractSerializableState } from '../../multiplayer/stateSerializer';
 import { useTranslation } from 'react-i18next';
 import type { RoomPlayer } from '../../multiplayer/types';
+import { resolveWsUrl } from '../../utils/wsUrl';
 
 interface MultiplayerSetupProps {
   onBack: () => void;
@@ -23,7 +24,7 @@ export function MultiplayerSetup({ onBack, onGameStarted }: MultiplayerSetupProp
   const [playerName, setPlayerName] = useState('');
   const [roomCode, setRoomCode] = useState('');
   const [serverUrl, setServerUrl] = useState(
-    import.meta.env.VITE_WS_SERVER_URL ?? 'ws://localhost:8787'
+    resolveWsUrl(import.meta.env.VITE_WS_SERVER_URL ?? 'ws://localhost:8787')
   );
   const [options, setOptions] = useState<GameOptions>(DEFAULT_OPTIONS);
 

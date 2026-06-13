@@ -38,7 +38,8 @@ describe('registerSW', () => {
       await loadHandler(new Event('load'));
     }
 
-    expect(registerMock).toHaveBeenCalledWith('/service-worker.js');
+    // BASE_URL defaults to '/' in vitest; scope must match
+    expect(registerMock).toHaveBeenCalledWith('/service-worker.js', { scope: '/' });
   });
 
   it('does not throw when serviceWorker is not supported', () => {

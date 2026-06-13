@@ -1,11 +1,16 @@
-const CACHE_NAME = 'kingdom-builder-v1';
+// Derive the base path from the SW script URL so this file works correctly
+// whether it is served from `/` or a sub-path such as `/kingdom/`.
+// e.g. SW at /kingdom/service-worker.js → BASE = '/kingdom/'
+const BASE = new URL('./', self.location).pathname;
+
+const CACHE_NAME = `kingdom-builder${BASE.replace(/\//g, '-').replace(/-$/, '')}-v1`;
 
 const PRECACHE_ASSETS = [
-  '/',
-  '/index.html',
-  '/manifest.json',
-  '/icons/icon-192.svg',
-  '/icons/icon-512.svg',
+  `${BASE}`,
+  `${BASE}index.html`,
+  `${BASE}manifest.json`,
+  `${BASE}icons/icon-192.svg`,
+  `${BASE}icons/icon-512.svg`,
 ];
 
 // Install: pre-cache static assets
