@@ -460,6 +460,45 @@ describe('calculatePlayerScore', () => {
 });
 
 // ────────────────────────────────────────────────────
+// scoreObjectiveCard — legacy card safety net (harper CRITICAL)
+// ────────────────────────────────────────────────────
+
+describe('scoreObjectiveCard — legacy card safety net', () => {
+  it('returns 0 (not undefined/NaN) for a removed card string "Rangers"', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Cast to bypass TS: simulate a stale save that contains an unknown card value
+    const result = scoreObjectiveCard('Rangers' as unknown as ObjectiveCard, board, 1);
+    expect(result).toBe(0);
+    expect(Number.isFinite(result)).toBe(true);
+  });
+
+  it('returns 0 (not undefined/NaN) for a removed card string "Shepherds"', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(1, 1, Terrain.Grass, undefined, 1));
+    const result = scoreObjectiveCard('Shepherds' as unknown as ObjectiveCard, board, 1);
+    expect(result).toBe(0);
+    expect(Number.isFinite(result)).toBe(true);
+  });
+
+  it('calculatePlayerScore with a legacy card value produces a finite total score', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+    // objectiveCards array contains one invalid legacy value alongside valid cards
+    const cards = [
+      'Rangers' as unknown as ObjectiveCard,
+      ObjectiveCard.Workers,
+    ];
+    const total = calculatePlayerScore(board, 1, cards);
+    // Castle: 3pts, Rangers: 0pts (legacy), Workers: 1pt → 4
+    expect(Number.isFinite(total)).toBe(true);
+    expect(Number.isNaN(total)).toBe(false);
+    expect(total).toBe(4);
+  });
+});
+
+// ────────────────────────────────────────────────────
 // selectObjectiveCards
 // ────────────────────────────────────────────────────
 

@@ -320,6 +320,9 @@ export function scoreObjectiveCard(
     case ObjectiveCard.Lords:       return scoreLords(board, playerId);
     case ObjectiveCard.Workers:     return scoreWorkers(board, playerId);
   }
+  // Safety net: unknown card value (e.g. legacy saves with removed cards like
+  // 'Rangers' / 'Shepherds'). Returns 0 to prevent NaN propagation in reduce().
+  return 0;
 }
 
 /**

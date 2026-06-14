@@ -77,6 +77,28 @@ describe('persistence', () => {
     expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
   });
 
+  it('rejects R39/earlier save (saveVersion=1) after SAVE_VERSION bump to 2 — clears stale objectiveCards', () => {
+    // Simulate a pre-R40 save that contains legacy objectiveCards like 'Rangers'.
+    // saveVersion is hard-coded as 1 (the old version before the bump).
+    // SAVE_VERSION is now 2, so loadGame() must reject this and clear the save.
+    const base = makeMinimalState();
+    const legacyPayload = {
+      saveVersion: 1,
+      state: {
+        ...base,
+        board: serializeBoard(base.board),
+        objectiveCards: ['Rangers', 'Shepherds', 'Miners'],
+        undoStack: [],
+      },
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(legacyPayload));
+
+    const loaded = loadGame();
+    // Must be rejected: saveVersion 1 !== SAVE_VERSION 2 → clearSave + return null
+    expect(loaded).toBeNull();
+    expect(localStorage.getItem(STORAGE_KEY)).toBeNull();
+  });
+
   it('returns null and clears save on corrupt JSON', () => {
     localStorage.setItem(STORAGE_KEY, '{not valid json}');
     expect(loadGame()).toBeNull();

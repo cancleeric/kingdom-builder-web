@@ -10,7 +10,11 @@ import { GameAction, UndoSnapshot } from '../types/history';
 // Save format
 // ────────────────────────────────────────────────────
 
-export const SAVE_VERSION = 1;
+// Bumped to 2 (2026-06-14): invalidates R39/earlier saves that may contain
+// removed ObjectiveCard values ('Rangers', 'Shepherds'). On version mismatch
+// loadGame() clears the save and returns null, starting a fresh game with the
+// current card set.
+export const SAVE_VERSION = 2;
 const STORAGE_KEY = 'kingdom-builder-save';
 
 export interface SerializableGameState {
