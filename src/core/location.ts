@@ -362,12 +362,36 @@ export function getBarnDestinations(
   const fromCell = board.getCell(from);
   if (!fromCell) return [];
 
+  const fromKey = hexToKey(from);
+
   const candidates = board
     .getCellsByTerrain(currentTerrain)
-    .filter(cell => cell.settlement === undefined && hexToKey(cell.coord) !== hexToKey(from))
+    .filter(cell => cell.settlement === undefined && hexToKey(cell.coord) !== fromKey)
     .map(cell => cell.coord);
 
-  return applyAdjacentIfPossible(board, candidates, playerId);
+  if (candidates.length === 0) return [];
+
+  // Build adjacency set from player settlements, excluding the `from` cell
+  // (since it will be vacated once moved). This mirrors getHarborDestinations
+  // to satisfy official rule "adjacent to your OTHER settlements".
+  const playerSettlements = board
+    .getPlayerSettlements(playerId)
+    .filter(cell => hexToKey(cell.coord) !== fromKey);
+
+  if (playerSettlements.length === 0) {
+    // No other settlements → no adjacency constraint, return all card-terrain candidates
+    return candidates;
+  }
+
+  const neighbourKeys = new Set<string>();
+  for (const cell of playerSettlements) {
+    for (const n of hexNeighbors(cell.coord)) {
+      neighbourKeys.add(hexToKey(n));
+    }
+  }
+
+  const adjacent = candidates.filter(c => neighbourKeys.has(hexToKey(c)));
+  return adjacent.length > 0 ? adjacent : candidates;
 }
 
 /**

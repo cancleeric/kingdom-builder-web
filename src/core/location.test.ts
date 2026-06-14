@@ -646,6 +646,49 @@ describe('getBarnDestinations', () => {
     const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
     expect(result.some(c => c.q === 5 && c.r === 5)).toBe(false);
   });
+
+  it('from exclusion — only settlement is the one being moved: fallback to all card-terrain cells (no false adjacency from from)', () => {
+    // Bug guard: when the player has only ONE settlement (the one being moved),
+    // applyAdjacentIfPossible used to include `from` itself in the adjacency base,
+    // causing its neighbours to appear in the adjacency set and wrongly filter
+    // candidates.  After the fix, no OTHER settlements exist, so we must fall back
+    // to returning ALL card-terrain candidates.
+    const board = new Board(10, 10);
+    // from is the only settlement (Grass at (0,0))
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Card terrain is Forest. Two Forest cells — neither is a neighbour of (0,0).
+    // East of (0,0) = (1,0), Northeast = (1,-1), Northwest = (0,-1),
+    // West = (-1,0), Southwest = (-1,1), Southeast = (0,1).
+    // Use (8,8) and (9,9) — clearly not adjacent to (0,0).
+    board.setCell(makeCell(8, 8, Terrain.Forest));
+    board.setCell(makeCell(9, 9, Terrain.Forest));
+
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    // Fallback: no OTHER settlements → return all Forest candidates
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,9');
+  });
+
+  it('from exclusion — OTHER settlement exists: adjacency uses only OTHER, not from', () => {
+    // Player has two settlements: from=(0,0) being moved, other=(3,0) staying.
+    // Forest cell (4,0) is a neighbour of (3,0) [East].
+    // Forest cell (1,0) is a neighbour of (0,0) [East = from's neighbour].
+    // After fix, only (4,0) should appear (adjacent to OTHER); (1,0) must NOT
+    // appear due to from's adjacency (from is excluded from the base).
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));  // from (being moved)
+    board.setCell(makeCell(3, 0, Terrain.Grass, undefined, 1));  // OTHER settlement (stays)
+    board.setCell(makeCell(4, 0, Terrain.Forest));               // Forest adj to OTHER ✓
+    board.setCell(makeCell(1, 0, Terrain.Forest));               // Forest adj to from only ✗
+
+    // Card terrain = Forest. Expected: only (4,0) returned (adj to OTHER settlement (3,0)).
+    // (1,0) must NOT appear — it is adjacent to from, which should be excluded from base.
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('4,0');
+    expect(keys).not.toContain('1,0');
+  });
 });
 
 // ────────────────────────────────────────────────────
@@ -1011,17 +1054,25 @@ describe('getHarborDestinations', () => {
 // ────────────────────────────────────────────────────
 
 describe('Harbor + Fisherman integration', () => {
-  it('after Harbor move to Water, scoreFisherman counts the group touching that Water cell', () => {
+  /**
+   * Official semantic: scoreFisherman checks whether any settlement in a connected
+   * group is ADJACENT to a Water cell, NOT whether the settlement itself sits on Water.
+   * A settlement that moved onto a Water cell scores +2 only if at least one
+   * NEIGHBOURING cell is also Water.
+   */
+  it('after Harbor move to Water, scoreFisherman +2 when destination has a Water neighbour (natural fixture)', () => {
     const board = new Board(10, 10);
-    // Arrange: player settlement on Grass at (0,0), Water cell at (5,5)
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(5, 5, Terrain.Water));
+    // Natural fixture: Water cell at (5,5) with a Water neighbour at (5,6) already on the board.
+    // Southeast of (5,5) is (5+0, 5+1) = (5,6) per HEX_DIRECTIONS[5] = { q:0, r:1 }.
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement to move
+    board.setCell(makeCell(5, 5, Terrain.Water));               // Harbor destination
+    board.setCell(makeCell(5, 6, Terrain.Water));               // Water neighbour of (5,5) — pre-placed
 
-    // Before move: (0,0) is not adjacent to Water → no Fisherman score
+    // Before move: no settlement adjacent to any Water → score = 0
     const scoreBefore = scoreFisherman(board, 1);
     expect(scoreBefore).toBe(0);
 
-    // Execute Harbor move: (0,0) → (5,5) [Water]
+    // Execute Harbor move: (0,0) → (5,5)
     const success = executeMoveTile(
       Location.Harbor,
       board,
@@ -1031,35 +1082,55 @@ describe('Harbor + Fisherman integration', () => {
     );
     expect(success).toBe(true);
 
-    // After move: settlement is now ON Water cell (5,5).
-    // Fisherman: a connected group touching Water scores +2.
-    // The settlement at (5,5) is itself a Water cell — but scoreFisherman checks
-    // whether any neighbour is Water. Let's add a second Water cell adjacent to (5,5)
-    // to confirm the adjacency. Actually the settlement IS on Water — neighbors of
-    // (5,5) may also be Water.
-    // More reliable: add an explicit Water neighbour.
-    board.setCell(makeCell(6, 5, Terrain.Water)); // Water neighbour of (5,5)
-
-    // Re-score after move
+    // After move: settlement at (5,5) is adjacent to Water at (5,6) → +2
+    // (5,6) was already on the board before the move — no post-move board mutation.
     const scoreAfter = scoreFisherman(board, 1);
-    // The group {(5,5)} is adjacent to Water at (6,5) → +2
     expect(scoreAfter).toBe(2);
   });
 
-  it('Harbor move groups that become adjacent to Water score Fisherman correctly', () => {
+  it('after Harbor move to isolated Water cell (no Water neighbours), scoreFisherman = 0 (official semantic)', () => {
+    // Official semantic: scoring is based on ADJACENCY to Water, not on being on a Water cell.
+    // A settlement moved onto a Water cell that has no Water neighbours scores 0.
     const board = new Board(10, 10);
-    // Two player settlements forming a connected group: (0,0) and (1,0)
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement to move
+    board.setCell(makeCell(5, 5, Terrain.Water));               // isolated Water destination
+    // All 6 neighbours of (5,5) are Grass (no Water neighbours)
+    board.setCell(makeCell(6, 5, Terrain.Grass));   // East
+    board.setCell(makeCell(6, 4, Terrain.Grass));   // Northeast
+    board.setCell(makeCell(5, 4, Terrain.Grass));   // Northwest
+    board.setCell(makeCell(4, 5, Terrain.Grass));   // West
+    board.setCell(makeCell(4, 6, Terrain.Grass));   // Southwest
+    board.setCell(makeCell(5, 6, Terrain.Grass));   // Southeast
+
+    // Execute Harbor move
+    const success = executeMoveTile(
+      Location.Harbor,
+      board,
+      1,
+      { q: 0, r: 0 },
+      { q: 5, r: 5 }
+    );
+    expect(success).toBe(true);
+
+    // Settlement is ON Water, but zero Water neighbours → scoreFisherman = 0
+    const scoreAfter = scoreFisherman(board, 1);
+    expect(scoreAfter).toBe(0);
+  });
+
+  it('Harbor move: group that stays on land scores 0, group moved to Water-adjacent cell scores +2 (natural fixture)', () => {
+    const board = new Board(10, 10);
+    // Two player settlements forming a group: (0,0) and (1,0)
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
     board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
-    // Water cell adjacent to (1,0): East neighbor = (2,0)? No, let's check direction.
-    // Actually let's put Water not adjacent to either initially
-    board.setCell(makeCell(9, 9, Terrain.Water)); // far Water, not adjacent to group
+    // Natural fixture: Water at (9,9) with Water neighbour at (9,8) pre-placed on board.
+    // Northwest of (9,9) = (9+0, 9-1) = (9,8) per HEX_DIRECTIONS[2] = { q:0, r:-1 }.
+    board.setCell(makeCell(9, 9, Terrain.Water));  // Harbor destination
+    board.setCell(makeCell(9, 8, Terrain.Water));  // Water neighbour — pre-placed
 
     const scoreBefore = scoreFisherman(board, 1);
-    expect(scoreBefore).toBe(0); // group not adjacent to any Water
+    expect(scoreBefore).toBe(0); // neither settlement adjacent to Water
 
-    // Move (0,0) onto Water at (9,9) — the group splits: (1,0) alone, Water (9,9)
-    // But Harbor moves (0,0) to (9,9) which is Water
+    // Move (0,0) onto Water at (9,9)
     const success = executeMoveTile(
       Location.Harbor,
       board,
@@ -1069,13 +1140,8 @@ describe('Harbor + Fisherman integration', () => {
     );
     expect(success).toBe(true);
 
-    // Now: two groups — {(1,0)} (not adjacent to Water) and {(9,9)} (ON Water cell)
-    // (9,9) neighbours include Water cells only if there are Water neighbours; the cell
-    // itself is Water. Add a Water neighbour to (9,9) for a clean Fisherman assertion.
-    board.setCell(makeCell(9, 8, Terrain.Water)); // NW of (9,9): dir NW = (0,-1) → (9,8)
-
+    // Now: group {(1,0)} not adjacent to Water → 0; group {(9,9)} adjacent to Water (9,8) → +2
     const scoreAfter = scoreFisherman(board, 1);
-    // {(9,9)} is adjacent to Water (9,8) → +2; {(1,0)} has no Water adjacent → +0
     expect(scoreAfter).toBe(2);
   });
 });
