@@ -33,7 +33,7 @@ import { LocationTooltip } from './components/Board/LocationTooltip'
 import { useLeaderboardStore } from './store/leaderboardStore'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
-import { useLidsSession } from './auth/useLidsSession'
+import { LidsBadge } from './auth/LidsBadge'
 import { InvalidHintToast } from './components/Game/InvalidHintToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
@@ -271,8 +271,7 @@ function App() {
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
   const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
 
-  // SSO PoC: 讀共享 LIDS session（portal 同源同 tab 登入後 sessionStorage 共享）
-  const { user: lidsUser, clearSession: clearLidsSession } = useLidsSession();
+
 
   // R38a: board pointer position for location tooltip
   const [boardPointerPos, setBoardPointerPos] = useState<{ x: number; y: number } | null>(null);
@@ -728,33 +727,7 @@ function App() {
           )}
 
           {/* SSO PoC: LIDS 登入態 badge */}
-          {lidsUser ? (
-            <div className="hidden sm:flex items-center gap-1.5 px-2 py-1 rounded text-xs"
-              style={{ backgroundColor: 'oklch(0 0 0 / 0.2)', color: 'var(--color-warm-cream-50)' }}
-            >
-              <span aria-label="Logged in user">
-                {lidsUser.displayName ?? lidsUser.email ?? lidsUser.sub}
-              </span>
-              <button
-                onClick={clearLidsSession}
-                title="Sign out of LIDS session"
-                aria-label="Sign out"
-                className="opacity-70 hover:opacity-100 transition ml-1"
-                style={{ fontSize: '0.6rem', lineHeight: 1 }}
-              >
-                ✕
-              </button>
-            </div>
-          ) : (
-            <a
-              href="https://192.168.50.199:8443/"
-              className="hidden sm:inline-block text-xs px-2 py-1 rounded opacity-60 hover:opacity-90 transition"
-              style={{ backgroundColor: 'oklch(0 0 0 / 0.2)', color: 'var(--color-warm-cream-50)', textDecoration: 'none' }}
-              title="Go to portal to sign in"
-            >
-              未登入
-            </a>
-          )}
+          <LidsBadge variant="header" />
 
           {/* Language selector */}
           <select
