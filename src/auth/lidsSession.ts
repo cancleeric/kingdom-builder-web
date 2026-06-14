@@ -14,8 +14,6 @@
  * ⛔ 不含 client_secret（Public PKCE client）
  */
 
-import { UserManager, WebStorageStateStore } from 'oidc-client-ts'
-
 // ── env 讀取（與 portal .env.production 一致） ─────────────────────────────
 const LIDS_ISSUER =
   (import.meta.env.VITE_LIDS_ISSUER as string | undefined) ??
@@ -24,40 +22,6 @@ const LIDS_ISSUER =
 const LIDS_CLIENT_ID =
   (import.meta.env.VITE_LIDS_CLIENT_ID as string | undefined) ??
   'hd-portal-199'
-
-const LIDS_METADATA_URL = import.meta.env.VITE_LIDS_METADATA_URL as
-  | string
-  | undefined
-
-const LIDS_SCOPE =
-  (import.meta.env.VITE_LIDS_SCOPE as string | undefined) ??
-  'openid profile email'
-
-// ── UserManager singleton（與 portal 同設定，才能讀同一 sessionStorage key） ──
-
-let _userManager: UserManager | null = null
-
-function getUserManager(): UserManager {
-  if (_userManager) return _userManager
-
-  _userManager = new UserManager({
-    authority: LIDS_ISSUER,
-    client_id: LIDS_CLIENT_ID,
-    // redirect_uri 不用於 PoC（不發起 signin），但 oidc-client-ts 建構期需要
-    redirect_uri: window.location.origin + '/kingdom/',
-    scope: LIDS_SCOPE,
-    ...(LIDS_METADATA_URL ? { metadataUrl: LIDS_METADATA_URL } : {}),
-    response_type: 'code',
-    // 與 portal 完全一致：userStore + stateStore 都用 sessionStorage
-    userStore: new WebStorageStateStore({ store: window.sessionStorage }),
-    stateStore: new WebStorageStateStore({ store: window.sessionStorage }),
-    // PoC 階段不啟用 silent renew（不在 kingdom 內做 iframe renew）
-    automaticSilentRenew: false,
-    loadUserInfo: false,
-  })
-
-  return _userManager
-}
 
 export interface LidsUserProfile {
   sub: string
@@ -68,26 +32,37 @@ export interface LidsUserProfile {
 /**
  * 讀取共享 LIDS session。
  *
+ * 直接讀 sessionStorage，不透過 oidc-client-ts UserManager（UserManager
+ * 建構時的 check_session iframe 在非 portal 頁面會 hang 住不 resolve）。
+ *
  * 回傳 null 的情況：
  * - portal 尚未登入（sessionStorage 無對應 key）
- * - token 已過期（expired() === true）
+ * - token 已過期（expires_at 檢查）
  * - 在不同 tab 開啟（sessionStorage 不共享）
+ * - JSON parse 失敗或 sessionStorage 不可用
  */
 export async function getSharedLidsUser(): Promise<LidsUserProfile | null> {
   try {
-    const mgr = getUserManager()
-    const user = await mgr.getUser()
-    if (!user) return null
-    // 檢查 token 是否過期
-    if (user.expired) return null
-    const p = user.profile
+    const key = `oidc.user:${LIDS_ISSUER}:${LIDS_CLIENT_ID}`
+    const raw = window.sessionStorage.getItem(key)
+    if (!raw) return null
+    const u = JSON.parse(raw) as {
+      expires_at?: number
+      profile?: {
+        sub?: string
+        name?: string
+        preferred_username?: string
+        email?: string
+      }
+    }
+    // 過期檢查：oidc-client-ts 存 expires_at（秒）
+    if (u.expires_at != null && u.expires_at * 1000 <= Date.now()) return null
+    const p = u.profile ?? {}
+    if (!p.sub) return null
     return {
       sub: p.sub,
-      displayName:
-        (p.name as string | undefined) ??
-        (p.preferred_username as string | undefined) ??
-        null,
-      email: (p.email as string | undefined) ?? null,
+      displayName: p.name ?? p.preferred_username ?? null,
+      email: p.email ?? null,
     }
   } catch {
     // sessionStorage 不可用或 parse 錯誤 → 視為未登入
@@ -101,8 +76,8 @@ export async function getSharedLidsUser(): Promise<LidsUserProfile | null> {
  */
 export async function clearSharedLidsSession(): Promise<void> {
   try {
-    const mgr = getUserManager()
-    await mgr.removeUser()
+    const key = `oidc.user:${LIDS_ISSUER}:${LIDS_CLIENT_ID}`
+    window.sessionStorage.removeItem(key)
   } catch {
     // silent
   }

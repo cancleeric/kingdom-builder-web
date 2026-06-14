@@ -20,12 +20,10 @@ export function useLidsSession(): LidsSessionState {
 
   useEffect(() => {
     let cancelled = false
-    getSharedLidsUser().then((u) => {
-      if (!cancelled) {
-        setUser(u)
-        setLoading(false)
-      }
-    })
+    getSharedLidsUser()
+      .then((u) => { if (!cancelled) setUser(u) })
+      .catch(() => { if (!cancelled) setUser(null) })
+      .finally(() => { if (!cancelled) setLoading(false) })
     return () => {
       cancelled = true
     }
