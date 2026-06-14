@@ -8,11 +8,11 @@ import {
   scoreKnights,
   scoreFarmers,
   scoreMerchants,
-  scoreRangers,
+  scoreDiscoverers,
   scoreHermits,
   scoreCitizens,
   scoreLords,
-  scoreShepherds,
+  scoreWorkers,
   getConnectedGroups,
   calculatePlayerScore,
   selectObjectiveCards,
@@ -263,23 +263,33 @@ describe('scoreMerchants', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Rangers (longest vertical chain)
+// Discoverers (distinct rows with settlements)
 // ────────────────────────────────────────────────────
 
-describe('scoreRangers', () => {
-  it('scores the length of the longest vertical run', () => {
+describe('scoreDiscoverers', () => {
+  it('scores 1 per distinct row that contains at least one settlement', () => {
     const board = new Board(10, 10);
-    // Vertical run of 3: r=2,3,4 at q=0
-    board.setCell(makeCell(0, 2, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(0, 3, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(0, 4, Terrain.Grass, undefined, 1));
+    // 3 distinct rows: r=0, r=3, r=7
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(2, 3, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(5, 7, Terrain.Grass, undefined, 1));
 
-    expect(scoreRangers(board, 1)).toBe(3);
+    expect(scoreDiscoverers(board, 1)).toBe(3);
+  });
+
+  it('multiple settlements in the same row count only once', () => {
+    const board = new Board(10, 10);
+    // 2 settlements both at r=0, plus 1 at r=2 → 2 distinct rows
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(3, 2, Terrain.Grass, undefined, 1));
+
+    expect(scoreDiscoverers(board, 1)).toBe(2);
   });
 
   it('returns 0 for player with no settlements', () => {
     const board = new Board(10, 10);
-    expect(scoreRangers(board, 1)).toBe(0);
+    expect(scoreDiscoverers(board, 1)).toBe(0);
   });
 });
 
@@ -358,31 +368,50 @@ describe('scoreLords', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Shepherds (connected groups × 3)
+// Workers (adjacent to any Location tile or Castle)
 // ────────────────────────────────────────────────────
 
-describe('scoreShepherds', () => {
-  it('gives 3 pts per connected group', () => {
+describe('scoreWorkers', () => {
+  it('scores 1 for each settlement adjacent to a Location tile', () => {
     const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // group 1
-    board.setCell(makeCell(5, 5, Terrain.Grass, undefined, 1)); // group 2
-    board.setCell(makeCell(6, 5, Terrain.Grass, undefined, 1)); // same group 2
+    // Farm at (1,0); settlements at (0,0) and (2,0) are both adjacent
+    board.setCell(makeCell(1, 0, Terrain.Grass, Location.Farm));
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // adjacent to Farm
+    board.setCell(makeCell(2, 0, Terrain.Grass, undefined, 1)); // adjacent to Farm
 
-    expect(scoreShepherds(board, 1)).toBe(6); // 2 groups × 3
+    expect(scoreWorkers(board, 1)).toBe(2);
+  });
+
+  it('scores 1 for each settlement adjacent to a Castle', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1)); // adjacent to Castle
+    board.setCell(makeCell(0, 1, Terrain.Grass, undefined, 1)); // adjacent to Castle
+
+    expect(scoreWorkers(board, 1)).toBe(2);
+  });
+
+  it('settlement not adjacent to any location scores 0', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(5, 5, Terrain.Grass, undefined, 1)); // isolated, no location nearby
+
+    expect(scoreWorkers(board, 1)).toBe(0);
+  });
+
+  it('settlement adjacent to multiple locations still counts as 1', () => {
+    const board = new Board(10, 10);
+    // Two locations at (0,0) and (2,0), settlement at (1,0) adjacent to both
+    board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
+    board.setCell(makeCell(2, 0, Terrain.Grass, Location.Farm));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+
+    expect(scoreWorkers(board, 1)).toBe(1);
   });
 
   it('returns 0 for player with no settlements', () => {
     const board = new Board(10, 10);
-    expect(scoreShepherds(board, 1)).toBe(0);
-  });
-
-  it('one connected group scores 3', () => {
-    const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(2, 0, Terrain.Grass, undefined, 1));
-
-    expect(scoreShepherds(board, 1)).toBe(3);
+    board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
+    expect(scoreWorkers(board, 1)).toBe(0);
   });
 });
 
@@ -393,11 +422,12 @@ describe('scoreShepherds', () => {
 describe('scoreObjectiveCard', () => {
   it('dispatches to the correct scoring function', () => {
     const board = new Board(10, 10);
+    // Settlements at r=0 and r=5 → 2 distinct rows for Discoverers
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
     board.setCell(makeCell(5, 5, Terrain.Grass, undefined, 1));
 
-    // Shepherds: 2 groups → 6 pts
-    expect(scoreObjectiveCard(ObjectiveCard.Shepherds, board, 1)).toBe(6);
+    // Discoverers: 2 distinct rows → 2 pts
+    expect(scoreObjectiveCard(ObjectiveCard.Discoverers, board, 1)).toBe(2);
     // Hermits: 2 isolated → 6 pts
     expect(scoreObjectiveCard(ObjectiveCard.Hermits, board, 1)).toBe(6);
   });
@@ -413,19 +443,58 @@ describe('calculatePlayerScore', () => {
     board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
     board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
 
-    // Castle: 3 pts
-    // Shepherds: 1 group × 3 = 3 pts
-    const total = calculatePlayerScore(board, 1, [ObjectiveCard.Shepherds]);
-    expect(total).toBe(6);
+    // Castle: 3 pts (settlement at (1,0) adjacent to Castle at (0,0))
+    // Workers: 1 pt (settlement at (1,0) adjacent to Castle location)
+    const total = calculatePlayerScore(board, 1, [ObjectiveCard.Workers]);
+    expect(total).toBe(4);
   });
 
   it('returns 0 for player with no settlements', () => {
     const board = new Board(10, 10);
     const total = calculatePlayerScore(board, 1, [
-      ObjectiveCard.Shepherds,
+      ObjectiveCard.Workers,
       ObjectiveCard.Hermits,
     ]);
     expect(total).toBe(0);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// scoreObjectiveCard — legacy card safety net (harper CRITICAL)
+// ────────────────────────────────────────────────────
+
+describe('scoreObjectiveCard — legacy card safety net', () => {
+  it('returns 0 (not undefined/NaN) for a removed card string "Rangers"', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Cast to bypass TS: simulate a stale save that contains an unknown card value
+    const result = scoreObjectiveCard('Rangers' as unknown as ObjectiveCard, board, 1);
+    expect(result).toBe(0);
+    expect(Number.isFinite(result)).toBe(true);
+  });
+
+  it('returns 0 (not undefined/NaN) for a removed card string "Shepherds"', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(1, 1, Terrain.Grass, undefined, 1));
+    const result = scoreObjectiveCard('Shepherds' as unknown as ObjectiveCard, board, 1);
+    expect(result).toBe(0);
+    expect(Number.isFinite(result)).toBe(true);
+  });
+
+  it('calculatePlayerScore with a legacy card value produces a finite total score', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, Location.Castle));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+    // objectiveCards array contains one invalid legacy value alongside valid cards
+    const cards = [
+      'Rangers' as unknown as ObjectiveCard,
+      ObjectiveCard.Workers,
+    ];
+    const total = calculatePlayerScore(board, 1, cards);
+    // Castle: 3pts, Rangers: 0pts (legacy), Workers: 1pt → 4
+    expect(Number.isFinite(total)).toBe(true);
+    expect(Number.isNaN(total)).toBe(false);
+    expect(total).toBe(4);
   });
 });
 
