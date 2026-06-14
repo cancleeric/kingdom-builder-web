@@ -6,6 +6,7 @@ import {
   applyAdjacentIfPossible,
   getFarmPlacements,
   getHarborPlacements,
+  getHarborDestinations,
   getOasisPlacements,
   getTowerPlacements,
   getOraclePlacements,
@@ -17,6 +18,7 @@ import {
   executeMoveTile,
 } from './location';
 import { hexToKey } from './hex';
+import { scoreFisherman } from './scoring';
 
 // ────────────────────────────────────────────────────
 // Helpers
@@ -175,11 +177,14 @@ describe('getFarmPlacements', () => {
 });
 
 // ────────────────────────────────────────────────────
-// Harbor placements (Phase 2 territory – minimal smoke test, not changed)
+// getHarborPlacements (deprecated – kept for API backwards-compat)
+// Harbor is now a movement tile; getHarborPlacements is no longer called by
+// the main code path. These smoke tests verify the function still works as
+// documented (old placement behaviour), not the Phase 2 rules.
 // ────────────────────────────────────────────────────
 
-describe('getHarborPlacements', () => {
-  it('returns buildable cells adjacent to water', () => {
+describe('getHarborPlacements (deprecated)', () => {
+  it('returns buildable cells adjacent to water (old placement behaviour)', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Water));
     board.setCell(makeCell(1, 0, Terrain.Grass)); // adjacent to water
@@ -464,52 +469,225 @@ describe('getExtraPlacementPositions', () => {
     const result = getExtraPlacementPositions(Location.Paddock, board, 1);
     expect(result).toHaveLength(0);
   });
+
+  it('returns empty for Harbor (now a movement tile in Phase 2)', () => {
+    const board = new Board(5, 5);
+    board.setCell(makeCell(0, 0, Terrain.Water));
+    board.setCell(makeCell(1, 0, Terrain.Grass)); // was returned by old placement code
+    const result = getExtraPlacementPositions(Location.Harbor, board, 1);
+    expect(result).toHaveLength(0);
+  });
+
+  it('returns empty for Barn (movement tile)', () => {
+    const board = new Board(5, 5);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Grass));
+    const result = getExtraPlacementPositions(Location.Barn, board, 1);
+    expect(result).toHaveLength(0);
+  });
 });
 
 // ────────────────────────────────────────────────────
-// Paddock destinations (unchanged in Phase 1 – smoke tests)
+// Paddock destinations (Phase 2: exactly 2 hexes in a straight hex direction)
 // ────────────────────────────────────────────────────
 
 describe('getPaddockDestinations', () => {
-  it('returns buildable unoccupied cells within 2 hexes', () => {
+  it('returns cells exactly 2 steps in a straight hex direction (East)', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
-    board.setCell(makeCell(1, 0, Terrain.Grass)); // distance 1
-    board.setCell(makeCell(2, 0, Terrain.Grass)); // distance 2
-    board.setCell(makeCell(3, 0, Terrain.Grass)); // distance 3 – excluded
+    board.setCell(makeCell(1, 0, Terrain.Grass)); // 1 step East – NOT valid (only 2 steps)
+    board.setCell(makeCell(2, 0, Terrain.Grass)); // 2 steps East – valid
 
     const result = getPaddockDestinations(board, { q: 0, r: 0 });
     const keys = result.map(hexToKey);
-    expect(keys).toContain('1,0');
-    expect(keys).toContain('2,0');
-    expect(keys).not.toContain('3,0');
+    expect(keys).toContain('2,0');     // straight line 2 steps East ✓
+    expect(keys).not.toContain('1,0'); // only 1 step – rejected
+  });
+
+  it('returns cells exactly 2 steps in multiple directions', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(5, 5, Terrain.Grass, undefined, 1)); // source at centre
+    // East: (7,5), West: (3,5), SE: (5,7), NW: (5,3), NE: (7,3), SW: (3,7)
+    board.setCell(makeCell(7, 5, Terrain.Grass));
+    board.setCell(makeCell(3, 5, Terrain.Grass));
+    board.setCell(makeCell(5, 7, Terrain.Grass));
+    board.setCell(makeCell(5, 3, Terrain.Grass));
+    board.setCell(makeCell(7, 3, Terrain.Grass));
+    board.setCell(makeCell(3, 7, Terrain.Grass));
+
+    const result = getPaddockDestinations(board, { q: 5, r: 5 });
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('7,5'); // East
+    expect(keys).toContain('3,5'); // West
+    expect(keys).toContain('5,7'); // Southeast
+    expect(keys).toContain('5,3'); // Northwest
+    expect(keys).toContain('7,3'); // Northeast
+    expect(keys).toContain('3,7'); // Southwest
+  });
+
+  it('does NOT include adjacent cells (distance 1)', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Grass)); // East neighbour – distance 1
+
+    const result = getPaddockDestinations(board, { q: 0, r: 0 });
+    expect(result.some(c => c.q === 1 && c.r === 0)).toBe(false);
+  });
+
+  it('does NOT include distance-2 cells that are not in a straight hex direction', () => {
+    // From (0,0), a hex at (1,1) is distance 2 (via cube coords) but NOT a straight direction
+    // HEX_DIRECTIONS doubled are: (2,0),(2,-2),(0,-2),(-2,0),(-2,2),(0,2)
+    // (1,1) is NOT in this set
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 1, Terrain.Grass)); // distance 2 but non-straight
+
+    const result = getPaddockDestinations(board, { q: 0, r: 0 });
+    expect(result.some(c => c.q === 1 && c.r === 1)).toBe(false);
   });
 
   it('excludes occupied cells', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 2)); // occupied by other player
+    board.setCell(makeCell(2, 0, Terrain.Grass, undefined, 2)); // occupied at 2 steps East
 
     const result = getPaddockDestinations(board, { q: 0, r: 0 });
-    expect(result.some(c => c.q === 1 && c.r === 0)).toBe(false);
+    expect(result.some(c => c.q === 2 && c.r === 0)).toBe(false);
+  });
+
+  it('can jump over an intermediate occupied cell', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 2)); // intermediate – occupied
+    board.setCell(makeCell(2, 0, Terrain.Grass));               // destination – empty
+
+    const result = getPaddockDestinations(board, { q: 0, r: 0 });
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('2,0'); // can jump over (1,0)
+  });
+
+  it('excludes Mountain and Water destinations (not buildable)', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(2, 0, Terrain.Mountain)); // not buildable
+    board.setCell(makeCell(0, 2, Terrain.Water));    // not buildable (Southeast direction: (0,2) = 2*SE(0,1))
+
+    const result = getPaddockDestinations(board, { q: 0, r: 0 });
+    const keys = result.map(hexToKey);
+    expect(keys).not.toContain('2,0');
+    expect(keys).not.toContain('0,2');
   });
 });
 
 // ────────────────────────────────────────────────────
-// Barn destinations (unchanged in Phase 1 – smoke tests)
+// Barn destinations (Phase 2: terrain card terrain, not settlement terrain)
 // ────────────────────────────────────────────────────
 
 describe('getBarnDestinations', () => {
-  it('returns all cells with the same terrain as the source', () => {
+  it('returns cells matching currentTerrain (terrain card), not the settlement own terrain', () => {
     const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
-    board.setCell(makeCell(5, 5, Terrain.Grass)); // same terrain, far away
-    board.setCell(makeCell(5, 6, Terrain.Forest)); // different terrain
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source is Grass
+    board.setCell(makeCell(5, 5, Terrain.Forest));               // Forest (terrain card terrain)
+    board.setCell(makeCell(5, 6, Terrain.Grass));                // Grass (settlement own terrain, but NOT card)
 
-    const result = getBarnDestinations(board, { q: 0, r: 0 });
+    // Terrain card is Forest → only Forest cells returned
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('5,5');    // Forest = card terrain ✓
+    expect(keys).not.toContain('5,6'); // Grass = settlement terrain (not card) ✗
+    expect(keys).not.toContain('0,0'); // source itself excluded
+  });
+
+  it('when settlement terrain matches card terrain, returns matching cells (degenerate case)', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source is Grass
+    board.setCell(makeCell(5, 5, Terrain.Grass));               // also Grass
+
+    // Terrain card is also Grass → same terrain → returns Grass cells (not source)
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Grass, 1);
     const keys = result.map(hexToKey);
     expect(keys).toContain('5,5');
-    expect(keys).not.toContain('5,6');
+    expect(keys).not.toContain('0,0'); // source itself excluded
+  });
+
+  it('applies adjacent-if-possible: prefers destinations adjacent to player settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement being moved
+    board.setCell(makeCell(3, 0, Terrain.Forest, undefined, 1)); // another player settlement (adjacent to 4,0)
+    board.setCell(makeCell(4, 0, Terrain.Forest));               // Forest adj to settlement at (3,0)
+    board.setCell(makeCell(9, 9, Terrain.Forest));               // far Forest
+
+    // Card terrain = Forest. (4,0) is adjacent to player settlement (3,0).
+    // adjacent-if-possible → only (4,0) returned
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('4,0');
+    expect(keys).not.toContain('9,9');
+  });
+
+  it('returns all card-terrain cells when none are adjacent to player settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
+    board.setCell(makeCell(8, 8, Terrain.Desert));
+    board.setCell(makeCell(9, 9, Terrain.Desert));
+
+    // Card terrain = Desert. No Desert adjacent to player settlements → all Desert returned
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Desert, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,9');
+  });
+
+  it('excludes occupied cells', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
+    board.setCell(makeCell(5, 5, Terrain.Forest, undefined, 2)); // Forest but occupied
+
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    expect(result.some(c => c.q === 5 && c.r === 5)).toBe(false);
+  });
+
+  it('from exclusion — only settlement is the one being moved: fallback to all card-terrain cells (no false adjacency from from)', () => {
+    // Bug guard: when the player has only ONE settlement (the one being moved),
+    // applyAdjacentIfPossible used to include `from` itself in the adjacency base,
+    // causing its neighbours to appear in the adjacency set and wrongly filter
+    // candidates.  After the fix, no OTHER settlements exist, so we must fall back
+    // to returning ALL card-terrain candidates.
+    const board = new Board(10, 10);
+    // from is the only settlement (Grass at (0,0))
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    // Card terrain is Forest. Two Forest cells — neither is a neighbour of (0,0).
+    // East of (0,0) = (1,0), Northeast = (1,-1), Northwest = (0,-1),
+    // West = (-1,0), Southwest = (-1,1), Southeast = (0,1).
+    // Use (8,8) and (9,9) — clearly not adjacent to (0,0).
+    board.setCell(makeCell(8, 8, Terrain.Forest));
+    board.setCell(makeCell(9, 9, Terrain.Forest));
+
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    // Fallback: no OTHER settlements → return all Forest candidates
+    expect(keys).toContain('8,8');
+    expect(keys).toContain('9,9');
+  });
+
+  it('from exclusion — OTHER settlement exists: adjacency uses only OTHER, not from', () => {
+    // Player has two settlements: from=(0,0) being moved, other=(3,0) staying.
+    // Forest cell (4,0) is a neighbour of (3,0) [East].
+    // Forest cell (1,0) is a neighbour of (0,0) [East = from's neighbour].
+    // After fix, only (4,0) should appear (adjacent to OTHER); (1,0) must NOT
+    // appear due to from's adjacency (from is excluded from the base).
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));  // from (being moved)
+    board.setCell(makeCell(3, 0, Terrain.Grass, undefined, 1));  // OTHER settlement (stays)
+    board.setCell(makeCell(4, 0, Terrain.Forest));               // Forest adj to OTHER ✓
+    board.setCell(makeCell(1, 0, Terrain.Forest));               // Forest adj to from only ✗
+
+    // Card terrain = Forest. Expected: only (4,0) returned (adj to OTHER settlement (3,0)).
+    // (1,0) must NOT appear — it is adjacent to from, which should be excluded from base.
+    const result = getBarnDestinations(board, { q: 0, r: 0 }, Terrain.Forest, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('4,0');
+    expect(keys).not.toContain('1,0');
   });
 });
 
@@ -518,28 +696,55 @@ describe('getBarnDestinations', () => {
 // ────────────────────────────────────────────────────
 
 describe('getMovementOptions', () => {
-  it('returns options for Paddock tile', () => {
+  it('returns options for Paddock tile (straight 2-step destinations)', () => {
     const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(1, 0, Terrain.Grass));
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // source
+    board.setCell(makeCell(2, 0, Terrain.Grass));               // 2 steps East (valid)
+    board.setCell(makeCell(1, 0, Terrain.Grass));               // 1 step East (invalid for Paddock)
 
     const options = getMovementOptions(Location.Paddock, board, 1);
     expect(options).toHaveLength(1);
     expect(options[0].from).toEqual({ q: 0, r: 0 });
-    expect(options[0].destinations.some(d => d.q === 1 && d.r === 0)).toBe(true);
+    // Must include the 2-step destination, NOT the 1-step neighbour
+    expect(options[0].destinations.some(d => d.q === 2 && d.r === 0)).toBe(true);
+    expect(options[0].destinations.some(d => d.q === 1 && d.r === 0)).toBe(false);
   });
 
-  it('returns options for Barn tile', () => {
+  it('returns options for Barn tile using terrain card terrain', () => {
     const board = new Board(10, 10);
-    board.setCell(makeCell(0, 0, Terrain.Desert, undefined, 1));
-    board.setCell(makeCell(8, 8, Terrain.Desert));
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement on Grass
+    board.setCell(makeCell(8, 8, Terrain.Desert));              // Desert = card terrain
+    board.setCell(makeCell(7, 7, Terrain.Grass));               // Grass (own terrain, not card)
+
+    // Card terrain = Desert
+    const options = getMovementOptions(Location.Barn, board, 1, Terrain.Desert);
+    expect(options).toHaveLength(1);
+    // Destination is Desert (card terrain), not Grass (settlement terrain)
+    expect(options[0].destinations.some(d => d.q === 8 && d.r === 8)).toBe(true);
+    expect(options[0].destinations.some(d => d.q === 7 && d.r === 7)).toBe(false);
+  });
+
+  it('returns empty for Barn when no currentTerrain provided', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(5, 5, Terrain.Desert));
 
     const options = getMovementOptions(Location.Barn, board, 1);
-    expect(options).toHaveLength(1);
-    expect(options[0].destinations.some(d => d.q === 8 && d.r === 8)).toBe(true);
+    expect(options).toHaveLength(0);
   });
 
-  it('returns empty for non-movement tiles', () => {
+  it('returns options for Harbor tile (Water destinations)', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement
+    board.setCell(makeCell(5, 5, Terrain.Water));               // unoccupied Water
+
+    const options = getMovementOptions(Location.Harbor, board, 1);
+    expect(options).toHaveLength(1);
+    expect(options[0].from).toEqual({ q: 0, r: 0 });
+    expect(options[0].destinations.some(d => d.q === 5 && d.r === 5)).toBe(true);
+  });
+
+  it('returns empty for non-movement tiles (Farm)', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
     const options = getMovementOptions(Location.Farm, board, 1);
@@ -552,8 +757,8 @@ describe('getMovementOptions', () => {
 // ────────────────────────────────────────────────────
 
 describe('executeMoveTile', () => {
-  describe('Paddock', () => {
-    it('moves settlement within 2 hexes', () => {
+  describe('Paddock (Phase 2: straight 2 steps)', () => {
+    it('accepts move exactly 2 steps in a straight hex direction (East)', () => {
       const board = new Board(10, 10);
       board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
       board.setCell(makeCell(2, 0, Terrain.Grass));
@@ -570,7 +775,22 @@ describe('executeMoveTile', () => {
       expect(board.getSettlement({ q: 2, r: 0 })).toBe(1);
     });
 
-    it('rejects move more than 2 hexes', () => {
+    it('rejects move of exactly 1 step (not 2)', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+      board.setCell(makeCell(1, 0, Terrain.Grass));
+
+      const success = executeMoveTile(
+        Location.Paddock,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 1, r: 0 }
+      );
+      expect(success).toBe(false);
+    });
+
+    it('rejects move of 3 hexes along a direction', () => {
       const board = new Board(10, 10);
       board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
       board.setCell(makeCell(3, 0, Terrain.Grass));
@@ -584,10 +804,95 @@ describe('executeMoveTile', () => {
       );
       expect(success).toBe(false);
     });
+
+    it('rejects non-straight diagonal move (distance 2 but not a straight direction)', () => {
+      // From (0,0) to (1,1): distance=2 but NOT one of the 6 straight direction × 2
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+      board.setCell(makeCell(1, 1, Terrain.Grass));
+
+      const success = executeMoveTile(
+        Location.Paddock,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 1, r: 1 }
+      );
+      expect(success).toBe(false);
+    });
+
+    it('rejects move to Mountain (not buildable)', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+      board.setCell(makeCell(2, 0, Terrain.Mountain));
+
+      const success = executeMoveTile(
+        Location.Paddock,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 2, r: 0 }
+      );
+      expect(success).toBe(false);
+    });
   });
 
-  describe('Barn', () => {
-    it('moves settlement to same terrain anywhere', () => {
+  describe('Barn (Phase 2: terrain card terrain, not settlement terrain)', () => {
+    it('moves settlement to a cell matching the terrain card terrain', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1)); // settlement is Forest
+      board.setCell(makeCell(9, 9, Terrain.Desert));               // destination is Desert (= card terrain)
+
+      // Card terrain = Desert
+      const success = executeMoveTile(
+        Location.Barn,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 9, r: 9 },
+        Terrain.Desert  // currentTerrain
+      );
+      expect(success).toBe(true);
+      expect(board.getSettlement({ q: 0, r: 0 })).toBeUndefined();
+      expect(board.getSettlement({ q: 9, r: 9 })).toBe(1);
+    });
+
+    it('rejects move when destination terrain does NOT match terrain card', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1));
+      board.setCell(makeCell(9, 9, Terrain.Grass));
+
+      // Card terrain = Desert, destination is Grass → reject
+      const success = executeMoveTile(
+        Location.Barn,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 9, r: 9 },
+        Terrain.Desert
+      );
+      expect(success).toBe(false);
+    });
+
+    it('rejects move when settlement own terrain matches destination but card does NOT', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1)); // settlement is Forest
+      board.setCell(makeCell(5, 5, Terrain.Forest));               // destination is also Forest
+
+      // Card terrain = Desert. Settlement terrain matches destination (Forest),
+      // but card terrain (Desert) does NOT match destination → reject.
+      const success = executeMoveTile(
+        Location.Barn,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 5, r: 5 },
+        Terrain.Desert  // card terrain ≠ Forest destination
+      );
+      expect(success).toBe(false);
+    });
+
+    it('rejects Barn move when currentTerrain is not provided', () => {
       const board = new Board(10, 10);
       board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1));
       board.setCell(makeCell(9, 9, Terrain.Forest));
@@ -598,23 +903,56 @@ describe('executeMoveTile', () => {
         1,
         { q: 0, r: 0 },
         { q: 9, r: 9 }
+        // no currentTerrain → invalid
       );
-      expect(success).toBe(true);
-      expect(board.getSettlement({ q: 0, r: 0 })).toBeUndefined();
-      expect(board.getSettlement({ q: 9, r: 9 })).toBe(1);
+      expect(success).toBe(false);
     });
+  });
 
-    it('rejects move to different terrain', () => {
+  describe('Harbor (Phase 2: move to Water cell)', () => {
+    it('moves settlement onto a Water cell (bypasses isBuildable)', () => {
       const board = new Board(10, 10);
-      board.setCell(makeCell(0, 0, Terrain.Forest, undefined, 1));
-      board.setCell(makeCell(9, 9, Terrain.Grass));
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement
+      board.setCell(makeCell(5, 5, Terrain.Water));               // target Water
 
       const success = executeMoveTile(
-        Location.Barn,
+        Location.Harbor,
         board,
         1,
         { q: 0, r: 0 },
-        { q: 9, r: 9 }
+        { q: 5, r: 5 }
+      );
+      expect(success).toBe(true);
+      expect(board.getSettlement({ q: 0, r: 0 })).toBeUndefined();
+      expect(board.getSettlement({ q: 5, r: 5 })).toBe(1);
+    });
+
+    it('rejects Harbor move to a non-Water cell (Grass)', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+      board.setCell(makeCell(5, 5, Terrain.Grass));
+
+      const success = executeMoveTile(
+        Location.Harbor,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 5, r: 5 }
+      );
+      expect(success).toBe(false);
+    });
+
+    it('rejects Harbor move to occupied Water cell', () => {
+      const board = new Board(10, 10);
+      board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+      board.setCell(makeCell(5, 5, Terrain.Water, undefined, 2)); // occupied
+
+      const success = executeMoveTile(
+        Location.Harbor,
+        board,
+        1,
+        { q: 0, r: 0 },
+        { q: 5, r: 5 }
       );
       expect(success).toBe(false);
     });
@@ -623,14 +961,14 @@ describe('executeMoveTile', () => {
   it('rejects move if source cell does not belong to player', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 2)); // different player
-    board.setCell(makeCell(1, 0, Terrain.Grass));
+    board.setCell(makeCell(2, 0, Terrain.Grass));
 
     const success = executeMoveTile(
       Location.Paddock,
       board,
       1,
       { q: 0, r: 0 },
-      { q: 1, r: 0 }
+      { q: 2, r: 0 }
     );
     expect(success).toBe(false);
   });
@@ -638,15 +976,172 @@ describe('executeMoveTile', () => {
   it('rejects move to occupied destination', () => {
     const board = new Board(10, 10);
     board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
-    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 2)); // occupied
+    board.setCell(makeCell(2, 0, Terrain.Grass, undefined, 2)); // occupied (2 steps East)
 
     const success = executeMoveTile(
       Location.Paddock,
       board,
       1,
       { q: 0, r: 0 },
-      { q: 1, r: 0 }
+      { q: 2, r: 0 }
     );
     expect(success).toBe(false);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// getHarborDestinations (Phase 2)
+// ────────────────────────────────────────────────────
+
+describe('getHarborDestinations', () => {
+  it('returns all unoccupied Water cells as destinations', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // player settlement
+    board.setCell(makeCell(5, 5, Terrain.Water));               // unoccupied Water ✓
+    board.setCell(makeCell(6, 5, Terrain.Water, undefined, 2)); // occupied Water ✗
+    board.setCell(makeCell(7, 5, Terrain.Grass));               // Grass (not Water) ✗
+
+    const result = getHarborDestinations(board, { q: 0, r: 0 }, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('5,5');
+    expect(keys).not.toContain('6,5'); // occupied
+    expect(keys).not.toContain('7,5'); // not Water
+  });
+
+  it('applies adjacent-if-possible: prefers Water cells adjacent to other player settlements', () => {
+    const board = new Board(10, 10);
+    // Two player settlements
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // the one being moved
+    board.setCell(makeCell(3, 0, Terrain.Grass, undefined, 1)); // another settlement (stays)
+    // Water cell adjacent to (3,0): East neighbour = (4,0)
+    board.setCell(makeCell(4, 0, Terrain.Water));
+    // Far Water cell not adjacent to any remaining settlement
+    board.setCell(makeCell(9, 9, Terrain.Water));
+
+    // Moving (0,0) → from excludes it. Remaining: (3,0).
+    // Adjacent Water to (3,0) is (4,0).
+    const result = getHarborDestinations(board, { q: 0, r: 0 }, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('4,0');    // adjacent to remaining settlement ✓
+    expect(keys).not.toContain('9,9'); // not adjacent → excluded by adjacent-if-possible
+  });
+
+  it('returns all Water cells when no Water is adjacent to other player settlements', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // only settlement (moved)
+    board.setCell(makeCell(5, 5, Terrain.Water));               // far Water
+    board.setCell(makeCell(6, 6, Terrain.Water));               // another far Water
+
+    // No other settlements after removing (0,0) → return all Water
+    const result = getHarborDestinations(board, { q: 0, r: 0 }, 1);
+    const keys = result.map(hexToKey);
+    expect(keys).toContain('5,5');
+    expect(keys).toContain('6,6');
+  });
+
+  it('returns empty when there are no Water cells', () => {
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(5, 5, Terrain.Grass));
+
+    const result = getHarborDestinations(board, { q: 0, r: 0 }, 1);
+    expect(result).toHaveLength(0);
+  });
+});
+
+// ────────────────────────────────────────────────────
+// Fisherman scoring connected to Harbor move (Phase 2 integration)
+// ────────────────────────────────────────────────────
+
+describe('Harbor + Fisherman integration', () => {
+  /**
+   * Official semantic: scoreFisherman checks whether any settlement in a connected
+   * group is ADJACENT to a Water cell, NOT whether the settlement itself sits on Water.
+   * A settlement that moved onto a Water cell scores +2 only if at least one
+   * NEIGHBOURING cell is also Water.
+   */
+  it('after Harbor move to Water, scoreFisherman +2 when destination has a Water neighbour (natural fixture)', () => {
+    const board = new Board(10, 10);
+    // Natural fixture: Water cell at (5,5) with a Water neighbour at (5,6) already on the board.
+    // Southeast of (5,5) is (5+0, 5+1) = (5,6) per HEX_DIRECTIONS[5] = { q:0, r:1 }.
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement to move
+    board.setCell(makeCell(5, 5, Terrain.Water));               // Harbor destination
+    board.setCell(makeCell(5, 6, Terrain.Water));               // Water neighbour of (5,5) — pre-placed
+
+    // Before move: no settlement adjacent to any Water → score = 0
+    const scoreBefore = scoreFisherman(board, 1);
+    expect(scoreBefore).toBe(0);
+
+    // Execute Harbor move: (0,0) → (5,5)
+    const success = executeMoveTile(
+      Location.Harbor,
+      board,
+      1,
+      { q: 0, r: 0 },
+      { q: 5, r: 5 }
+    );
+    expect(success).toBe(true);
+
+    // After move: settlement at (5,5) is adjacent to Water at (5,6) → +2
+    // (5,6) was already on the board before the move — no post-move board mutation.
+    const scoreAfter = scoreFisherman(board, 1);
+    expect(scoreAfter).toBe(2);
+  });
+
+  it('after Harbor move to isolated Water cell (no Water neighbours), scoreFisherman = 0 (official semantic)', () => {
+    // Official semantic: scoring is based on ADJACENCY to Water, not on being on a Water cell.
+    // A settlement moved onto a Water cell that has no Water neighbours scores 0.
+    const board = new Board(10, 10);
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1)); // settlement to move
+    board.setCell(makeCell(5, 5, Terrain.Water));               // isolated Water destination
+    // All 6 neighbours of (5,5) are Grass (no Water neighbours)
+    board.setCell(makeCell(6, 5, Terrain.Grass));   // East
+    board.setCell(makeCell(6, 4, Terrain.Grass));   // Northeast
+    board.setCell(makeCell(5, 4, Terrain.Grass));   // Northwest
+    board.setCell(makeCell(4, 5, Terrain.Grass));   // West
+    board.setCell(makeCell(4, 6, Terrain.Grass));   // Southwest
+    board.setCell(makeCell(5, 6, Terrain.Grass));   // Southeast
+
+    // Execute Harbor move
+    const success = executeMoveTile(
+      Location.Harbor,
+      board,
+      1,
+      { q: 0, r: 0 },
+      { q: 5, r: 5 }
+    );
+    expect(success).toBe(true);
+
+    // Settlement is ON Water, but zero Water neighbours → scoreFisherman = 0
+    const scoreAfter = scoreFisherman(board, 1);
+    expect(scoreAfter).toBe(0);
+  });
+
+  it('Harbor move: group that stays on land scores 0, group moved to Water-adjacent cell scores +2 (natural fixture)', () => {
+    const board = new Board(10, 10);
+    // Two player settlements forming a group: (0,0) and (1,0)
+    board.setCell(makeCell(0, 0, Terrain.Grass, undefined, 1));
+    board.setCell(makeCell(1, 0, Terrain.Grass, undefined, 1));
+    // Natural fixture: Water at (9,9) with Water neighbour at (9,8) pre-placed on board.
+    // Northwest of (9,9) = (9+0, 9-1) = (9,8) per HEX_DIRECTIONS[2] = { q:0, r:-1 }.
+    board.setCell(makeCell(9, 9, Terrain.Water));  // Harbor destination
+    board.setCell(makeCell(9, 8, Terrain.Water));  // Water neighbour — pre-placed
+
+    const scoreBefore = scoreFisherman(board, 1);
+    expect(scoreBefore).toBe(0); // neither settlement adjacent to Water
+
+    // Move (0,0) onto Water at (9,9)
+    const success = executeMoveTile(
+      Location.Harbor,
+      board,
+      1,
+      { q: 0, r: 0 },
+      { q: 9, r: 9 }
+    );
+    expect(success).toBe(true);
+
+    // Now: group {(1,0)} not adjacent to Water → 0; group {(9,9)} adjacent to Water (9,8) → +2
+    const scoreAfter = scoreFisherman(board, 1);
+    expect(scoreAfter).toBe(2);
   });
 });

@@ -29,21 +29,25 @@ import { useTranslation } from 'react-i18next';
 // ─── R37a: Kenney Hex Tile mapping ───────────────────────────────────────────
 // 每個地形對應一張 Kenney CC0 2.5D PNG（public/assets/hextiles/）
 // Forest/Flower 用 tileGrass 底板 + 裝飾 Sprite 疊加，實現 7 地形視覺可辨
+// ⚠️ 路徑必須帶 import.meta.env.BASE_URL（如 /kingdom/），否則在子路徑閘道下
+//    Assets.load('/assets/...') 會抓到根路徑 404、整個棋盤渲染成黑板。
+const ASSET_BASE = import.meta.env.BASE_URL ?? '/';
+const hexAsset = (file: string) => `${ASSET_BASE}assets/hextiles/${file}`;
 const TERRAIN_TILE_MAP: Record<string, string> = {
-  Grass:    '/assets/hextiles/tileGrass.png',
-  Forest:   '/assets/hextiles/tileGrass.png',  // 底板同草地，疊 pine 裝飾
-  Desert:   '/assets/hextiles/tileSand.png',
-  Water:    '/assets/hextiles/tileWater.png',
-  Mountain: '/assets/hextiles/tileStone.png',
-  Canyon:   '/assets/hextiles/tileLava.png',
-  Flower:   '/assets/hextiles/tileGrass.png',  // 底板同草地，疊 flower 裝飾
+  Grass:    hexAsset('tileGrass.png'),
+  Forest:   hexAsset('tileGrass.png'),  // 底板同草地，疊 pine 裝飾
+  Desert:   hexAsset('tileSand.png'),
+  Water:    hexAsset('tileWater.png'),
+  Mountain: hexAsset('tileStone.png'),
+  Canyon:   hexAsset('tileLava.png'),
+  Flower:   hexAsset('tileGrass.png'),  // 底板同草地，疊 flower 裝飾
 };
 
 // R37a: 地形裝飾 Sprite 對應（Forest/Flower 專用，叫 deco）
 // pineGreen_mid: 30×101 原始尺寸；flowerRed: 12×11 原始尺寸
 const TERRAIN_DECO_MAP: Record<string, string> = {
-  Forest: '/assets/hextiles/pineGreen_mid.png',
-  Flower: '/assets/hextiles/flowerRed.png',
+  Forest: hexAsset('pineGreen_mid.png'),
+  Flower: hexAsset('flowerRed.png'),
 };
 
 // R37a: tile 顯示縮放（65×0.8=52px 寬，配合 HEX_SIZE=30 pointy-top hex 頂面寬）

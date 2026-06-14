@@ -99,11 +99,17 @@ const PLAYER_COLORS = [
 
 const BOT_PLACEMENT_TILES = new Set<Location>([
   Location.Farm,
-  Location.Harbor,
   Location.Oasis,
   Location.Tower,
   Location.Oracle,
   Location.Tavern,
+]);
+
+// Movement tiles the bot handles separately (Harbor is now movement, not placement)
+const BOT_MOVEMENT_TILES = new Set<Location>([
+  Location.Harbor,
+  Location.Paddock,
+  Location.Barn,
 ]);
 
 // ────────────────────────────────────────────────────
@@ -602,25 +608,54 @@ export const gameStore = create<GameState>((set, get) => ({
           const latestPlayer = latest.players[latest.currentPlayerIndex];
           if (!latestPlayer?.isBot || latestPlayer.remainingSettlements <= 0) break;
           if (latest.phase !== GamePhase.EndTurn && latest.phase !== GamePhase.PlaceSettlements) break;
-          if (tile.usedThisTurn || !BOT_PLACEMENT_TILES.has(tile.location)) continue;
+          if (tile.usedThisTurn) continue;
 
-          const coord = chooseBotTilePlacement(
-            latest.board,
-            latestPlayer.id,
-            tile.location,
-            latest.currentTerrainCard?.terrain,
-          );
-          if (!coord) continue;
+          if (BOT_PLACEMENT_TILES.has(tile.location)) {
+            // Placement-type tile: pick a destination coord and apply
+            const coord = chooseBotTilePlacement(
+              latest.board,
+              latestPlayer.id,
+              tile.location,
+              latest.currentTerrainCard?.terrain,
+            );
+            if (!coord) continue;
 
-          get().activateTile(tile.location);
-          const activated = get();
-          const validCoord = activated.validPlacements.find(
-            c => c.q === coord.q && c.r === coord.r
-          );
-          if (validCoord) {
-            get().applyTilePlacement(validCoord);
-          } else {
-            get().cancelTile();
+            get().activateTile(tile.location);
+            const activated = get();
+            const validCoord = activated.validPlacements.find(
+              c => c.q === coord.q && c.r === coord.r
+            );
+            if (validCoord) {
+              get().applyTilePlacement(validCoord);
+            } else {
+              get().cancelTile();
+            }
+          } else if (BOT_MOVEMENT_TILES.has(tile.location)) {
+            // Movement-type tile (Harbor, Paddock, Barn): pick best from→to and apply
+            const moveOptions = getMovementOptions(
+              tile.location,
+              latest.board,
+              latestPlayer.id,
+              latest.currentTerrainCard?.terrain
+            );
+            if (moveOptions.length === 0) continue;
+
+            // Simple bot strategy: pick the first available move
+            const bestOption = moveOptions[0];
+            if (bestOption.destinations.length === 0) continue;
+            const bestDest = bestOption.destinations[0];
+
+            get().activateTile(tile.location);
+            get().selectTileMoveSource(bestOption.from);
+            const afterSource = get();
+            const validDest = afterSource.tileMoveDestinations.find(
+              d => d.q === bestDest.q && d.r === bestDest.r
+            );
+            if (validDest) {
+              get().applyTileMove(validDest);
+            } else {
+              get().cancelTile();
+            }
           }
         }
       }
@@ -639,10 +674,17 @@ export const gameStore = create<GameState>((set, get) => ({
     if (!tile) return;
 
     const isMovementTile =
-      location === Location.Paddock || location === Location.Barn;
+      location === Location.Harbor ||
+      location === Location.Paddock ||
+      location === Location.Barn;
 
     if (isMovementTile) {
-      const options = getMovementOptions(location, state.board, currentPlayer.id);
+      const options = getMovementOptions(
+        location,
+        state.board,
+        currentPlayer.id,
+        state.currentTerrainCard?.terrain
+      );
       set({
         activeTile: location,
         tileMoveSources: options.map(o => o.from),
@@ -749,7 +791,12 @@ export const gameStore = create<GameState>((set, get) => ({
     if (!state.activeTile) return;
     const currentPlayer = state.players[state.currentPlayerIndex];
 
-    const options = getMovementOptions(state.activeTile, state.board, currentPlayer.id);
+    const options = getMovementOptions(
+      state.activeTile,
+      state.board,
+      currentPlayer.id,
+      state.currentTerrainCard?.terrain
+    );
     const option = options.find(o => o.from.q === from.q && o.from.r === from.r);
     if (!option) return;
 
@@ -770,7 +817,8 @@ export const gameStore = create<GameState>((set, get) => ({
         state.board,
         currentPlayer.id,
         fromCoord,
-        to
+        to,
+        state.currentTerrainCard?.terrain
       )
     )
       return;
