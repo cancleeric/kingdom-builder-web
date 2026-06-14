@@ -33,6 +33,7 @@ import { LocationTooltip } from './components/Board/LocationTooltip'
 import { useLeaderboardStore } from './store/leaderboardStore'
 import { AchievementPanel } from './components/Game/AchievementPanel'
 import { AchievementToast } from './components/Game/AchievementToast'
+import { LidsBadge } from './auth/LidsBadge'
 import { InvalidHintToast } from './components/Game/InvalidHintToast'
 import { useAchievementStore, getUnlockedCount } from './store/achievementStore'
 import { SeasonBanner } from './components/Game/SeasonBanner'
@@ -269,6 +270,8 @@ function App() {
   const recordGameEnd = useAchievementStore((s) => s.recordGameEnd);
   const achievementUnlockedCount = useAchievementStore((s) => getUnlockedCount(s.achievements));
   const checkAndRotateSeason = useSeasonStore((s) => s.checkAndRotateSeason);
+
+
 
   // R38a: board pointer position for location tooltip
   const [boardPointerPos, setBoardPointerPos] = useState<{ x: number; y: number } | null>(null);
@@ -722,6 +725,9 @@ function App() {
               {t('app.roomStatus', { id: multiplayerRoom.id, status: multiplayerConnectionStatus })}
             </span>
           )}
+
+          {/* SSO PoC: LIDS 登入態 badge */}
+          <LidsBadge variant="header" />
 
           {/* Language selector */}
           <select

@@ -1,4 +1,5 @@
 import { useState, lazy, Suspense } from 'react';
+import { LidsBadge } from '../../auth/LidsBadge';
 import { useTranslation } from 'react-i18next';
 import { loadGame, clearSave } from '../../store/persistence';
 import { gameStore } from '../../store/gameStore';
@@ -85,6 +86,9 @@ export function MainMenu({
 
       {/* Control bar — top right */}
       <div className="absolute top-4 right-4 flex items-center gap-2 z-10">
+        {/* SSO LIDS 登入態 badge */}
+        <LidsBadge variant="menu" />
+
         <select
           value={i18n.language}
           onChange={(e) => onLanguageChange(e.target.value)}
