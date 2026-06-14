@@ -21,11 +21,11 @@ export enum ObjectiveCard {
   Knights = 'Knights',
   Farmers = 'Farmers',
   Merchants = 'Merchants',
-  Rangers = 'Rangers',
+  Discoverers = 'Discoverers',
   Hermits = 'Hermits',
   Citizens = 'Citizens',
   Lords = 'Lords',
-  Shepherds = 'Shepherds',
+  Workers = 'Workers',
 }
 
 /** All available objective cards (10 total) */
@@ -223,39 +223,16 @@ export function scoreMerchants(board: Board, playerId: number): number {
 }
 
 /**
- * Rangers: The longest vertical consecutive chain of settlements
- * (same q, consecutive r values) scores 1 point per settlement.
+ * Discoverers: Each distinct horizontal row (r value) that contains at least
+ * one of the player's settlements scores 1 point.
  */
-export function scoreRangers(board: Board, playerId: number): number {
+export function scoreDiscoverers(board: Board, playerId: number): number {
   const settlements = board.getPlayerSettlements(playerId);
-  if (settlements.length === 0) return 0;
-
-  // Group settlements by q coordinate
-  const byCol = new Map<number, number[]>();
+  const rows = new Set<number>();
   for (const cell of settlements) {
-    const col = byCol.get(cell.coord.q) ?? [];
-    col.push(cell.coord.r);
-    byCol.set(cell.coord.q, col);
+    rows.add(cell.coord.r);
   }
-
-  let maxChain = 0;
-
-  for (const rs of byCol.values()) {
-    rs.sort((a, b) => a - b);
-    let chain = 1;
-    let best = 1;
-    for (let i = 1; i < rs.length; i++) {
-      if (rs[i] === rs[i - 1] + 1) {
-        chain++;
-        if (chain > best) best = chain;
-      } else {
-        chain = 1;
-      }
-    }
-    if (best > maxChain) maxChain = best;
-  }
-
-  return maxChain;
+  return rows.size;
 }
 
 /**
@@ -301,11 +278,22 @@ export function scoreLords(board: Board, playerId: number): number {
 }
 
 /**
- * Shepherds: Each connected group of settlements scores 3 points.
+ * Workers: Each settlement that is adjacent to at least one Location tile
+ * hex (any Location, including Castle) scores 1 point.
  */
-export function scoreShepherds(board: Board, playerId: number): number {
-  const groups = getConnectedGroups(board, playerId);
-  return groups.length * 3;
+export function scoreWorkers(board: Board, playerId: number): number {
+  const settlements = board.getPlayerSettlements(playerId);
+  let score = 0;
+
+  for (const cell of settlements) {
+    const adjacentToLocation = hexNeighbors(cell.coord).some(neighbor => {
+      const nCell = board.getCell(neighbor);
+      return nCell?.location !== undefined;
+    });
+    if (adjacentToLocation) score += 1;
+  }
+
+  return score;
 }
 
 // ────────────────────────────────────────────────────
@@ -321,16 +309,16 @@ export function scoreObjectiveCard(
   playerId: number
 ): number {
   switch (card) {
-    case ObjectiveCard.Fisherman:  return scoreFisherman(board, playerId);
-    case ObjectiveCard.Miners:     return scoreMiners(board, playerId);
-    case ObjectiveCard.Knights:    return scoreKnights(board, playerId);
-    case ObjectiveCard.Farmers:    return scoreFarmers(board, playerId);
-    case ObjectiveCard.Merchants:  return scoreMerchants(board, playerId);
-    case ObjectiveCard.Rangers:    return scoreRangers(board, playerId);
-    case ObjectiveCard.Hermits:    return scoreHermits(board, playerId);
-    case ObjectiveCard.Citizens:   return scoreCitizens(board, playerId);
-    case ObjectiveCard.Lords:      return scoreLords(board, playerId);
-    case ObjectiveCard.Shepherds:  return scoreShepherds(board, playerId);
+    case ObjectiveCard.Fisherman:   return scoreFisherman(board, playerId);
+    case ObjectiveCard.Miners:      return scoreMiners(board, playerId);
+    case ObjectiveCard.Knights:     return scoreKnights(board, playerId);
+    case ObjectiveCard.Farmers:     return scoreFarmers(board, playerId);
+    case ObjectiveCard.Merchants:   return scoreMerchants(board, playerId);
+    case ObjectiveCard.Discoverers: return scoreDiscoverers(board, playerId);
+    case ObjectiveCard.Hermits:     return scoreHermits(board, playerId);
+    case ObjectiveCard.Citizens:    return scoreCitizens(board, playerId);
+    case ObjectiveCard.Lords:       return scoreLords(board, playerId);
+    case ObjectiveCard.Workers:     return scoreWorkers(board, playerId);
   }
 }
 
