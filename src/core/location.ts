@@ -5,19 +5,19 @@
  * Tiles are acquired when a player places a settlement adjacent to the
  * location hex (each location can only be acquired once).
  *
- * Tile abilities (official rules). [Phase 1] = aligned to official in this PR;
- * [Phase 2 TODO] = still old behaviour, to be aligned next PR.
+ * Tile abilities (official rules). [Phase 1] = aligned to official in Phase 1 PR;
+ * [Phase 2] = aligned to official in this PR.
  *   Farm    – [Phase 1] place 1 extra settlement on a Grass cell (adjacent-if-possible)
  *   Oasis   – [Phase 1] place 1 extra settlement on a Desert cell (adjacent-if-possible)
  *   Tower   – [Phase 1] place 1 extra settlement on a board-edge cell (adjacent-if-possible)
  *   Oracle  – [Phase 1] place 1 extra settlement on the terrain shown on your terrain card (adjacent-if-possible)
  *   Tavern  – [Phase 1] place 1 extra settlement at the end of a horizontal row of ≥3 of your settlements
- *   Harbor  – [Phase 2 TODO] official: move 1 settlement onto a Water cell; currently still places near water
- *   Paddock – [Phase 2 TODO] official: move exactly 2 hexes in a straight line; currently moves ≤2 any direction
- *   Barn    – [Phase 2 TODO] official: move to terrain card's terrain; currently moves to settlement's own terrain
+ *   Harbor  – [Phase 2] move 1 existing settlement onto a Water cell (adjacent-if-possible to your other settlements; bypasses isBuildable)
+ *   Paddock – [Phase 2] move exactly 2 hexes in one of the 6 straight hex directions (can jump over occupied cells)
+ *   Barn    – [Phase 2] move 1 settlement to the terrain of the current terrain card (adjacent-if-possible)
  */
 
-import { AxialCoord, hexNeighbors, hexDistance, hexToKey } from './hex';
+import { AxialCoord, hexNeighbors, hexToKey, HEX_DIRECTIONS } from './hex';
 import { Board } from './board';
 import { Terrain, Location, isBuildable } from './terrain';
 
@@ -106,7 +106,11 @@ export function getFarmPlacements(board: Board, playerId: number): AxialCoord[] 
 }
 
 /**
- * Harbor: any unoccupied buildable cell that is adjacent to at least one Water cell.
+ * @deprecated Harbor is now a movement tile (Phase 2). This function is no longer
+ * called by getExtraPlacementPositions or any active code path. Kept for backwards
+ * compatibility with external callers / old tests only.
+ *
+ * Harbor (old, incorrect): any unoccupied buildable cell adjacent to at least one Water cell.
  */
 export function getHarborPlacements(board: Board): AxialCoord[] {
   return board
@@ -117,6 +121,59 @@ export function getHarborPlacements(board: Board): AxialCoord[] {
       hexNeighbors(cell.coord).some(n => board.getCell(n)?.terrain === Terrain.Water)
     )
     .map(cell => cell.coord);
+}
+
+/**
+ * Harbor (Phase 2, official): Returns all unoccupied Water cells the player can
+ * move a settlement onto.  Any Water cell that is unoccupied is valid as a
+ * destination (isBuildable is intentionally NOT checked — Water is the only
+ * terrain that bypasses that gate).
+ *
+ * adjacent-if-possible is applied AFTER computing destinations, using a virtual
+ * "from" exclusion: we consider the player's settlements excluding the one being
+ * moved.  In practice getMovementOptions handles the per-from iteration, and
+ * applyAdjacentIfPossible is called per `from` with a temporary board view.
+ *
+ * @param board     Current board state
+ * @param from      The settlement being moved (used only to exclude it from
+ *                  the adjacency check — the source cell will be vacated)
+ * @param playerId  The moving player (for adjacent-if-possible)
+ */
+export function getHarborDestinations(
+  board: Board,
+  from: AxialCoord,
+  playerId: number
+): AxialCoord[] {
+  const fromKey = hexToKey(from);
+
+  // All unoccupied Water cells (bypasses isBuildable)
+  const candidates = board
+    .getCellsByTerrain(Terrain.Water)
+    .filter(cell => cell.settlement === undefined)
+    .map(cell => cell.coord);
+
+  if (candidates.length === 0) return [];
+
+  // Build adjacency set from player settlements, excluding the `from` cell
+  // (since it will be vacated once moved)
+  const playerSettlements = board
+    .getPlayerSettlements(playerId)
+    .filter(cell => hexToKey(cell.coord) !== fromKey);
+
+  if (playerSettlements.length === 0) {
+    // No other settlements → no adjacency constraint, return all Water candidates
+    return candidates;
+  }
+
+  const neighbourKeys = new Set<string>();
+  for (const cell of playerSettlements) {
+    for (const n of hexNeighbors(cell.coord)) {
+      neighbourKeys.add(hexToKey(n));
+    }
+  }
+
+  const adjacent = candidates.filter(c => neighbourKeys.has(hexToKey(c)));
+  return adjacent.length > 0 ? adjacent : candidates;
 }
 
 /**
@@ -225,7 +282,9 @@ export function getTavernPlacements(board: Board, playerId: number): AxialCoord[
 
 /**
  * Get valid extra-placement positions for a placement-type tile.
- * Returns an empty array for movement tiles (Paddock, Barn).
+ * Returns an empty array for movement tiles (Harbor, Paddock, Barn).
+ *
+ * Harbor is now a movement tile (Phase 2) and therefore no longer appears here.
  *
  * @param currentTerrain  Required for Oracle (the terrain shown on the drawn
  *                        terrain card).  Ignored by other placement tiles.
@@ -238,13 +297,13 @@ export function getExtraPlacementPositions(
 ): AxialCoord[] {
   switch (location) {
     case Location.Farm:    return getFarmPlacements(board, playerId);
-    case Location.Harbor:  return getHarborPlacements(board);
     case Location.Oasis:   return getOasisPlacements(board, playerId);
     case Location.Tower:   return getTowerPlacements(board, playerId);
     case Location.Oracle:
       if (currentTerrain === undefined) return [];
       return getOraclePlacements(board, playerId, currentTerrain);
     case Location.Tavern:  return getTavernPlacements(board, playerId);
+    // Harbor, Paddock, Barn are movement tiles → return empty
     default:               return [];
   }
 }
@@ -254,9 +313,12 @@ export function getExtraPlacementPositions(
 // ────────────────────────────────────────────────────
 
 /**
- * For a given settlement position, return all cells the settlement
- * can be moved to for the Paddock tile (up to 2 hexes away, any buildable
- * unoccupied cell, must be a different cell).
+ * Paddock (Phase 2, official): For a given settlement position, return all cells
+ * the settlement can be moved to.  The settlement moves exactly 2 hexes in one
+ * of the 6 straight hex directions (jumping over any occupied intermediate cell).
+ *
+ * Only destinations that exist on the board, are buildable, and are unoccupied
+ * are returned.
  */
 export function getPaddockDestinations(
   board: Board,
@@ -265,41 +327,63 @@ export function getPaddockDestinations(
   const fromCell = board.getCell(from);
   if (!fromCell) return [];
 
-  return board
-    .getAllCells()
-    .filter(cell =>
-      isBuildable(cell.terrain) &&
-      cell.settlement === undefined &&
-      hexDistance(from, cell.coord) > 0 &&
-      hexDistance(from, cell.coord) <= 2
-    )
-    .map(cell => cell.coord);
+  const destinations: AxialCoord[] = [];
+
+  for (const dir of HEX_DIRECTIONS) {
+    const dest: AxialCoord = { q: from.q + dir.q * 2, r: from.r + dir.r * 2 };
+    const destCell = board.getCell(dest);
+    if (destCell && isBuildable(destCell.terrain) && destCell.settlement === undefined) {
+      destinations.push(dest);
+    }
+  }
+
+  return destinations;
 }
 
 /**
- * For a given settlement position, return all cells the settlement can be
- * moved to for the Barn tile (any unoccupied cell with the same terrain type,
- * anywhere on the board).
+ * Barn (Phase 2, official): For a given settlement position, return all cells
+ * the settlement can be moved to.  The destination terrain must match the
+ * **current terrain card** (not the settlement's own terrain).
+ *
+ * adjacent-if-possible is applied so that destinations adjacent to the player's
+ * other settlements are preferred.
+ *
+ * @param board           Current board state
+ * @param from            The settlement being moved
+ * @param currentTerrain  The terrain shown on the current terrain card
+ * @param playerId        The moving player (for adjacent-if-possible)
  */
-export function getBarnDestinations(board: Board, from: AxialCoord): AxialCoord[] {
+export function getBarnDestinations(
+  board: Board,
+  from: AxialCoord,
+  currentTerrain: Terrain,
+  playerId: number
+): AxialCoord[] {
   const fromCell = board.getCell(from);
   if (!fromCell) return [];
-  const terrain = fromCell.terrain;
 
-  return board
-    .getCellsByTerrain(terrain)
-    .filter(cell => cell.settlement === undefined)
+  const candidates = board
+    .getCellsByTerrain(currentTerrain)
+    .filter(cell => cell.settlement === undefined && hexToKey(cell.coord) !== hexToKey(from))
     .map(cell => cell.coord);
+
+  return applyAdjacentIfPossible(board, candidates, playerId);
 }
 
 /**
- * Returns all valid moves for a movement tile (Paddock or Barn).
+ * Returns all valid moves for a movement tile (Harbor, Paddock, or Barn).
  * Each entry describes one source settlement and its possible destinations.
+ *
+ * @param location        The tile being activated
+ * @param board           Current board state
+ * @param playerId        The moving player
+ * @param currentTerrain  Required for Barn (terrain card terrain); ignored by others
  */
 export function getMovementOptions(
   location: Location,
   board: Board,
-  playerId: number
+  playerId: number,
+  currentTerrain?: Terrain
 ): { from: AxialCoord; destinations: AxialCoord[] }[] {
   const playerSettlements = board.getPlayerSettlements(playerId);
   const options: { from: AxialCoord; destinations: AxialCoord[] }[] = [];
@@ -307,10 +391,13 @@ export function getMovementOptions(
   for (const cell of playerSettlements) {
     let destinations: AxialCoord[];
 
-    if (location === Location.Paddock) {
+    if (location === Location.Harbor) {
+      destinations = getHarborDestinations(board, cell.coord, playerId);
+    } else if (location === Location.Paddock) {
       destinations = getPaddockDestinations(board, cell.coord);
     } else if (location === Location.Barn) {
-      destinations = getBarnDestinations(board, cell.coord);
+      if (currentTerrain === undefined) continue;
+      destinations = getBarnDestinations(board, cell.coord, currentTerrain, playerId);
     } else {
       continue;
     }
@@ -327,27 +414,46 @@ export function getMovementOptions(
  * Execute a movement tile action: move a player's settlement from `from` to `to`.
  * Validates the move is legal before executing.
  * Returns true on success, false if the move is invalid.
+ *
+ * @param location        The tile being activated
+ * @param board           Current board state
+ * @param playerId        The moving player
+ * @param from            Source cell (must have player's settlement)
+ * @param to              Destination cell
+ * @param currentTerrain  Required for Barn validation (terrain card terrain)
  */
 export function executeMoveTile(
   location: Location,
   board: Board,
   playerId: number,
   from: AxialCoord,
-  to: AxialCoord
+  to: AxialCoord,
+  currentTerrain?: Terrain
 ): boolean {
   const fromCell = board.getCell(from);
   const toCell = board.getCell(to);
 
   if (!fromCell || fromCell.settlement !== playerId) return false;
   if (!toCell || toCell.settlement !== undefined) return false;
-  if (!isBuildable(toCell.terrain)) return false;
 
   let valid = false;
-  if (location === Location.Paddock) {
-    const dist = hexDistance(from, to);
-    valid = dist > 0 && dist <= 2;
+
+  if (location === Location.Harbor) {
+    // Harbor bypasses isBuildable — destination must be a Water cell
+    valid = toCell.terrain === Terrain.Water;
+  } else if (location === Location.Paddock) {
+    // Must be buildable
+    if (!isBuildable(toCell.terrain)) return false;
+    // Exactly 2 steps in one straight hex direction
+    valid = HEX_DIRECTIONS.some(
+      dir => to.q === from.q + dir.q * 2 && to.r === from.r + dir.r * 2
+    );
   } else if (location === Location.Barn) {
-    valid = fromCell.terrain === toCell.terrain;
+    // Must be buildable
+    if (!isBuildable(toCell.terrain)) return false;
+    // Destination terrain must match the current terrain card
+    if (currentTerrain === undefined) return false;
+    valid = toCell.terrain === currentTerrain;
   }
 
   if (!valid) return false;
