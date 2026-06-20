@@ -9,19 +9,27 @@
  * ⚠️ authority + client_id 必須與 portal lids-adapter.ts 完全一致，
  *    才能對上 sessionStorage key：
  *    `oidc.user:${authority}:${client_id}`
- *    = `oidc.user:http://192.168.50.199:8073:hd-portal-199`
+ *
+ *    真值（.env.production，prod/.199 部署實際採用）：
+ *    portal 與 kingdom 皆 VITE_LIDS_ISSUER=http://localhost:8073、
+ *    VITE_LIDS_CLIENT_ID=hd-portal-199
+ *    → `oidc.user:http://localhost:8073:hd-portal-199`
+ *
+ *    fallback（無 env 的 dev 情境）：對齊 portal lids-adapter.ts（dev placeholder）
+ *    issuer=http://localhost:8073、client_id=hd-portal-dev，
+ *    讓 portal 寫入 / kingdom 讀取的 key 在無 env 時也對得上。
  *
  * ⛔ 不含 client_secret（Public PKCE client）
  */
 
-// ── env 讀取（與 portal .env.production 一致） ─────────────────────────────
+// ── env 讀取（與 portal lids-adapter.ts fallback 一致） ────────────────────
 const LIDS_ISSUER =
   (import.meta.env.VITE_LIDS_ISSUER as string | undefined) ??
-  'http://192.168.50.199:8073'
+  'http://localhost:8073'
 
 const LIDS_CLIENT_ID =
   (import.meta.env.VITE_LIDS_CLIENT_ID as string | undefined) ??
-  'hd-portal-199'
+  'hd-portal-dev'
 
 export interface LidsUserProfile {
   sub: string
