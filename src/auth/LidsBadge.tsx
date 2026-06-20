@@ -15,8 +15,14 @@ interface LidsBadgeProps {
   variant?: 'header' | 'menu'
 }
 
+// 大廳（hd-portal）入口。共享 session 讀不到時，引導玩家回大廳登入。
+const LOBBY_URL = 'https://192.168.50.199:8443/'
+
 export function LidsBadge({ variant = 'header' }: LidsBadgeProps) {
-  const { user, clearSession } = useLidsSession()
+  const { loading, user, clearSession } = useLidsSession()
+
+  // 仍在讀取共享 session，先不顯示未登入提示避免閃爍誤判
+  if (loading) return null
 
   if (variant === 'menu') {
     if (user) {
@@ -46,17 +52,19 @@ export function LidsBadge({ variant = 'header' }: LidsBadgeProps) {
     }
     return (
       <a
-        href="https://192.168.50.199:8443/"
-        className="hidden sm:inline-block text-xs px-2 py-1 rounded opacity-60 hover:opacity-90 transition"
+        href={LOBBY_URL}
+        className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-90 transition"
         style={{
           backgroundColor: 'var(--color-warm-cream-300)',
-          color: 'var(--color-stone-600)',
+          color: 'var(--color-stone-700)',
           border: '1px solid var(--card-border)',
           textDecoration: 'none',
         }}
-        title="Go to portal to sign in"
+        title="回大廳登入"
+        aria-label="尚未登入，請先在大廳登入"
       >
-        未登入
+        <span aria-hidden="true">⤺</span>
+        請先在大廳登入
       </a>
     )
   }
@@ -85,16 +93,18 @@ export function LidsBadge({ variant = 'header' }: LidsBadgeProps) {
   }
   return (
     <a
-      href="https://192.168.50.199:8443/"
-      className="hidden sm:inline-block text-xs px-2 py-1 rounded opacity-60 hover:opacity-90 transition"
+      href={LOBBY_URL}
+      className="hidden sm:inline-flex items-center gap-1 text-xs px-2 py-1 rounded hover:opacity-90 transition"
       style={{
         backgroundColor: 'oklch(0 0 0 / 0.2)',
         color: 'var(--color-warm-cream-50)',
         textDecoration: 'none',
       }}
-      title="Go to portal to sign in"
+      title="回大廳登入"
+      aria-label="尚未登入，請先在大廳登入"
     >
-      未登入
+      <span aria-hidden="true">⤺</span>
+      請先在大廳登入
     </a>
   )
 }

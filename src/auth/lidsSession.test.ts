@@ -5,7 +5,9 @@
 import { describe, it, expect, beforeEach } from 'vitest'
 import { getSharedLidsUser, clearSharedLidsSession } from './lidsSession'
 
-const OIDC_KEY = 'oidc.user:http://192.168.50.199:8073:hd-portal-199'
+// 測試在 vitest（無 VITE_LIDS_* env 注入）下執行 → 被測程式碼走 fallback：
+// issuer=http://localhost:8073、client_id=hd-portal-dev（對齊 portal lids-adapter.ts）
+const OIDC_KEY = 'oidc.user:http://localhost:8073:hd-portal-dev'
 
 function makeEntry(overrides: Record<string, unknown> = {}): string {
   return JSON.stringify({
@@ -95,6 +97,26 @@ describe('getSharedLidsUser', () => {
 
   it('invalid JSON → returns null (no throw)', async () => {
     window.sessionStorage.setItem(OIDC_KEY, 'not-valid-json{{{')
+    const result = await getSharedLidsUser()
+    expect(result).toBeNull()
+  })
+
+  // 回歸護欄：fallback key 必須與 portal lids-adapter.ts fallback 對得上。
+  // 若有人把 issuer/client_id fallback 改回與 portal 不一致的字面（如舊的
+  // 192.168.50.199:8073 / hd-portal-199），portal 寫入的 entry 將讀不到。
+  it('reads the portal-aligned fallback key (no env) → returns profile', async () => {
+    // portal lids-adapter.ts dev fallback 寫入的 key
+    const portalFallbackKey = 'oidc.user:http://localhost:8073:hd-portal-dev'
+    window.sessionStorage.setItem(portalFallbackKey, makeEntry())
+    const result = await getSharedLidsUser()
+    expect(result).not.toBeNull()
+    expect(result?.sub).toBe('user-sub-001')
+  })
+
+  it('entry under the OLD mismatched key (192.168.50.199 / hd-portal-199) → NOT read', async () => {
+    // 證明 fallback 已不再用舊的不一致字面：舊 key 下的 entry 必須讀不到
+    const oldMismatchedKey = 'oidc.user:http://192.168.50.199:8073:hd-portal-199'
+    window.sessionStorage.setItem(oldMismatchedKey, makeEntry())
     const result = await getSharedLidsUser()
     expect(result).toBeNull()
   })
