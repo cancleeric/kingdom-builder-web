@@ -107,11 +107,11 @@ describe('E-01: activate_tile returns Farm when placement positions exist', () =
 describe('E-02: activate_tile returns [] when Farm has no valid positions', () => {
   it('returns [] when every grass cell is already occupied', () => {
     const G = makeGWithTile(Location.Farm);
-    // Occupy every cell on the board so there are no empty grass cells
+    // Occupy ALL grass cells (including Castle-location cells which are also Grass terrain)
+    // so that getFarmPlacements returns no candidates.
     for (const cell of G.board.getAllCells()) {
-      if (cell.terrain === Terrain.Grass && cell.location === undefined) {
-        // Mark occupied by player 2 (so farm still won't match player 1's adjacency)
-        cell.settlement = 2;
+      if (cell.terrain === Terrain.Grass) {
+        cell.settlement = 2; // mark as player 2 occupied
       }
     }
     const match = matchFrom(G);
