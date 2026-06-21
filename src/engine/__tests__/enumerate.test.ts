@@ -23,7 +23,7 @@
 import { describe, it, expect } from 'vitest';
 import { kingdomGame } from '../adapter';
 import { Location, Terrain } from '../../core/terrain';
-import { GamePhase, BotDifficulty } from '../../types';
+import { GamePhase } from '../../types';
 import type { KingdomG } from '../types';
 import type { MatchState } from '@hd/game-kit/engine';
 import { buildMinimalBoard, buildTwoPlayers, DEFAULT_OPTIONS, GRASS_CARD } from './fixtures/minimalG';
