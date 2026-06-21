@@ -34,10 +34,6 @@ import {
   makeFixtureA,
   makeFixtureB,
   makeFixtureC,
-  buildMinimalBoard,
-  buildTwoPlayers,
-  GRASS_CARD,
-  DEFAULT_OPTIONS,
 } from './fixtures/minimalG';
 import type { KingdomG } from '../types';
 import type { MatchState } from '@hd/game-kit/engine';
@@ -57,14 +53,6 @@ function matchFrom(G: KingdomG, currentPlayer = 0, phase = 'DrawCard'): MatchSta
       gameover: null,
     },
   };
-}
-
-/** Run drawCard on a DrawCard-phase match, return the resulting match. */
-function doDrawCard(match: MatchState<KingdomG>): MatchState<KingdomG> {
-  const r = reduce(kingdomGame, match, { type: 'draw_terrain_card' });
-  expect(r.ok).toBe(true);
-  if (!r.ok) throw new Error('drawCard failed');
-  return r.state;
 }
 
 /** Run placeSettlement at coord on a PlaceSettlements-phase match. */
