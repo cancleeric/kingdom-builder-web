@@ -151,7 +151,7 @@ describe('T-02: parallel validation of legal placement set', () => {
 //       AND exposes known adapter bug in placeSettlement move.
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('T-03: adjacency rule — getValidPlacements() vs engine divergence (adapter bug)', () => {
+describe('T-03: adjacency rule — getValidPlacements() and engine both enforce constraint', () => {
   it('getValidPlacements() with placementsThisTurn restricts 2nd placement to neighbours', () => {
     // Verify the RULE itself is correct in rules.ts
     const G = makeFixtureB();
@@ -184,24 +184,29 @@ describe('T-03: adjacency rule — getValidPlacements() vs engine divergence (ad
     expect(hasFarCellUnrestricted).toBe(true);
   });
 
-  /**
-   * KNOWN ADAPTER BUG (do not fix in this PR — additive test PR only):
-   *
-   * placeSettlement in moves.ts calls:
-   *   isValidPlacement(G.board, coord, terrain, currentPlayer.id)
-   * which internally calls:
-   *   getValidPlacements(board, terrain, playerId)   ← NO placementsThisTurn
-   *
-   * This means the adjacency constraint is NOT enforced for 2nd/3rd placements.
-   * Far-away Grass cell (10,10) is incorrectly accepted after 1st placement at (1,1).
-   *
-   * Fix required in moves.ts (outside scope of this additive PR):
-   *   Replace isValidPlacement(...) with:
-   *   const valid = getValidPlacements(G.board, G.currentTerrainCard.terrain,
-   *                                    currentPlayer.id, G.placementsThisTurn);
-   *   if (!valid.some(v => hexEquals(v, coord))) throw new Error(...);
-   */
-  it.todo('BUG: adapter placeSettlement does not enforce adjacency for 2nd/3rd placement (moves.ts must use getValidPlacements+placementsThisTurn instead of isValidPlacement)');
+  it('engine enforces adjacency: non-adjacent 2nd placement (when adjacent exists) returns ok:false', () => {
+    const G = makeFixtureB();
+    const match = matchFrom(G, 0, 'PlaceSettlements');
+
+    // 1st placement at (1,1) — unrestricted, should succeed
+    const r1 = doPlace(match, { q: 1, r: 1 });
+    expect(r1.ok).toBe(true);
+    if (!r1.ok) return;
+
+    const G2 = r1.state.G;
+    // Confirm adjacent options exist for 2nd placement
+    const terrain = G2.currentTerrainCard!.terrain;
+    const playerId = G2.players[0].id;
+    const valid2 = getValidPlacements(G2.board, terrain, playerId, G2.placementsThisTurn);
+    expect(valid2.length).toBeGreaterThan(0);
+    // (10,10) must NOT be in the adjacency-restricted valid set
+    expect(valid2.some(c => c.q === 10 && c.r === 10)).toBe(false);
+
+    // 2nd placement at far-away (10,10) must now be rejected by the engine
+    const match2 = matchFrom(G2, 0, 'PlaceSettlements');
+    const r2 = doPlace(match2, { q: 10, r: 10 });
+    expect(r2.ok).toBe(false); // adjacency bug fixed: engine now enforces constraint
+  });
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -328,8 +333,8 @@ describe('T-07: Mountain cell is rejected', () => {
 //       (documents the same adapter bug as T-03)
 // ─────────────────────────────────────────────────────────────────────────────
 
-describe('T-08: adapter bug — non-adjacent 2nd placement is incorrectly accepted', () => {
-  it('getValidPlacements() correctly excludes far cell from 2nd placement options', () => {
+describe('T-08: non-adjacent 2nd placement is rejected after adjacency fix', () => {
+  it('engine and getValidPlacements() agree: far cell rejected for 2nd placement when adjacent exists', () => {
     const G = makeFixtureB();
     const match = matchFrom(G, 0, 'PlaceSettlements');
 
@@ -340,7 +345,7 @@ describe('T-08: adapter bug — non-adjacent 2nd placement is incorrectly accept
 
     const G2 = r1.state.G;
 
-    // Confirm getValidPlacements() correctly excludes (10,10) from 2nd placement
+    // getValidPlacements() correctly excludes (10,10) from 2nd placement
     const validByRules = getValidPlacements(
       G2.board,
       G2.currentTerrainCard!.terrain,
@@ -348,18 +353,13 @@ describe('T-08: adapter bug — non-adjacent 2nd placement is incorrectly accept
       G2.placementsThisTurn
     );
     expect(validByRules.length).toBeGreaterThan(0);
-    const farInValid = validByRules.some(c => c.q === 10 && c.r === 10);
-    expect(farInValid).toBe(false); // rules.ts correctly excludes it
+    expect(validByRules.some(c => c.q === 10 && c.r === 10)).toBe(false);
 
-    // Document current (buggy) engine behaviour: adapter ACCEPTS the far cell
-    // because placeSettlement uses isValidPlacement without placementsThisTurn
+    // Engine now enforces the same adjacency constraint — far cell must be rejected
     const match2 = matchFrom(G2, 0, 'PlaceSettlements');
     const r2 = doPlace(match2, { q: 10, r: 10 });
-    // Documenting actual (incorrect) behaviour — should be false after bug fix
-    expect(r2.ok).toBe(true); // BUG: should be false; fix moves.ts isValidPlacement call
+    expect(r2.ok).toBe(false); // adjacency bug fixed: engine and rules.ts now agree
   });
-
-  it.todo('BUG confirmed: placeSettlement must validate with placementsThisTurn — fix in moves.ts line ~197');
 });
 
 // ─────────────────────────────────────────────────────────────────────────────
