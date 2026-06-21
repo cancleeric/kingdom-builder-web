@@ -16,9 +16,10 @@
 import { defineGame } from '@hd/game-kit/engine';
 import type { GameContext } from '@hd/game-kit/engine';
 import { Board, createModularBoard } from '../core/board';
-import { createTerrainDeck, shuffleDeck } from '../core/terrain';
+import { createTerrainDeck, shuffleDeck, Location } from '../core/terrain';
 import { ObjectiveCard, calculatePlayerScore } from '../core/scoring';
 import { getValidPlacements } from '../core/rules';
+import { getExtraPlacementPositions, getMovementOptions } from '../core/location';
 import { GamePhase, BotDifficulty } from '../types';
 import type { Player, PlayerScore } from '../types';
 import type { KingdomG } from './types';
@@ -165,6 +166,65 @@ function enumerate(
     'undo_last_action',
   ]);
   if (noPayloadMoves.has(moveId)) return [undefined];
+
+  // Movement tiles: Harbor, Paddock, Barn
+  const movementTiles = new Set<Location>([Location.Harbor, Location.Paddock, Location.Barn]);
+
+  if (moveId === 'activate_tile') {
+    const player = G.players.find(p => p.id === playerId + 1);
+    if (!player) return [];
+    const validLocations: Location[] = [];
+    for (const tile of player.tiles) {
+      if (tile.usedThisTurn) continue;
+      const loc = tile.location as Location;
+      if (movementTiles.has(loc)) {
+        // Movement tile: only activate if there are valid movement options
+        const options = getMovementOptions(
+          loc,
+          G.board,
+          playerId + 1,
+          G.currentTerrainCard?.terrain
+        );
+        if (options.length > 0) validLocations.push(loc);
+      } else {
+        // Placement tile: only activate if there are valid placement positions
+        const positions = getExtraPlacementPositions(
+          loc,
+          G.board,
+          playerId + 1,
+          G.currentTerrainCard?.terrain
+        );
+        if (positions.length > 0) validLocations.push(loc);
+      }
+    }
+    return validLocations;
+  }
+
+  if (moveId === 'apply_tile_placement') {
+    if (!G.activeTile || movementTiles.has(G.activeTile)) return [];
+    return getExtraPlacementPositions(
+      G.activeTile,
+      G.board,
+      playerId + 1,
+      G.currentTerrainCard?.terrain
+    );
+  }
+
+  if (moveId === 'select_tile_move_source') {
+    if (!G.activeTile || !movementTiles.has(G.activeTile)) return [];
+    const options = getMovementOptions(
+      G.activeTile,
+      G.board,
+      playerId + 1,
+      G.currentTerrainCard?.terrain
+    );
+    return options.map(o => o.from);
+  }
+
+  if (moveId === 'apply_tile_move') {
+    if (!G.tileMoveFrom) return [];
+    return G.tileMoveDestinations;
+  }
 
   return [];
 }
