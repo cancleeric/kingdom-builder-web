@@ -17,7 +17,7 @@
     "qa:smoke": "node scripts/qa-smoke.mjs"
   },
   "dependencies": {
-    "@hd/game-kit": "github:cancleeric/hd-game-kit#v0.2.0",
+    "@hd/game-kit": "github:cancleeric/hd-game-kit#v0.3.0",
     "autoprefixer": "^10.4.24",
     "i18next": "^26.0.4",
     "oidc-client-ts": "^3.5.0",
