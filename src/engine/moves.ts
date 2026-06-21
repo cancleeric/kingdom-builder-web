@@ -20,9 +20,9 @@
 import type { GameContext } from '@hd/game-kit/engine';
 import { Board } from '../core/board';
 import type { AxialCoord } from '../core/hex';
-import { hexToKey } from '../core/hex';
+import { hexToKey, hexEquals } from '../core/hex';
 import { Location, isBuildable, drawCard, shuffleDeck, createTerrainDeck } from '../core/terrain';
-import { getValidPlacements, isValidPlacement } from '../core/rules';
+import { getValidPlacements } from '../core/rules';
 import {
   getExtraPlacementPositions,
   getMovementOptions,
@@ -194,7 +194,13 @@ export function placeSettlement(
 
   const currentPlayer = G.players[G.currentPlayerIndex];
 
-  if (!isValidPlacement(G.board, coord, G.currentTerrainCard.terrain, currentPlayer.id)) {
+  const validCoords = getValidPlacements(
+    G.board,
+    G.currentTerrainCard.terrain,
+    currentPlayer.id,
+    G.placementsThisTurn
+  );
+  if (!validCoords.some(v => hexEquals(v, coord))) {
     throw new Error(`placeSettlement: invalid placement at ${coord.q},${coord.r}`);
   }
 
