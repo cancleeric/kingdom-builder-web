@@ -232,12 +232,25 @@ export const PixiBoard: React.FC<PixiBoardProps> = ({
           tileSprite.width  = 65 * TILE_DISPLAY_SCALE;  // 52px
           tileSprite.height = 89 * TILE_DISPLAY_SCALE;  // 71.2px
           tileSprite.position.set(center.x, center.y);
-          // Forest 底板染深綠色調以區分 Grass；Flower 底板保持原色（花裝飾自帶辨識）
+          // Forest 底板染深綠色調以區分 Grass；Desert 略提金黃飽和度區分 Flower
           if (terrainName === 'Forest') {
             tileSprite.tint = 0x7aad5c;  // 深草綠，讓 Forest 底板略深於 Grass
+          } else if (terrainName === 'Desert') {
+            tileSprite.tint = 0xf0c060;  // R2-2: 提飽和金黃，跟 Grass/Flower 拉開層次
           }
           tileLayer.addChild(tileSprite);
           tileSpriteMap.current.set(key, tileSprite);
+        }
+
+        // R2-1: Flower 底板與 Grass 色距為 0（同用 tileGrass.png 且無 tint），
+        // 疊一層半透明紫紅色 hex（色相對齊 TerrainSwatch/TerrainDefs 的 Flower 漸層 #F87898→#E04870），
+        // 用 drawHex 畫（非乘法 tint，可精準命中色相；tileGrass 缺藍色分量硬 tint 做不出紫）。
+        // 靜態疊色（不隨 hover/valid 變化），交由 app.destroy(true,{children:true}) 統一回收，
+        // 不需另建 Sprite/Texture map。
+        if (terrainName === 'Flower') {
+          const flowerTint = new Graphics();
+          drawHex(flowerTint, cell.coord, 0xe04870, 0.78);
+          tileLayer.addChild(flowerTint);
         }
 
         // R37a: 裝飾 Sprite（Forest=pine, Flower=flower）疊在 tileLayer 同深度位置
