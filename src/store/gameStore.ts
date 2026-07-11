@@ -155,6 +155,38 @@ function chooseBotTilePlacement(
   })[0] ?? null;
 }
 
+/**
+ * Pick the best (from, to) pair for a movement tile (Harbor/Paddock/Barn).
+ * Flattens every settlement's legal destinations and scores each candidate
+ * `to` coord the same way chooseBotTilePlacement scores placements, so the
+ * bot moves toward the most valuable board position instead of always
+ * taking the first legal (from, destination) pair it finds.
+ */
+function chooseBotTileMove(
+  board: Board,
+  playerId: number,
+  location: Location,
+  currentTerrain?: Terrain,
+): { from: AxialCoord; to: AxialCoord } | null {
+  const options = getMovementOptions(location, board, playerId, currentTerrain);
+  const pairs: { from: AxialCoord; to: AxialCoord }[] = [];
+  for (const option of options) {
+    for (const dest of option.destinations) {
+      pairs.push({ from: option.from, to: dest });
+    }
+  }
+  if (pairs.length === 0) return null;
+
+  return [...pairs].sort((a, b) => {
+    const scoreDelta = evaluateMove(board, b.to, playerId) - evaluateMove(board, a.to, playerId);
+    if (scoreDelta !== 0) return scoreDelta;
+    if (a.to.r !== b.to.r) return a.to.r - b.to.r;
+    if (a.to.q !== b.to.q) return a.to.q - b.to.q;
+    if (a.from.r !== b.from.r) return a.from.r - b.from.r;
+    return a.from.q - b.from.q;
+  })[0] ?? null;
+}
+
 function resetTileState() {
   return {
     activeTile: null as Location | null,
@@ -631,25 +663,21 @@ export const gameStore = create<GameState>((set, get) => ({
               get().cancelTile();
             }
           } else if (BOT_MOVEMENT_TILES.has(tile.location)) {
-            // Movement-type tile (Harbor, Paddock, Barn): pick best from→to and apply
-            const moveOptions = getMovementOptions(
-              tile.location,
+            // Movement-type tile (Harbor, Paddock, Barn): evaluate every
+            // (from, to) pair and pick the highest-scoring destination.
+            const best = chooseBotTileMove(
               latest.board,
               latestPlayer.id,
+              tile.location,
               latest.currentTerrainCard?.terrain
             );
-            if (moveOptions.length === 0) continue;
-
-            // Simple bot strategy: pick the first available move
-            const bestOption = moveOptions[0];
-            if (bestOption.destinations.length === 0) continue;
-            const bestDest = bestOption.destinations[0];
+            if (!best) continue;
 
             get().activateTile(tile.location);
-            get().selectTileMoveSource(bestOption.from);
+            get().selectTileMoveSource(best.from);
             const afterSource = get();
             const validDest = afterSource.tileMoveDestinations.find(
-              d => d.q === bestDest.q && d.r === bestDest.r
+              d => d.q === best.to.q && d.r === best.to.r
             );
             if (validDest) {
               get().applyTileMove(validDest);

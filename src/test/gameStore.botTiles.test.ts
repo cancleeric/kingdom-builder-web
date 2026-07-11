@@ -109,3 +109,90 @@ describe('Bot location tiles', () => {
     ]);
   });
 });
+
+// ────────────────────────────────────────────────────
+// Movement tiles (Harbor/Paddock/Barn) — bot evaluates candidate
+// destinations instead of always taking the first legal (from, to) pair.
+// ────────────────────────────────────────────────────
+
+/**
+ * Bot has an existing settlement at (5,5) plus a Paddock tile. All 6 Paddock
+ * destinations (2 hexes away in each direction) are legal, but only the
+ * West destination (3,5) is adjacent to a Castle-flagged cell (2,5) — giving
+ * it a strictly higher `evaluateMove` score than every other destination
+ * (including (7,5), which would be picked by a naive "take the first option"
+ * strategy since East is first in HEX_DIRECTIONS).
+ *
+ * The terrain card is Water (unbuildable) so the bot's normal per-turn
+ * settlement placements find zero valid cells and skip straight to
+ * EndTurn — isolating the test to the movement-tile decision only.
+ */
+function setupBotPaddockTurn() {
+  useGameStore.getState().initGame(players, {
+    boardSize: 'small',
+    objectiveCount: 3,
+    enableUndo: true,
+  });
+
+  const state = useGameStore.getState();
+  for (const cell of state.board.getAllCells()) {
+    cell.terrain = Terrain.Grass;
+    cell.location = undefined;
+    cell.settlement = undefined;
+  }
+
+  const botId = state.players[1].id;
+  state.board.getCell({ q: 5, r: 5 })!.settlement = botId;
+  state.board.getCell({ q: 2, r: 5 })!.location = Location.Castle;
+
+  useGameStore.setState({
+    currentPlayerIndex: 1,
+    phase: GamePhase.DrawCard,
+    currentTerrainCard: null,
+    deck: [{ terrain: Terrain.Water }],
+    validPlacements: [],
+    players: state.players.map((player, index) =>
+      index === 1
+        ? {
+            ...player,
+            settlements: [{ q: 5, r: 5 }],
+            remainingSettlements: 40,
+            tiles: [{ location: Location.Paddock, usedThisTurn: false }],
+          }
+        : player
+    ),
+  });
+}
+
+describe('Bot movement tiles', () => {
+  beforeEach(() => {
+    vi.useFakeTimers();
+  });
+
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it('picks the highest-scoring destination instead of the first legal one', () => {
+    setupBotPaddockTurn();
+
+    useGameStore.getState().triggerBotTurn();
+    vi.runAllTimers();
+
+    const state = useGameStore.getState();
+    const bot = state.players[1];
+    const moveActions = state.history.filter(action => action.type === 'TILE_MOVE');
+
+    expect(moveActions).toHaveLength(1);
+    expect(moveActions[0]).toMatchObject({
+      fromHex: { q: 5, r: 5 },
+      toHex: { q: 3, r: 5 },
+    });
+    expect(state.board.getCell({ q: 3, r: 5 })?.settlement).toBe(bot.id);
+    expect(state.board.getCell({ q: 5, r: 5 })?.settlement).toBeUndefined();
+    // Naive "first direction" pick (East, distance 2) must NOT be chosen.
+    expect(state.board.getCell({ q: 7, r: 5 })?.settlement).toBeUndefined();
+    // The bot's move landed on the settlements list too.
+    expect(bot.settlements).toContainEqual({ q: 3, r: 5 });
+  });
+});
