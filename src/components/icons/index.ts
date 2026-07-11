@@ -9,6 +9,18 @@ export { BarnIcon } from './BarnIcon'
 export { OracleIcon } from './OracleIcon'
 export { TavernIcon } from './TavernIcon'
 
+// Objective card icons
+export { FishermanIcon } from './FishermanIcon'
+export { MinersIcon } from './MinersIcon'
+export { KnightsIcon } from './KnightsIcon'
+export { FarmersIcon } from './FarmersIcon'
+export { MerchantsIcon } from './MerchantsIcon'
+export { DiscoverersIcon } from './DiscoverersIcon'
+export { HermitsIcon } from './HermitsIcon'
+export { CitizensIcon } from './CitizensIcon'
+export { LordsIcon } from './LordsIcon'
+export { WorkersIcon } from './WorkersIcon'
+
 // Game icons
 export { PlayIcon } from './PlayIcon'
 export { PauseIcon } from './PauseIcon'
