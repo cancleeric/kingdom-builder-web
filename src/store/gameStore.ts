@@ -20,7 +20,7 @@ import {
   scoreObjectiveCard,
 } from '../core/scoring';
 import { GameAction, UndoSnapshot } from '../types/history';
-import { evaluateMove, selectBestMoves } from '../ai/botPlayer';
+import { evaluateMove, selectBestMoves, cloneBoard } from '../ai/botPlayer';
 
 // ────────────────────────────────────────────────────
 // State shape
@@ -169,16 +169,25 @@ function chooseBotTileMove(
   currentTerrain?: Terrain,
 ): { from: AxialCoord; to: AxialCoord } | null {
   const options = getMovementOptions(location, board, playerId, currentTerrain);
-  const pairs: { from: AxialCoord; to: AxialCoord }[] = [];
+  const pairs: { from: AxialCoord; to: AxialCoord; score: number }[] = [];
   for (const option of options) {
+    // Score against a clone with `from`'s settlement removed — otherwise a
+    // destination adjacent to `from` picks up a phantom +1 cluster bonus
+    // from the settlement that is about to vacate that cell.
+    const cleanedClone = cloneBoard(board);
+    const fromCell = cleanedClone.getCell(option.from);
+    if (fromCell) {
+      fromCell.settlement = undefined;
+      cleanedClone.setCell(fromCell);
+    }
     for (const dest of option.destinations) {
-      pairs.push({ from: option.from, to: dest });
+      pairs.push({ from: option.from, to: dest, score: evaluateMove(cleanedClone, dest, playerId) });
     }
   }
   if (pairs.length === 0) return null;
 
   return [...pairs].sort((a, b) => {
-    const scoreDelta = evaluateMove(board, b.to, playerId) - evaluateMove(board, a.to, playerId);
+    const scoreDelta = b.score - a.score;
     if (scoreDelta !== 0) return scoreDelta;
     if (a.to.r !== b.to.r) return a.to.r - b.to.r;
     if (a.to.q !== b.to.q) return a.to.q - b.to.q;

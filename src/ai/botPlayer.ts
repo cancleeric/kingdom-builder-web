@@ -445,7 +445,7 @@ export function selectBestMoves(
 // Board cloning utility
 // ------------------------------------------------------------------
 
-function cloneBoard(board: Board): Board {
+export function cloneBoard(board: Board): Board {
   const copy = new Board(board.width, board.height);
   for (const cell of board.getAllCells()) {
     copy.setCell({ ...cell });
